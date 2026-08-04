@@ -15,9 +15,12 @@
     "@slate/ai": "workspace:*",
     "@slate/db": "workspace:*",
     "@slate/shared": "workspace:*",
+    "@langchain/langgraph": "^0.2.33",
+    "drizzle-orm": "^0.38.3",
     "fastify": "^5.2.0"
   },
   "devDependencies": {
+    "@langchain/langgraph-checkpoint-sqlite": "^0.1.0",
     "@types/node": "^22.10.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",

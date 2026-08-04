@@ -20,6 +20,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@langchain/langgraph':
+        specifier: ^0.2.33
+        version: 0.2.74(@langchain/core@0.3.80)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod-to-json-schema@3.25.2(zod@3.25.76))
       '@slate/ai':
         specifier: workspace:*
         version: link:../../packages/ai
@@ -29,10 +32,16 @@ importers:
       '@slate/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      drizzle-orm:
+        specifier: ^0.38.3
+        version: 0.38.4(@types/better-sqlite3@7.6.13)(@types/pg@8.20.3)(@types/react@19.2.18)(better-sqlite3@12.11.1)(pg@8.22.0)(react@19.2.8)
       fastify:
         specifier: ^5.2.0
         version: 5.11.2
     devDependencies:
+      '@langchain/langgraph-checkpoint-sqlite':
+        specifier: ^0.1.0
+        version: 0.1.5(@langchain/core@0.3.80)(@langchain/langgraph-checkpoint@0.0.18(@langchain/core@0.3.80))
       '@types/node':
         specifier: ^22.10.2
         version: 22.20.1
