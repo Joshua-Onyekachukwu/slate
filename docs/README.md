@@ -1,4 +1,4 @@
-# Project Documentation — AI Video Studio ("videogen")
+# Project Documentation — AI Video Studio ("Slate")
 
 > **Status: DRAFTING** — All docs in this folder are written for your review. Nothing is implemented
 > until you approve. This README is the entry point and index for the whole suite.

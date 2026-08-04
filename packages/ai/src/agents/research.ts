@@ -1,5 +1,5 @@
 import type { Provider } from "../providers/types";
-import { ResearchPacketSchema, type Brief, type ResearchPacket } from "@videogen/shared";
+import { ResearchPacketSchema, type Brief, type ResearchPacket } from "@slate/shared";
 import { system } from "./planning";
 
 export async function researchAgent(provider: Provider, brief: Brief, feedback?: string): Promise<ResearchPacket> {

@@ -134,4 +134,4 @@ migration. The frontend and API import from `packages/shared` — no stringly-ty
 2. ~~Auth tables~~ → **Decided: Clerk (ADR-012/023)** — managed provider; no local auth tables. Clerk
    owns identity; `owner_id` stores Clerk user ids (`text`). Email/password initially, OAuth later.
 3. `messages` as a table (recommended) vs jsonb array — table chosen for durability/pagination.
-4. Open: product name (working title `videogen`).
+4. Decided: product name is **Slate** (ADR-025).

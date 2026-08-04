@@ -23,7 +23,7 @@
 ## Repo layout (per ADR-001)
 
 ```
-videogen/
+Slate/
 ├── apps/{web,api,worker}
 ├── packages/{ai,db,shared}
 ├── docs/
@@ -51,7 +51,7 @@ videogen/
 | Var | Used by | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | api, worker, db | Postgres connection (LangGraph checkpointer uses it too) — **full build** |
-| `DATABASE_PATH` | api, db | **Slice only (ADR-014):** sqlite file path, default `./data/videogen.db` (LangGraph `SqliteSaver` checkpointer uses the same file) |
+| `DATABASE_PATH` | api, db | **Slice only (ADR-014):** sqlite file path, default `./data/slate.db` (LangGraph `SqliteSaver` checkpointer uses the same file) |
 | `REDIS_URL` | worker, api | BullMQ broker |
 | `NVIDIA_API_KEY` | ai | Primary provider (build.nvidia.com) |
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | ai | Fallback providers (optional in Phase 1) |

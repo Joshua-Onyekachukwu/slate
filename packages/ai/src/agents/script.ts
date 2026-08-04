@@ -1,5 +1,5 @@
 import type { Provider } from "../providers/types";
-import { ScriptContentSchema, type Brief, type ScriptContent } from "@videogen/shared";
+import { ScriptContentSchema, type Brief, type ScriptContent } from "@slate/shared";
 import { system } from "./planning";
 
 export async function scriptAgent(provider: Provider, brief: Brief, feedback?: string): Promise<ScriptContent> {

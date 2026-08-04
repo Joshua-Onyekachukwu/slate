@@ -3,7 +3,7 @@ import "./globals.css";
 import { Nav } from "./components/nav";
 
 export const metadata: Metadata = {
-  title: "videogen — The Cutting Room",
+  title: "Slate — The Cutting Room",
   description:
     "AI creative studio — turn an idea into an approved, editable production plan.",
 };

@@ -1,5 +1,5 @@
 import type { Provider } from "../providers/types";
-import { SceneContentSchema, type SceneContent } from "@videogen/shared";
+import { SceneContentSchema, type SceneContent } from "@slate/shared";
 import { system } from "./planning";
 
 export async function editorAgent(provider: Provider, scenes: SceneContent[]) {

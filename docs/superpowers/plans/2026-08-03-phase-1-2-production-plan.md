@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the **first** release of videogen: idea → **approved, editable production plan** (quality-scored script → ordered storyboard of scenes → per-scene prompt packs), running locally on Postgres via Docker, **multi-user with Clerk-managed auth isolation from day one (ADR-022/023)**, with "The Cutting Room" UI.
+**Goal:** Build the **first** release of Slate: idea → **approved, editable production plan** (quality-scored script → ordered storyboard of scenes → per-scene prompt packs), running locally on Postgres via Docker, **multi-user with Clerk-managed auth isolation from day one (ADR-022/023)**, with "The Cutting Room" UI.
 
 **Architecture:** Fresh pnpm+Turborepo monorepo (the vertical slice is **skipped**, ADR-018). `apps/web` (Next.js), `apps/api` (Fastify), `packages/shared` (zod/enums), `packages/db` (Drizzle + Postgres), `packages/ai` (LangGraph workflow + provider abstraction). Per project: a LangGraph graph runs discovery → brief → research → script → review → storyboard → editor → prompts, pausing at human-review gates (`interrupt()` + `Command(resume=...)`) for research, script, and storyboard; approvals persist via a Postgres checkpointer. All AI calls go through the `Provider` interface (ADR-002) — NVIDIA Build in prod, `FakeProvider` in tests.
 
@@ -27,7 +27,7 @@
 ## File Structure
 
 ```
-videogen/  (fresh monorepo, created in Task 1)
+Slate/  (fresh monorepo, created in Task 1)
 ├── docker-compose.yml              # postgres:16 (ADR-004/011)
 ├── .env.example                    # DATABASE_URL + CLERK_* + provider keys
 ├── apps/
@@ -92,7 +92,7 @@ videogen/  (fresh monorepo, created in Task 1)
 `package.json`:
 ```json
 {
-  "name": "videogen",
+  "name": "slate",
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "scripts": {
@@ -142,7 +142,7 @@ data/
 
 `.env.example`:
 ```
-DATABASE_URL=postgres://videogen:videogen@localhost:5432/videogen
+DATABASE_URL=postgres://slate:slate@localhost:5432/slate
 NVIDIA_API_KEY=
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
@@ -159,17 +159,17 @@ FAKE_PROVIDER=0
 services:
   postgres:
     image: postgres:16
-    container_name: videogen-pg
+    container_name: slate-pg
     environment:
-      POSTGRES_USER: videogen
-      POSTGRES_PASSWORD: videogen
-      POSTGRES_DB: videogen
+      POSTGRES_USER: Slate
+      POSTGRES_PASSWORD: Slate
+      POSTGRES_DB: Slate
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U videogen"]
+      test: ["CMD-SHELL", "pg_isready -U slate"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -180,7 +180,7 @@ volumes:
 - [ ] **Step 2: Verify the workspace + Postgres boot**
 
 Run: `pnpm install && docker compose up -d`
-Expected: install succeeds; `docker ps` shows `videogen-pg` healthy.
+Expected: install succeeds; `docker ps` shows `slate-pg` healthy.
 
 - [ ] **Step 3: Commit**
 
@@ -208,11 +208,11 @@ git commit -m "chore: scaffold pnpm+turbo monorepo with docker postgres"
 ```ts
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { buildApp } from "./app";
-import { FakeProvider } from "@videogen/ai";
+import { FakeProvider } from "@slate/ai";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { runMigrations } from "@videogen/db";
+import { runMigrations } from "@slate/db";
 
-const TEST_URL = process.env.DATABASE_URL ?? "postgres://videogen:videogen@localhost:5432/videogen";
+const TEST_URL = process.env.DATABASE_URL ?? "postgres://slate:slate@localhost:5432/slate";
 // Fake verifier: maps a bearer token to a Clerk user id, so tests never call Clerk.
 const fakeVerify = (map: Record<string, string>) => async (token: string) => {
   const userId = map[token];
@@ -279,7 +279,7 @@ export function makeVerifyToken(secretKey = process.env.CLERK_SECRET_KEY): Token
 `apps/api/src/hooks.ts` — the owner-scoping gate every route uses:
 ```ts
 import type { FastifyRequest } from "fastify";
-import { db, projects } from "@videogen/db";
+import { db, projects } from "@slate/db";
 import { sql } from "drizzle-orm";
 import type { TokenVerifier } from "./auth";
 
@@ -347,7 +347,7 @@ git commit -m "feat(auth): clerk jwt verification, requireUser hook, owner-scope
 - Test: `packages/shared/src/schemas.test.ts`
 
 **Interfaces:**
-- Produces: `ProjectStage`, `StageStatus`, `ScriptStatus`, `CreatedBy`, `SceneStatus`, `StoryboardStatus`, `ProductionPlanStatus`; `BriefSchema`, `ResearchPacketSchema`, `ScriptContentSchema`, `ReviewScoresSchema`, `SceneContentSchema`, `PromptPackSchema`, `CharacterSchema`, `LocationSchema` + inferred TS types. Re-exported from `@videogen/shared`.
+- Produces: `ProjectStage`, `StageStatus`, `ScriptStatus`, `CreatedBy`, `SceneStatus`, `StoryboardStatus`, `ProductionPlanStatus`; `BriefSchema`, `ResearchPacketSchema`, `ScriptContentSchema`, `ReviewScoresSchema`, `SceneContentSchema`, `PromptPackSchema`, `CharacterSchema`, `LocationSchema` + inferred TS types. Re-exported from `@slate/shared`.
 
 - [ ] **Step 1: Write the failing schema tests**
 
@@ -509,7 +509,7 @@ export * from "./schemas";
 `packages/shared/package.json`:
 ```json
 {
-  "name": "@videogen/shared",
+  "name": "@slate/shared",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -550,7 +550,7 @@ git commit -m "feat(shared): enums and zod schemas for the full production-plan 
 - Test: `packages/db/src/schema.test.ts`
 
 **Interfaces:**
-- Consumes: `@videogen/shared` types.
+- Consumes: `@slate/shared` types.
 - Produces: `db` (drizzle client), `pool` (pg), `runMigrations()`, tables `projects`, `scripts`, `storyboards`, `scenes`.
 
 - [ ] **Step 1: Write the failing schema test**
@@ -563,7 +563,7 @@ import { sql } from "drizzle-orm";
 import pg from "pg";
 import { projects, scripts, storyboards, scenes } from "./schema";
 
-const TEST_URL = process.env.DATABASE_URL ?? "postgres://videogen:videogen@localhost:5432/videogen";
+const TEST_URL = process.env.DATABASE_URL ?? "postgres://slate:slate@localhost:5432/slate";
 
 describe("db schema", () => {
   let pool: pg.Pool;
@@ -676,7 +676,7 @@ Expected: FAIL — schema module missing.
 `packages/db/src/schema.ts`:
 ```ts
 import { pgTable, uuid, text, jsonb, integer, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
-import type { Brief, ResearchPacket, ScriptContent, ReviewScores, SceneContent, PromptPack, Character, Location } from "@videogen/shared";
+import type { Brief, ResearchPacket, ScriptContent, ReviewScores, SceneContent, PromptPack, Character, Location } from "@slate/shared";
 
 // No local `users` table (ADR-023) — Clerk owns identity; `owner_id` stores Clerk's `user_...` id.
 export const projects = pgTable("projects", {
@@ -761,7 +761,7 @@ export default defineConfig({
   schema: "./src/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
-  dbCredentials: { url: process.env.DATABASE_URL ?? "postgres://videogen:videogen@localhost:5432/videogen" },
+  dbCredentials: { url: process.env.DATABASE_URL ?? "postgres://slate:slate@localhost:5432/slate" },
 });
 ```
 
@@ -770,14 +770,14 @@ export default defineConfig({
 `packages/db/package.json`:
 ```json
 {
-  "name": "@videogen/db",
+  "name": "@slate/db",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": { "typecheck": "tsc --noEmit", "test": "vitest run", "generate": "drizzle-kit generate", "push": "drizzle-kit push", "migrate": "drizzle-kit migrate" },
-  "dependencies": { "@videogen/shared": "workspace:*", "drizzle-orm": "^0.38.0", "pg": "^8.13.0" },
+  "dependencies": { "@slate/shared": "workspace:*", "drizzle-orm": "^0.38.0", "pg": "^8.13.0" },
   "devDependencies": { "@types/pg": "^8.11.0", "drizzle-kit": "^0.30.0", "typescript": "^5.7.0", "vitest": "^2.1.0" }
 }
 ```
@@ -786,7 +786,7 @@ export default defineConfig({
 
 Run: `docker compose up -d && pnpm --filter db test`
 Expected: PASS. Then: `pnpm --filter db generate && pnpm --filter db migrate`
-Verify: `docker exec videogen-pg psql -U videogen -c '\dt'` lists `projects`, `scripts`, `storyboards`, `scenes` (+ drizzle journal). No local auth tables (ADR-023).
+Verify: `docker exec slate-pg psql -U slate -c '\dt'` lists `projects`, `scripts`, `storyboards`, `scenes` (+ drizzle journal). No local auth tables (ADR-023).
 
 - [ ] **Step 5: Commit**
 
@@ -804,7 +804,7 @@ git commit -m "feat(db): drizzle postgres schema for projects, scripts, storyboa
 - Test: `packages/ai/src/providers/types.test.ts`, `packages/ai/src/providers/nvidia.test.ts`
 
 **Interfaces:**
-- Consumes: `@videogen/shared` schemas.
+- Consumes: `@slate/shared` schemas.
 - Produces:
   - `interface Provider { name: string; complete<T>(input: { messages: ChatMessage[]; schema: ZodType<T> }): Promise<{ output: T; raw: string; route: string }> }`
   - `type ChatMessage = { role: "system" | "user" | "assistant"; content: string }`
@@ -970,7 +970,7 @@ export * from "./providers/fake";
 `packages/ai/package.json`:
 ```json
 {
-  "name": "@videogen/ai",
+  "name": "@slate/ai",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -980,7 +980,7 @@ export * from "./providers/fake";
   "dependencies": {
     "@langchain/langgraph": "^0.2.0",
     "@langchain/langgraph-checkpoint-postgres": "^0.1.0",
-    "@videogen/shared": "workspace:*",
+    "@slate/shared": "workspace:*",
     "zod": "^3.24.0"
   },
   "devDependencies": { "typescript": "^5.7.0", "vitest": "^2.1.0" }
@@ -1008,7 +1008,7 @@ git commit -m "feat(ai): provider interface with nvidia and fake implementations
 - Test: `packages/ai/src/agents/planning.test.ts`
 
 **Interfaces:**
-- Consumes: `Provider` (Task 5), `@videogen/shared` schemas.
+- Consumes: `Provider` (Task 5), `@slate/shared` schemas.
 - Produces:
   - `planningAgent(provider, idea, conversation): Promise<{ kind: "questions"; questions: string[] } | { kind: "brief"; brief: Brief }>`
   - `scriptAgent(provider, brief, feedback?): Promise<ScriptContent>`
@@ -1048,7 +1048,7 @@ Expected: FAIL — module not found.
 ```ts
 import { z } from "zod";
 import type { Provider, ChatMessage } from "../providers/types";
-import { BriefSchema } from "@videogen/shared";
+import { BriefSchema } from "@slate/shared";
 
 const PlanningOutputSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("questions"), questions: z.array(z.string()).min(1).max(4) }),
@@ -1075,7 +1075,7 @@ export function system(role: string): ChatMessage { return { role: "system", con
 `packages/ai/src/agents/script.ts`:
 ```ts
 import type { Provider } from "../providers/types";
-import { ScriptContentSchema, type Brief } from "@videogen/shared";
+import { ScriptContentSchema, type Brief } from "@slate/shared";
 import { system } from "./planning";
 
 export async function scriptAgent(provider: Provider, brief: Brief, feedback?: string) {
@@ -1093,7 +1093,7 @@ export async function scriptAgent(provider: Provider, brief: Brief, feedback?: s
 `packages/ai/src/agents/reviewer.ts`:
 ```ts
 import type { Provider } from "../providers/types";
-import { ReviewScoresSchema, type ScriptContent } from "@videogen/shared";
+import { ReviewScoresSchema, type ScriptContent } from "@slate/shared";
 import { system } from "./planning";
 
 export async function reviewerAgent(provider: Provider, script: ScriptContent) {
@@ -1209,7 +1209,7 @@ Expected: FAIL — modules not found.
 `packages/ai/src/agents/research.ts`:
 ```ts
 import type { Provider } from "../providers/types";
-import { ResearchPacketSchema, type Brief } from "@videogen/shared";
+import { ResearchPacketSchema, type Brief } from "@slate/shared";
 import { system } from "./planning";
 
 export async function researchAgent(provider: Provider, brief: Brief, feedback?: string) {
@@ -1227,7 +1227,7 @@ export async function researchAgent(provider: Provider, brief: Brief, feedback?:
 `packages/ai/src/agents/consistency.ts`:
 ```ts
 import type { Provider } from "../providers/types";
-import { CharacterSchema, LocationSchema, type Brief, type ScriptContent } from "@videogen/shared";
+import { CharacterSchema, LocationSchema, type Brief, type ScriptContent } from "@slate/shared";
 import { system } from "./planning";
 
 export async function characterAgent(provider: Provider, brief: Brief, script: ScriptContent) {
@@ -1357,7 +1357,7 @@ Expected: FAIL — modules not found.
 `packages/ai/src/agents/storyboard.ts`:
 ```ts
 import type { Provider } from "../providers/types";
-import { SceneContentSchema, type ScriptContent, type Character, type Location } from "@videogen/shared";
+import { SceneContentSchema, type ScriptContent, type Character, type Location } from "@slate/shared";
 import { system } from "./planning";
 
 export async function storyboardAgent(provider: Provider, script: ScriptContent, characters: Character[], locations: Location[], feedback?: string) {
@@ -1376,7 +1376,7 @@ export async function storyboardAgent(provider: Provider, script: ScriptContent,
 `packages/ai/src/agents/editor.ts`:
 ```ts
 import type { Provider } from "../providers/types";
-import { SceneContentSchema, type SceneContent } from "@videogen/shared";
+import { SceneContentSchema, type SceneContent } from "@slate/shared";
 import { system } from "./planning";
 
 export async function editorAgent(provider: Provider, scenes: SceneContent[]) {
@@ -1394,7 +1394,7 @@ export async function editorAgent(provider: Provider, scenes: SceneContent[]) {
 `packages/ai/src/agents/prompts.ts`:
 ```ts
 import type { Provider } from "../providers/types";
-import { PromptPackSchema, type SceneContent, type Character, type Location } from "@videogen/shared";
+import { PromptPackSchema, type SceneContent, type Character, type Location } from "@slate/shared";
 import { system } from "./planning";
 
 export async function promptAgent(provider: Provider, scene: SceneContent, characters: Character[], locations: Location[]) {
@@ -1454,7 +1454,7 @@ import { resumeWorkflow } from "./resume";
 import { FakeProvider } from "../providers/fake";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 
-const TEST_URL = process.env.DATABASE_URL ?? "postgres://videogen:videogen@localhost:5432/videogen";
+const TEST_URL = process.env.DATABASE_URL ?? "postgres://slate:slate@localhost:5432/slate";
 
 const fakeDeps = (): WorkflowDeps => ({
   getProject: async (id: string) => ({
@@ -1518,7 +1518,7 @@ Expected: FAIL — `saveStoryboard` not in `WorkflowDeps`, state channels missin
 `packages/ai/src/workflow/state.ts`:
 ```ts
 import { Annotation } from "@langchain/langgraph";
-import type { Brief, ResearchPacket, ScriptContent, ReviewScores, SceneContent, PromptPack, Character, Location } from "@videogen/shared";
+import type { Brief, ResearchPacket, ScriptContent, ReviewScores, SceneContent, PromptPack, Character, Location } from "@slate/shared";
 
 export const WorkflowState = Annotation.Root({
   projectId: Annotation<string>({ reducer: (_, b) => b }),
@@ -1546,7 +1546,7 @@ import { StateGraph, START, END, interrupt, Command, type CompiledGraph } from "
 import { WorkflowState } from "./state";
 import { planningAgent, researchAgent, scriptAgent, reviewerAgent, characterAgent, environmentAgent, storyboardAgent, editorAgent, promptAgent } from "../agents";
 import type { Provider } from "../providers/types";
-import type { Brief, ResearchPacket, ScriptContent, SceneContent, Character, Location } from "@videogen/shared";
+import type { Brief, ResearchPacket, ScriptContent, SceneContent, Character, Location } from "@slate/shared";
 
 export interface WorkflowDeps {
   getProject(id: string): Promise<{
@@ -1714,7 +1714,7 @@ git commit -m "feat(ai): workflow with research, script, and storyboard gates to
 - Test: `apps/api/src/app.test.ts`
 
 **Interfaces:**
-- Consumes: `@videogen/shared`, `@videogen/db`, `@videogen/ai` (workflow + agents), `resumeWorkflow`.
+- Consumes: `@slate/shared`, `@slate/db`, `@slate/ai` (workflow + agents), `resumeWorkflow`.
 - Produces routes:
   - `POST /api/v1/projects` — create from an idea → kicks off the workflow (thread_id = project id)
   - `GET /api/v1/projects` — list
@@ -1740,11 +1740,11 @@ git commit -m "feat(ai): workflow with research, script, and storyboard gates to
 ```ts
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { buildApp } from "./app";
-import { FakeProvider } from "@videogen/ai";
-import { runMigrations } from "@videogen/db";
+import { FakeProvider } from "@slate/ai";
+import { runMigrations } from "@slate/db";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 
-const TEST_URL = process.env.DATABASE_URL ?? "postgres://videogen:videogen@localhost:5432/videogen";
+const TEST_URL = process.env.DATABASE_URL ?? "postgres://slate:slate@localhost:5432/slate";
 let _tokSeq = 0;
 // Clerk-style auth (Task 2): buildApp takes an injectable verifyToken; tests never call Clerk.
 const fakeVerify = (map: Record<string, string>) => async (token: string) => {
@@ -1871,7 +1871,7 @@ Expected: FAIL — app module missing, routes 404.
 
 `apps/api/src/provider.ts`:
 ```ts
-import { NvidiaProvider, FakeProvider, type Provider } from "@videogen/ai";
+import { NvidiaProvider, FakeProvider, type Provider } from "@slate/ai";
 
 export function createProvider(): Provider {
   if (process.env.FAKE_PROVIDER === "1") return new FakeProvider([]); // scripted queue injected per-test / E2E override
@@ -1884,9 +1884,9 @@ export function createProvider(): Provider {
 `apps/api/src/workflow.ts` — API-side deps backed by the DB:
 ```ts
 import { randomUUID } from "node:crypto";
-import { db, projects, scripts, storyboards, scenes } from "@videogen/db";
-import type { WorkflowDeps } from "@videogen/ai";
-import type { ScriptContent } from "@videogen/shared";
+import { db, projects, scripts, storyboards, scenes } from "@slate/db";
+import type { WorkflowDeps } from "@slate/ai";
+import type { ScriptContent } from "@slate/shared";
 
 export const workflowDeps: WorkflowDeps = {
   getProject: async (id) => {
@@ -1927,22 +1927,22 @@ The same file also exports the workflow factory the routes use:
 
 ```ts
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { buildWorkflow, type Provider } from "@videogen/ai";
+import { buildWorkflow, type Provider } from "@slate/ai";
 
 export function buildApiWorkflow(provider: Provider, checkpointer: PostgresSaver) {
   return buildWorkflow(provider, workflowDeps, checkpointer);
 }
 ```
-(Add `import { buildWorkflow, type Provider } from "@videogen/ai";` and `import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";` to `workflow.ts`'s imports.)
+(Add `import { buildWorkflow, type Provider } from "@slate/ai";` and `import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";` to `workflow.ts`'s imports.)
 
 `apps/api/src/routes/projects.ts`:
 ```ts
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
 import { desc, sql } from "drizzle-orm";
-import { db, projects, scripts, storyboards, scenes } from "@videogen/db";
+import { db, projects, scripts, storyboards, scenes } from "@slate/db";
 import { buildApiWorkflow } from "../workflow";
-import { resumeWorkflow } from "@videogen/ai";
+import { resumeWorkflow } from "@slate/ai";
 import { getOwnedProject } from "../hooks"; // Task 2 — owner-scoped 404
 import type { AppDeps } from "../app";
 
@@ -2032,7 +2032,7 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
 ```ts
 import type { FastifyInstance } from "fastify";
 import { desc, sql } from "drizzle-orm";
-import { db, storyboards, scenes } from "@videogen/db";
+import { db, storyboards, scenes } from "@slate/db";
 import { getOwnedProject } from "../hooks"; // Task 2 — owner-scoped 404
 import type { AppDeps } from "../app";
 
@@ -2055,7 +2055,7 @@ export async function storyboardRoutes(app: FastifyInstance, _deps: AppDeps) {
 ```ts
 import type { FastifyInstance } from "fastify";
 import { desc, eq, sql } from "drizzle-orm";
-import { db, scenes, storyboards } from "@videogen/db";
+import { db, scenes, storyboards } from "@slate/db";
 import { getOwnedProject } from "../hooks"; // Task 2 — owner-scoped 404
 import type { AppDeps } from "../app";
 
@@ -2112,9 +2112,9 @@ export async function sceneRoutes(app: FastifyInstance, _deps: AppDeps) {
 ```ts
 import type { FastifyInstance } from "fastify";
 import { desc, eq, sql } from "drizzle-orm";
-import { db, projects, scenes } from "@videogen/db";
+import { db, projects, scenes } from "@slate/db";
 import { getOwnedProject } from "../hooks"; // Task 2 — owner-scoped 404
-import { promptAgent } from "@videogen/ai";
+import { promptAgent } from "@slate/ai";
 import type { AppDeps } from "../app";
 
 export async function promptRoutes(app: FastifyInstance, deps: AppDeps) {
@@ -2165,7 +2165,7 @@ import { projectRoutes } from "./routes/projects";
 import { storyboardRoutes } from "./routes/storyboard";
 import { sceneRoutes } from "./routes/scenes";
 import { promptRoutes } from "./routes/prompts";
-import type { Provider } from "@videogen/ai";
+import type { Provider } from "@slate/ai";
 import type { TokenVerifier } from "./auth"; // Task 2
 
 export interface AppDeps {
@@ -2187,7 +2187,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 `apps/api/src/index.ts`:
 ```ts
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
-import { runMigrations } from "@videogen/db";
+import { runMigrations } from "@slate/db";
 import { buildApp } from "./app";
 import { createProvider } from "./provider";
 import { makeVerifyToken } from "./auth"; // Task 2 — Clerk JWT verification
@@ -2201,7 +2201,7 @@ await app.listen({ port: 4000, host: "0.0.0.0" });
 `apps/api/package.json`:
 ```json
 {
-  "name": "@videogen/api",
+  "name": "@slate/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -2210,9 +2210,9 @@ await app.listen({ port: 4000, host: "0.0.0.0" });
   "scripts": { "dev": "tsx watch src/index.ts", "typecheck": "tsc --noEmit", "test": "vitest run" },
   "dependencies": {
     "@langchain/langgraph-checkpoint-postgres": "^0.1.0",
-    "@videogen/ai": "workspace:*",
-    "@videogen/db": "workspace:*",
-    "@videogen/shared": "workspace:*",
+    "@slate/ai": "workspace:*",
+    "@slate/db": "workspace:*",
+    "@slate/shared": "workspace:*",
     "fastify": "^5.0.0",
     "tsx": "^4.19.0"
   },
@@ -2351,7 +2351,7 @@ import { resumeWorkflow } from "./resume";
 import { FakeProvider } from "../providers/fake";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 
-const TEST_URL = process.env.DATABASE_URL ?? "postgres://videogen:videogen@localhost:5432/videogen";
+const TEST_URL = process.env.DATABASE_URL ?? "postgres://slate:slate@localhost:5432/slate";
 
 const fakeDeps = (): WorkflowDeps => ({
   getProject: async (id: string) => ({
@@ -2556,7 +2556,7 @@ export default defineConfig({
   use: { baseURL: "http://localhost:3000" },
   webServer: [
     { command: "pnpm --filter web dev", url: "http://localhost:3000", reuseExistingServer: true },
-    { command: "pnpm --filter api dev", url: "http://localhost:4000", reuseExistingServer: true, env: { FAKE_PROVIDER: "1", DATABASE_URL: "postgres://videogen:videogen@localhost:5432/videogen", CLERK_SECRET_KEY: "<clerk-test-secret>", NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "<clerk-test-publishable>" } },
+    { command: "pnpm --filter api dev", url: "http://localhost:4000", reuseExistingServer: true, env: { FAKE_PROVIDER: "1", DATABASE_URL: "postgres://slate:slate@localhost:5432/slate", CLERK_SECRET_KEY: "<clerk-test-secret>", NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "<clerk-test-publishable>" } },
     { command: "pnpm --filter web dev", url: "http://localhost:3000", reuseExistingServer: true, env: { CLERK_SECRET_KEY: "<clerk-test-secret>", NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "<clerk-test-publishable>" } },
   ],
 });

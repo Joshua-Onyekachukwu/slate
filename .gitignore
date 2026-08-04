@@ -3,12 +3,16 @@ node_modules/
 out/
 dist/
 coverage/
+playwright-report/
+test-results/
 *.tsbuildinfo
 next-env.d.ts
 .env
 .env.local
 .env.*.local
 data/
+# throwaway verification spike (proves SQLite checkpointer stack; delete after Task 9 lands)
+packages/sqlite-spike/
 *.log
 .DS_Store
 .turbo/

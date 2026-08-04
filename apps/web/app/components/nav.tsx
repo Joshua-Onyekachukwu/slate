@@ -11,7 +11,7 @@ export function Nav() {
   return (
     <nav className="nav">
       <Link className="brand" href="/">
-        <span className="rec-dot"></span> videogen
+        <span className="rec-dot"></span> slate
       </Link>
       <div className="nav-links">
         <Link className={`nav-link${isDash ? " active" : ""}`} href="/">

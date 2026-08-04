@@ -1,5 +1,5 @@
 {
-  "name": "videogen",
+  "name": "slate",
   "version": "0.0.0",
   "private": true,
   "packageManager": "pnpm@9.15.9",
@@ -9,10 +9,16 @@
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:e2e": "pnpm --filter e2e test",
     "lint": "turbo run lint"
   },
   "devDependencies": {
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "better-sqlite3": "^12.10.0"
+    }
   }
 }

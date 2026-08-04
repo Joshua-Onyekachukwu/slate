@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 import pg from "pg";
 import { projects, scripts, storyboards, scenes } from "./schema";
 
-const TEST_URL = process.env.DATABASE_URL ?? "postgres://videogen:videogen@localhost:5432/videogen";
+const TEST_URL = process.env.DATABASE_URL ?? "postgres://slate:slate@localhost:5432/slate";
 
 describe("db schema", () => {
   let pool: pg.Pool;

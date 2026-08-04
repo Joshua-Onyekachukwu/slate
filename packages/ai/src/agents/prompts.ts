@@ -1,5 +1,5 @@
 import type { Provider } from "../providers/types";
-import { PromptPackSchema, type SceneContent, type Character, type Location } from "@videogen/shared";
+import { PromptPackSchema, type SceneContent, type Character, type Location } from "@slate/shared";
 import { system } from "./planning";
 
 export async function promptAgent(provider: Provider, scene: SceneContent, characters: Character[], locations: Location[]) {

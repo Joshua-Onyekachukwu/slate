@@ -1,5 +1,5 @@
 {
-  "name": "@videogen/api",
+  "name": "@slate/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,9 +12,9 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@videogen/ai": "workspace:*",
-    "@videogen/db": "workspace:*",
-    "@videogen/shared": "workspace:*",
+    "@slate/ai": "workspace:*",
+    "@slate/db": "workspace:*",
+    "@slate/shared": "workspace:*",
     "fastify": "^5.2.0"
   },
   "devDependencies": {

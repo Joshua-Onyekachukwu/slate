@@ -1,5 +1,5 @@
 import { pgTable, uuid, text, jsonb, integer, timestamp, uniqueIndex, index } from "drizzle-orm/pg-core";
-import type { Brief, ResearchPacket, ScriptContent, ReviewScores, SceneContent, PromptPack, Character, Location } from "@videogen/shared";
+import type { Brief, ResearchPacket, ScriptContent, ReviewScores, SceneContent, PromptPack, Character, Location } from "@slate/shared";
 
 // No local `users` table (ADR-023) — Clerk owns identity; `owner_id` stores Clerk's `user_...` id.
 export const projects = pgTable("projects", {

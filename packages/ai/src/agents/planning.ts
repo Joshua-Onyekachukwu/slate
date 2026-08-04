@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Provider, ChatMessage } from "../providers/types";
-import { BriefSchema } from "@videogen/shared";
+import { BriefSchema } from "@slate/shared";
 
 const PlanningOutputSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("questions"), questions: z.array(z.string()).min(1).max(4) }),

@@ -67,5 +67,5 @@ Idea → Brief → Research → Script → Storyboard → Scenes → Generation 
 
 ## Product name
 
-**TBD.** The repo/working title is `videogen`. Product naming is an open decision
+**TBD.** The repo/working title is `Slate`. Product naming is an open decision
 (see `decisions.md` — Open decisions). We will not invent a brand name without your approval.

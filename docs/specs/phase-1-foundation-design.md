@@ -217,4 +217,4 @@ Full schema in database-schema.md. This spec creates:
 10. **Prompt packs:** → **Behind an "Advanced" toggle** in the scene editor — opt-in, not default.
 11. **Scene ordering:** → **Drag-to-reorder**, atomic server-side (one txn, `409` on conflict).
 
-Remaining open: product name (working title `videogen`).
+Decided: product name is **Slate** (ADR-025).

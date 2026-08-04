@@ -39,7 +39,7 @@ workspace, not by chasing the best single model. Its observable patterns:
 | 10 | **Inspire / templates** | Community creations expose their exact settings; one-click remix into your own workspace. |
 
 **What we deliberately do NOT copy:** OpenArt is a *tool surface for generative models* (you choose
-image vs video vs character, pick a model, generate). videogen is a *production pipeline* — the
+image vs video vs character, pick a model, generate). Slate is a *production pipeline* — the
 model surface would actively hurt us. Instead we keep the strengths and translate them into a
 directed studio.
 
@@ -49,7 +49,7 @@ directed studio.
 
 > **You are the director. The AI is the studio.**
 
-OpenArt made model-based creation feel like a single flowing workspace. videogen's version of that
+OpenArt made model-based creation feel like a single flowing workspace. Slate's version of that
 insight is a **directed studio floor**: the AI runs the entire production — planning, research,
 script, storyboard, prompts, generation, quality — as a crew of agents, and the human sits in the
 director's chair approving **takes** at every stage. The interface is a **production console**, not

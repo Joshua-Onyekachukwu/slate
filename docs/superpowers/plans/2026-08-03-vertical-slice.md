@@ -25,7 +25,7 @@
 ## File Structure
 
 ```
-videogen/
+Slate/
 ├── package.json                    # pnpm workspace root
 ├── turbo.json                      # pipeline definitions
 ├── pnpm-workspace.yaml
@@ -101,14 +101,14 @@ videogen/
 - Create: `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `.gitignore`, `.env.example`
 
 **Interfaces:**
-- Produces: workspace with `apps/*`, `packages/*`; a SQLite file at `DATABASE_PATH` (default `./data/videogen.db`) created on first open. No Docker, no containers.
+- Produces: workspace with `apps/*`, `packages/*`; a SQLite file at `DATABASE_PATH` (default `./data/slate.db`) created on first open. No Docker, no containers.
 
 - [ ] **Step 1: Create workspace root files**
 
 `package.json`:
 ```json
 {
-  "name": "videogen",
+  "name": "slate",
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "scripts": {
@@ -161,11 +161,11 @@ data/
 *.db-wal
 ```
 
-**SQLite note:** the slice persists to one local file (default `./data/videogen.db`, override with `DATABASE_PATH`). No database server, no daemon, no container — better-sqlite3 opens the file synchronously on first use (ADR-014). Add `data/` to `.gitignore` (Step 3 does this).
+**SQLite note:** the slice persists to one local file (default `./data/slate.db`, override with `DATABASE_PATH`). No database server, no daemon, no container — better-sqlite3 opens the file synchronously on first use (ADR-014). Add `data/` to `.gitignore` (Step 3 does this).
 
 `.env.example`:
 ```
-DATABASE_PATH=./data/videogen.db
+DATABASE_PATH=./data/slate.db
 NVIDIA_API_KEY=
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
@@ -193,7 +193,7 @@ git commit -m "chore: scaffold pnpm+turbo monorepo (zero-container sqlite slice)
 - Create: `packages/shared/package.json`, `packages/shared/tsconfig.json`, `packages/shared/src/index.ts`, `packages/shared/src/enums.ts`, `packages/shared/src/schemas.ts`
 
 **Interfaces:**
-- Produces: `ProjectStage`, `StageStatus`, `ScriptStatus`, `CreatedBy`, `BriefSchema`, `ScriptContentSchema`, `ReviewScoresSchema`, and TS types inferred from them. Re-exported from `@videogen/shared`.
+- Produces: `ProjectStage`, `StageStatus`, `ScriptStatus`, `CreatedBy`, `BriefSchema`, `ScriptContentSchema`, `ReviewScoresSchema`, and TS types inferred from them. Re-exported from `@slate/shared`.
 
 - [ ] **Step 1: Write the failing schema tests**
 
@@ -325,7 +325,7 @@ export * from "./schemas";
 `packages/shared/package.json`:
 ```json
 {
-  "name": "@videogen/shared",
+  "name": "@slate/shared",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -379,7 +379,7 @@ git commit -m "feat(shared): enums and zod schemas for brief, script, scores"
 - Test: `packages/db/src/schema.test.ts`
 
 **Interfaces:**
-- Consumes: `@videogen/shared` enums/types.
+- Consumes: `@slate/shared` enums/types.
 - Produces: Drizzle tables `projects` and `scripts` (sqlite dialect); `db` client (drizzle + better-sqlite3); `runMigrations()`.
 
 - [ ] **Step 1: Write the failing repository test**
@@ -480,7 +480,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import Database from "better-sqlite3";
 import * as schema from "./schema";
 
-const path = process.env.DATABASE_PATH ?? "./data/videogen.db";
+const path = process.env.DATABASE_PATH ?? "./data/slate.db";
 const sqlite = new Database(path);
 // WAL so the LangGraph checkpointer (same file) and drizzle reads don't block each other.
 sqlite.pragma("journal_mode = WAL");
@@ -509,14 +509,14 @@ export default defineConfig({
   schema: "./src/schema.ts",
   out: "./drizzle",
   dialect: "sqlite",
-  dbCredentials: { url: process.env.DATABASE_PATH ?? "./data/videogen.db" },
+  dbCredentials: { url: process.env.DATABASE_PATH ?? "./data/slate.db" },
 });
 ```
 
 `packages/db/package.json`:
 ```json
 {
-  "name": "@videogen/db",
+  "name": "@slate/db",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -530,8 +530,8 @@ export default defineConfig({
     "migrate": "drizzle-kit migrate"
   },
   "dependencies": {
-    "@videogen/shared": "workspace:*",
-    "better-sqlite3": "^11.7.0",
+    "@slate/shared": "workspace:*",
+    "better-sqlite3": "^12.10.0",
     "drizzle-orm": "^0.38.0"
   },
   "devDependencies": {
@@ -543,6 +543,12 @@ export default defineConfig({
 }
 ```
 
+> **Version note (2026-08-04, SQLite spike):** better-sqlite3 `^11.x` has **no prebuilt binary for
+> Node 24 (ABI 137)** — install falls back to `node-gyp`, which fails on Windows without Visual
+> Studio Build Tools. The spike verified `v12.10.0` ships the `node-v137-win32-x64` prebuild
+> (HTTP 200) and the interrupt round-trip passes on it. Root `pnpm.overrides` forces `^12.10.0`
+> workspace-wide so `SqliteSaver`'s bundled `^11.7.0` range resolves to the working version.
+
 `packages/db/src/index.ts`: `export * from "./schema"; export { db, sqlite } from "./client"; export { runMigrations } from "./migrate";`
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -553,7 +559,7 @@ Expected: PASS.
 - [ ] **Step 5: Generate + apply migration to the SQLite file**
 
 Run: `pnpm --filter db generate && pnpm --filter db migrate`
-Expected: drizzle-kit generates SQL and applies it to `./data/videogen.db`. Verify: `node -e "const D=require('better-sqlite3');const db=new D('data/videogen.db');console.log(db.prepare(\"select name from sqlite_master where type='table'\").all())"` lists `projects` and `scripts` (plus drizzle journal tables).
+Expected: drizzle-kit generates SQL and applies it to `./data/slate.db`. Verify: `node -e "const D=require('better-sqlite3');const db=new D('data/slate.db');console.log(db.prepare(\"select name from sqlite_master where type='table'\").all())"` lists `projects` and `scripts` (plus drizzle journal tables).
 
 - [ ] **Step 6: Commit**
 
@@ -571,7 +577,7 @@ git commit -m "feat(db): projects and scripts schema (sqlite) with drizzle-kit m
 - Test: `packages/ai/src/providers/types.test.ts`, `packages/ai/src/providers/nvidia.test.ts`
 
 **Interfaces:**
-- Consumes: `@videogen/shared` schemas.
+- Consumes: `@slate/shared` schemas.
 - Produces:
   - `interface Provider { name: string; complete<T>(input: { messages: ChatMessage[]; schema: ZodType<T> }): Promise<{ output: T; raw: string; route: string }> }`
   - `type ChatMessage = { role: "system" | "user" | "assistant"; content: string }`
@@ -757,7 +763,7 @@ export * from "./workflow/resume";
 `packages/ai/package.json`:
 ```json
 {
-  "name": "@videogen/ai",
+  "name": "@slate/ai",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -770,7 +776,7 @@ export * from "./workflow/resume";
   "dependencies": {
     "@langchain/langgraph": "^0.2.0",
     "@langchain/langgraph-checkpoint-sqlite": "^0.1.0",
-    "@videogen/shared": "workspace:*",
+    "@slate/shared": "workspace:*",
     "zod": "^3.24.0"
   },
   "devDependencies": {
@@ -801,7 +807,7 @@ git commit -m "feat(ai): provider interface with nvidia and fake implementations
 - Test: `packages/ai/src/agents/planning.test.ts`
 
 **Interfaces:**
-- Consumes: `Provider` (Task 4), `@videogen/shared` schemas.
+- Consumes: `Provider` (Task 4), `@slate/shared` schemas.
 - Produces:
   - `planningAgent(provider, idea, conversation): Promise<{ questions?: string[] } | { brief: Brief }>`
   - `scriptAgent(provider, brief, feedback?): Promise<ScriptContent>`
@@ -843,7 +849,7 @@ Expected: FAIL — module not found.
 ```ts
 import { z } from "zod";
 import type { Provider, ChatMessage } from "../providers/types";
-import { BriefSchema } from "@videogen/shared";
+import { BriefSchema } from "@slate/shared";
 
 const PlanningOutputSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("questions"), questions: z.array(z.string()).min(1).max(4) }),
@@ -870,7 +876,7 @@ export function system(role: string): ChatMessage { return { role: "system", con
 `packages/ai/src/agents/script.ts`:
 ```ts
 import type { Provider } from "../providers/types";
-import { ScriptContentSchema, type Brief } from "@videogen/shared";
+import { ScriptContentSchema, type Brief } from "@slate/shared";
 import { system } from "./planning";
 
 export async function scriptAgent(provider: Provider, brief: Brief, feedback?: string) {
@@ -888,7 +894,7 @@ export async function scriptAgent(provider: Provider, brief: Brief, feedback?: s
 `packages/ai/src/agents/reviewer.ts`:
 ```ts
 import type { Provider } from "../providers/types";
-import { ReviewScoresSchema, type ScriptContent } from "@videogen/shared";
+import { ReviewScoresSchema, type ScriptContent } from "@slate/shared";
 import { system } from "./planning";
 
 export async function reviewerAgent(provider: Provider, script: ScriptContent) {
@@ -924,7 +930,7 @@ git commit -m "feat(ai): planning, script, and reviewer agents"
 - Test: `packages/ai/src/workflow/graph.test.ts`
 
 **Interfaces:**
-- Consumes: agents (Task 5), `Provider`, `db` (Task 3), `@videogen/shared` types.
+- Consumes: agents (Task 5), `Provider`, `db` (Task 3), `@slate/shared` types.
 - Produces:
   - `type WorkflowState` (typed channels, below)
   - `buildWorkflow(provider: Provider, deps: { getProject, saveProject, saveScript }, checkpointer?: unknown): CompiledGraph` — `checkpointer` is required for interrupt persistence (Task 9).
@@ -1019,7 +1025,7 @@ Expected: FAIL — modules not found.
 `packages/ai/src/workflow/state.ts`:
 ```ts
 import { Annotation } from "@langchain/langgraph";
-import type { Brief, ScriptContent, ReviewScores } from "@videogen/shared";
+import type { Brief, ScriptContent, ReviewScores } from "@slate/shared";
 
 export const WorkflowState = Annotation.Root({
   projectId: Annotation<string>({ reducer: (_, b) => b }),
@@ -1038,7 +1044,7 @@ import { StateGraph, START, END, interrupt, type CompiledGraph } from "@langchai
 import { WorkflowState } from "./state";
 import { planningAgent, scriptAgent, reviewerAgent } from "../agents";
 import type { Provider } from "../providers/types";
-import type { Brief, ScriptContent } from "@videogen/shared";
+import type { Brief, ScriptContent } from "@slate/shared";
 
 export interface WorkflowDeps {
   getProject(id: string): Promise<{ id: string; idea: string; conversation: unknown[]; stage: string; status: string; brief: unknown }>;
@@ -1134,7 +1140,7 @@ git commit -m "feat(ai): langgraph workflow with review gates and resume"
 - Test: `apps/api/src/app.test.ts`
 
 `apps/api/vitest.config.ts` (isolates the API tests to their own sqlite file so module-level
-`DATABASE_PATH` in `@videogen/db` matches `TEST_PATH` in the test):
+`DATABASE_PATH` in `@slate/db` matches `TEST_PATH` in the test):
 ```ts
 import { defineConfig } from "vitest/config";
 export default defineConfig({
@@ -1143,7 +1149,7 @@ export default defineConfig({
 ```
 
 **Interfaces:**
-- Consumes: `@videogen/shared`, `@videogen/db`, `@videogen/ai` (workflow + providers).
+- Consumes: `@slate/shared`, `@slate/db`, `@slate/ai` (workflow + providers).
 - Produces: Fastify instance `buildApp(deps)`; HTTP surface per api-design.md (projects, conversation, stages approve/regenerate, script versions, SSE, health). No auth in the slice.
 
 - [ ] **Step 1: Write the failing integration test**
@@ -1153,8 +1159,8 @@ export default defineConfig({
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { rmSync, mkdirSync } from "node:fs";
 import { buildApp } from "./app";
-import { FakeProvider } from "@videogen/ai";
-import { runMigrations } from "@videogen/db";
+import { FakeProvider } from "@slate/ai";
+import { runMigrations } from "@slate/db";
 import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
 
 const TEST_PATH = process.env.DATABASE_PATH ?? "./data/test-api.db";
@@ -1203,7 +1209,7 @@ Expected: FAIL — modules not found.
 ```ts
 import Fastify from "fastify";
 import type { Checkpointer } from "@langchain/langgraph";
-import type { Provider } from "@videogen/ai";
+import type { Provider } from "@slate/ai";
 import { projectRoutes } from "./routes/projects";
 import { stageRoutes } from "./routes/stages";
 import { scriptRoutes } from "./routes/scripts";
@@ -1228,10 +1234,10 @@ export function buildApp(deps: AppDeps) {
 `apps/api/src/workflow.ts` (shared DB-backed workflow wiring, used by projects + stages):
 ```ts
 import { eq } from "drizzle-orm";
-import { buildWorkflow, type WorkflowDeps } from "@videogen/ai";
+import { buildWorkflow, type WorkflowDeps } from "@slate/ai";
 import type { Checkpointer } from "@langchain/langgraph";
-import { db, projects, scripts } from "@videogen/db";
-import type { Provider } from "@videogen/ai";
+import { db, projects, scripts } from "@slate/db";
+import type { Provider } from "@slate/ai";
 
 const workflowDeps: WorkflowDeps = {
   getProject: async (id) => {
@@ -1263,7 +1269,7 @@ export function buildApiWorkflow(provider: Provider, checkpointer: Checkpointer)
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { db, projects } from "@videogen/db";
+import { db, projects } from "@slate/db";
 import { buildApiWorkflow } from "../workflow";
 import type { AppDeps } from "../app";
 
@@ -1297,7 +1303,7 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
 
 **Provider selection by env** — `apps/api/src/provider.ts`:
 ```ts
-import { NvidiaProvider, FakeProvider, type Provider } from "@videogen/ai";
+import { NvidiaProvider, FakeProvider, type Provider } from "@slate/ai";
 
 export function createProvider(): Provider {
   if (process.env.FAKE_PROVIDER === "1") {
@@ -1316,12 +1322,12 @@ export function createProvider(): Provider {
 `apps/api/src/index.ts`:
 ```ts
 import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
-import { runMigrations } from "@videogen/db";
+import { runMigrations } from "@slate/db";
 import { buildApp } from "./app";
 import { createProvider } from "./provider";
 
 await runMigrations();
-const checkpointer = SqliteSaver.fromConnString(process.env.DATABASE_PATH ?? "./data/videogen.db");
+const checkpointer = SqliteSaver.fromConnString(process.env.DATABASE_PATH ?? "./data/slate.db");
 const app = buildApp({ provider: createProvider(), checkpointer });
 await app.listen({ port: 4000, host: "0.0.0.0" });
 ```
@@ -1383,7 +1389,7 @@ test("idea → approved script flow", async ({ page }) => {
 
 - [ ] **Step 2: Scaffold the app**
 
-Run: `pnpm create next-app@14 apps/web --ts --tailwind --app --no-eslint --no-src-dir --import-alias "@/*"` then prune to the files listed above. Set `next.config.mjs` with `transpilePackages: ["@videogen/shared"]`.
+Run: `pnpm create next-app@14 apps/web --ts --tailwind --app --no-eslint --no-src-dir --import-alias "@/*"` then prune to the files listed above. Set `next.config.mjs` with `transpilePackages: ["@slate/shared"]`.
 
 - [ ] **Step 3: Wire the token sheet**
 
@@ -1531,7 +1537,7 @@ git commit -m "test(ai,api): interrupt persistence and stage lifecycle coverage"
 `tests/package.json`:
 ```json
 {
-  "name": "@videogen/e2e",
+  "name": "@slate/e2e",
   "version": "0.0.0",
   "private": true,
   "scripts": { "test": "playwright test" },

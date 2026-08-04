@@ -63,7 +63,7 @@
 ## Monorepo layout (recommended — see decisions.md ADR-001)
 
 ```
-videogen/
+Slate/
 ├── apps/
 │   ├── web/          # Next.js frontend
 │   ├── api/          # Fastify server

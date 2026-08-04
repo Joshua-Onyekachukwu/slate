@@ -163,4 +163,4 @@ debounces).
 4. **ORM:** → **Drizzle (ADR-013)** — shared with the full build.
 5. **Auth:** none in the slice by design — Better Auth (ADR-012) lands with the full Phase 1+2 build.
 
-Remaining open: product name (working title `videogen`).
+Decided: product name is **Slate** (ADR-025).

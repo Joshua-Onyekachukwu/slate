@@ -3,5 +3,5 @@ export default defineConfig({
   schema: "./src/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
-  dbCredentials: { url: process.env.DATABASE_URL ?? "postgres://videogen:videogen@localhost:5432/videogen" },
+  dbCredentials: { url: process.env.DATABASE_URL ?? "postgres://slate:slate@localhost:5432/slate" },
 });

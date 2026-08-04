@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@videogen/shared", "@videogen/db", "@videogen/ai"],
+  transpilePackages: ["@slate/shared", "@slate/db", "@slate/ai"],
 };
 
 export default nextConfig;

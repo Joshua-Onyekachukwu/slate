@@ -1,5 +1,5 @@
 import type { Provider } from "../providers/types";
-import { SceneContentSchema, type ScriptContent, type Character, type Location } from "@videogen/shared";
+import { SceneContentSchema, type ScriptContent, type Character, type Location } from "@slate/shared";
 import { system } from "./planning";
 
 export async function storyboardAgent(provider: Provider, script: ScriptContent, characters: Character[], locations: Location[], feedback?: string) {

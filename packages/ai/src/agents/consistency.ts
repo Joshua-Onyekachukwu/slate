@@ -1,5 +1,5 @@
 import type { Provider } from "../providers/types";
-import { CharacterSchema, LocationSchema, type Brief, type ScriptContent } from "@videogen/shared";
+import { CharacterSchema, LocationSchema, type Brief, type ScriptContent } from "@slate/shared";
 import { system } from "./planning";
 
 export async function characterAgent(provider: Provider, brief: Brief, script: ScriptContent) {

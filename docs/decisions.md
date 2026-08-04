@@ -132,8 +132,9 @@ the product is proven. But the architecture must not paint us into a corner.
 
 ## ADR-014 · SQLite for the vertical slice (zero container dependency)
 
-- **Status:** Superseded by ADR-018 (slice skipped, 2026-08-03, user). Kept as the historical
-  record; do not follow.
+- **Status:** Superseded by ADR-018 (2026-08-03), then **re-adopted by ADR-024 (2026-08-04,
+  user — slice revived as the first build, SQLite locked in)**. Historical record; the slice now
+  follows this ADR again.
 - **Context:** The vertical slice (phase-1a) was a validation slice proving the idea → approved-script
   loop. The user wanted it to run with **no container dependency** — `pnpm dev` and nothing else.
   This deliberately traded away the less critical parts of Postgres for the slice; the user accepted
@@ -141,8 +142,9 @@ the product is proven. But the architecture must not paint us into a corner.
 - **Decision:** The slice ran on **SQLite via better-sqlite3**, with the LangGraph checkpointer
   `SqliteSaver` (`@langchain/langgraph-checkpoint-sqlite`) pointed at the same SQLite file, and
   Drizzle in its **sqlite dialect** (`drizzle-orm/better-sqlite3`). Slice-only decision.
-- **Consequences:** Moot — the slice is skipped (ADR-018); Phase 1+2 builds directly on Postgres
-  (ADR-004, ADR-011, ADR-013). No SQLite code ships.
+- **Consequences:** Restored by ADR-024 (2026-08-04) — the slice is the first build again and
+  runs zero-container on SQLite. Phase 1+2 (Postgres/Drizzle/Clerk, ADR-004/011/013/023) remains
+  the documented follow-on build.
 
 ## ADR-015 · Auth deferred — Phase 1+2 is single-user with reserved owner_id
 
@@ -304,6 +306,44 @@ the product is proven. But the architecture must not paint us into a corner.
   Supersedes ADR-012's provider choice; ADR-022's in-scope stance, ADR-013 (Drizzle), and
   ADR-011 (local-first) unchanged. Task 2 of the plan becomes a Clerk integration task.
 
+## ADR-024 · Vertical slice revived — SQLite slice is the first build (reverses ADR-018)
+
+- **Status:** Accepted (user decision 2026-08-04 — third explicit instruction to execute the
+  vertical slice with SQLite; treated as a genuine decision change, not a mis-speak). Reverses
+  ADR-018.
+- **Context:** ADR-018 (2026-08-03) skipped the vertical slice and made the full Phase 1+2 build
+  the first build, on Postgres via Docker + Drizzle. On 2026-08-04 the user explicitly re-locked
+  the **vertical slice implementation plan (`docs/superpowers/plans/2026-08-03-vertical-slice.md`)
+  with SQLite** and instructed execution of its Task 1. The slice runs with **zero containers** —
+  `pnpm dev` and nothing else.
+- **Decision:** The vertical slice is the **active first build** — the idea → brief → script →
+  review loop proving the HITL workflow. Storage is **SQLite via better-sqlite3 (ADR-014
+  re-adopted)** with the LangGraph checkpointer `SqliteSaver` on the same file. No Postgres, no
+  Docker, no Redis, no Clerk in the slice. The monorepo scaffold, shared schemas, provider
+  abstraction, and agent foundation already built for Phase 1+2 are **absorbed into the slice
+  tasks** (no throwaway code); Phase 1+2 (Postgres/Drizzle/worker/Clerk, ADR-004/011/013/006/023)
+  stays documented as the follow-on build.
+- **Consequences:** `packages/db` re-conforms from Postgres/Drizzle to the slice's SQLite form at
+  the slice's db task; `docker-compose.yml` stays as future-infra reference (unused by the
+  slice); `apps/api`/`apps/worker` Postgres/Redis wiring is dormant until Phase 1+2. Commit
+  history keeps ADR-018's rationale; code follows this ADR.
+
+---
+
+## ADR-025 · Product name: Slate
+
+- **Status:** Accepted (user approval 2026-08-04).
+- **Context:** The working title `videogen` was generic and read as an AI-factory placeholder. The
+  design language is "The Cutting Room" (ADR-010) — slate/timecode stepper, slate-line scene
+  cards, the clapperboard "set your slate" moment. `slate.studio` verified available via RDAP;
+  `slate.video` and `tungsten.video` are registered.
+- **Decision:** The product is named **Slate**. "videogen" is replaced across docs, package scopes
+  (`@videogen/*` → `@slate/*`), the sqlite filename (`./data/slate.db`), docker-compose labels,
+  and the prototype brand mark. The repo folder name on disk (`videogen/`) is the checkout
+  directory, not the product — unchanged.
+- **Consequences:** Code, docs, and prototypes now use `slate`/`Slate` consistently. The name is
+  a single source of truth; no further name discussion in later specs.
+
 ---
 
 ## Open decisions (need your input)
@@ -315,7 +355,7 @@ the product is proven. But the architecture must not paint us into a corner.
 4. ~~Single-user vs multi-user~~ → **Decided: multi-user isolation from day one (ADR-022) —
    `projects.owner_id` = Clerk user id (`user_...`, text, NOT NULL, indexed); cross-user access
    returns `404`.**
-5. **Product name** (working title: `videogen`).
+5. ~~Product name~~ → **Decided (ADR-025): Slate.**
 6. ~~Slice storage~~ → **Decided (ADR-014): SQLite via better-sqlite3 for the slice; Postgres for
    the full build.**
 7. ~~Design direction sign-off~~ → **Decided (ADR-010): "The Cutting Room", locked Final 2026-08-03 —
@@ -329,3 +369,11 @@ the product is proven. But the architecture must not paint us into a corner.
 
 To change an accepted ADR: write a new ADR that supersedes it with rationale. The old ADR stays in
 history. Code must match the latest non-superseded ADR.
+
+## Working agreements (process rules, user-approved 2026-08-04)
+
+- Work in phases → tasks → steps, one at a time. One recommended next step per decision point;
+  await approval unless the task itself was already approved.
+- **Skip already-done work:** an instruction pointing at a completed task moves past it to the
+  next pending task — no re-runs, no circles.
+- A new explicit user decision supersedes a locked ADR; record it as a new ADR before executing.

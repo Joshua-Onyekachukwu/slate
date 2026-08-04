@@ -1,5 +1,5 @@
 import type { Provider } from "../providers/types";
-import { ReviewScoresSchema, type ScriptContent, type ReviewScores } from "@videogen/shared";
+import { ReviewScoresSchema, type ScriptContent, type ReviewScores } from "@slate/shared";
 import { system } from "./planning";
 
 export async function reviewerAgent(provider: Provider, script: ScriptContent): Promise<ReviewScores> {
