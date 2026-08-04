@@ -1441,7 +1441,7 @@ git commit -m "feat(ai): storyboard, editor, and per-scene prompt agents"
 - Produces:
   - `type WorkflowState` (typed channels, below)
   - `buildWorkflow(provider, deps: WorkflowDeps, checkpointer?): CompiledGraph` — `checkpointer` required for interrupt persistence
-  - `resumeWorkflow(graph, threadId, resume: { approved: boolean; feedback?: string } | string[]): Promise<Record<string, unknown>>` — returns the invoke result so callers read `__interrupt__`
+  - `resumeWorkflow(graph, threadId, resume: { approved: boolean; feedback?: string } | string[]): Promise<Record<string, unknown>>` — returns the invoke result; detect a pending pause via `graph.getState(thread)` → `tasks[].interrupts` (langgraph 0.2.x, per the slice spike)
   - Graph topology: `discovery → brief → research → research_gate [interrupt] → script → review → script_gate [interrupt] → consistency → storyboard → editor → prompt_gen → storyboard_gate [interrupt] → done` (Editor runs after the storyboard, feeding the prompt generator — spec §4)
 
 - [ ] **Step 1: Write the failing workflow test**
@@ -1489,15 +1489,19 @@ describe("workflow to production plan", () => {
     ]);
     const graph = buildWorkflow(p, fakeDeps(), checkpointer);
     const threadId = "plan-happy";
+    const pendingInterrupts = async () => {
+      const s = await graph.getState({ configurable: { thread_id: threadId } });
+      return (s.tasks ?? []).flatMap((t) => (t as { interrupts?: unknown[] }).interrupts ?? []);
+    };
     // 1st interrupt: research gate (consumes brief + research)
-    const r1 = await graph.invoke({ projectId: threadId }, { configurable: { thread_id: threadId } });
-    expect(r1.__interrupt__?.length ?? 0).toBeGreaterThan(0);
+    await graph.invoke({ projectId: threadId }, { configurable: { thread_id: threadId } });
+    expect((await pendingInterrupts()).length).toBeGreaterThan(0);
     // approve research → script + review → 2nd interrupt: script gate
-    const r2 = await resumeWorkflow(graph, threadId, { approved: true });
-    expect(r2.__interrupt__?.length ?? 0).toBeGreaterThan(0);
+    await resumeWorkflow(graph, threadId, { approved: true });
+    expect((await pendingInterrupts()).length).toBeGreaterThan(0);
     // approve script → consistency + storyboard + editor + prompts → 3rd interrupt: storyboard gate
-    const r3 = await resumeWorkflow(graph, threadId, { approved: true });
-    expect(r3.__interrupt__?.length ?? 0).toBeGreaterThan(0);
+    await resumeWorkflow(graph, threadId, { approved: true });
+    expect((await pendingInterrupts()).length).toBeGreaterThan(0);
     // approve storyboard → done
     await resumeWorkflow(graph, threadId, { approved: true });
     const state = await graph.getState({ configurable: { thread_id: threadId } });
@@ -1691,7 +1695,7 @@ export * from "./workflow/graph";
 export * from "./workflow/resume";
 ```
 
-**interrupt wiring note:** `interrupt()` inside the gate nodes pauses the graph and persists state via the checkpointer; `resumeWorkflow` resumes with `Command(resume=...)`. The discovery interview pauses with `interrupt<string[]>` (answers), each gate with `interrupt<{ approved, feedback? }>`. The returned `__interrupt__` array indicates a pending pause — the API and UI use it to know when to show the approval bar.
+**interrupt wiring note:** `interrupt()` inside the gate nodes pauses the graph and persists state via the checkpointer; `resumeWorkflow` resumes with `Command(resume=...)`. The discovery interview pauses with `interrupt<string[]>` (answers), each gate with `interrupt<{ approved, feedback? }>`. The API/UI detect a pending pause from `graph.getState(thread)` → `tasks[].interrupts` (langgraph 0.2.x; the payload is NOT on the invoke result — verified by the slice spike) — that is what shows the approval bar.
 
 - [ ] **Step 4: Run tests to verify they pass**
 

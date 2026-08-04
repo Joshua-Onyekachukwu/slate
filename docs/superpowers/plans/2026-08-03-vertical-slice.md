@@ -934,7 +934,7 @@ git commit -m "feat(ai): planning, script, and reviewer agents"
 - Produces:
   - `type WorkflowState` (typed channels, below)
   - `buildWorkflow(provider: Provider, deps: { getProject, saveProject, saveScript }, checkpointer?: unknown): CompiledGraph` — `checkpointer` is required for interrupt persistence (Task 9).
-  - `resumeWorkflow(graph, threadId: string, resume: { approved: boolean; feedback?: string } | string[]): Promise<Record<string, unknown>>` — returns the invoke result so callers can read `__interrupt__`.
+  - `resumeWorkflow(graph, threadId: string, resume: { approved: boolean; feedback?: string } | string[]): Promise<Record<string, unknown>>` — returns the invoke result; a pending pause is detected via `graph.getState(thread)` → `tasks[].interrupts` (langgraph 0.2.x — NOT on the invoke result; verified by the sqlite spike).
 
 - [ ] **Step 1: Write the failing workflow test**
 
@@ -977,7 +977,9 @@ describe("workflow happy path", () => {
     const graph = buildWorkflow(p, fakeDeps(), checkpointer);
     const first = await graph.invoke({ projectId: "p1" }, { configurable: { thread_id: "p1" } });
     // Graph pauses at the script gate (the slice's single review gate).
-    expect(first.__interrupt__?.length ?? 0).toBeGreaterThan(0);
+    const paused = await graph.getState({ configurable: { thread_id: "p1" } });
+    const pendingInterrupts = (paused.tasks ?? []).flatMap((t) => (t as { interrupts?: unknown[] }).interrupts ?? []);
+    expect(pendingInterrupts.length).toBeGreaterThan(0);
     // Approve script → done.
     await resumeWorkflow(graph, "p1", { approved: true });
     const state = await graph.getState({ configurable: { thread_id: "p1" } });
@@ -1013,7 +1015,7 @@ describe("workflow reject loop", () => {
 });
 ```
 
-Note: this uses LangGraph's real HITL API — `interrupt()` inside the gate nodes, `Command(resume=...)` to resume, `__interrupt__` in the returned state to detect a pause. This is also exactly what the API (Task 7) needs, so the tests double as the integration spec for approve/resume.
+Note: this uses LangGraph's real HITL API — `interrupt()` inside the gate nodes, `Command(resume=...)` to resume, and a pending pause is detected on the state snapshot (`getState(thread)` → `tasks[].interrupts`). In langgraph 0.2.x the interrupt payload is NOT on the invoke result (verified by the sqlite spike). This is also exactly what the API (Task 7) needs, so the tests double as the integration spec for approve/resume.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -1117,7 +1119,7 @@ export async function resumeWorkflow(
 }
 ```
 
-**Step 3 note (interrupt wiring):** `interrupt()` inside the gate nodes pauses the graph and persists state via the checkpointer; `resumeWorkflow` resumes with `Command(resume=...)`. The discovery interview pauses with `interrupt<string[]>` (answers), the script gate with `interrupt<{ approved, feedback? }>`. The returned `__interrupt__` array in invoke results indicates a pending pause — the API and UI use it to know when to show the approval bar.
+**Step 3 note (interrupt wiring):** `interrupt()` inside the gate nodes pauses the graph and persists state via the checkpointer; `resumeWorkflow` resumes with `Command(resume=...)`. The discovery interview pauses with `interrupt<string[]>` (answers), the script gate with `interrupt<{ approved, feedback? }>`. The API/UI detect a pending pause from `graph.getState(thread)` → `tasks[].interrupts` (langgraph 0.2.x; the payload is NOT on the invoke result — verified by the sqlite spike) — that is what shows the approval bar.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
