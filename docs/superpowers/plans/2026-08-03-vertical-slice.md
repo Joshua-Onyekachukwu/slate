@@ -975,7 +975,7 @@ describe("workflow happy path", () => {
       { content: '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redundancy":4,"notes":[],"overall":4}' },
     ]);
     const graph = buildWorkflow(p, fakeDeps(), checkpointer);
-    const first = await graph.invoke({ projectId: "p1" }, { configurable: { thread_id: "p1" } });
+    await graph.invoke({ projectId: "p1" }, { configurable: { thread_id: "p1" } });
     // Graph pauses at the script gate (the slice's single review gate).
     const paused = await graph.getState({ configurable: { thread_id: "p1" } });
     const pendingInterrupts = (paused.tasks ?? []).flatMap((t) => (t as { interrupts?: unknown[] }).interrupts ?? []);
@@ -1335,7 +1335,16 @@ await app.listen({ port: 4000, host: "0.0.0.0" });
 ```
 
 `apps/api/src/routes/stages.ts`, `scripts.ts`, `stream.ts`:
-- `stages.ts`: `GET /api/v1/projects/:id/stages` (derived from project row + latest script), `GET /api/v1/projects/:id/stages/:stage`, `POST /api/v1/projects/:id/stages/:stage/approve` (resume workflow via `resumeWorkflow`), `POST /api/v1/projects/:id/stages/:stage/regenerate` (re-run producing agent).
+- `stages.ts`: `GET /api/v1/projects/:id/stages` (derived from project row + latest script), `GET /api/v1/projects/:id/stages/:stage`, `POST /api/v1/projects/:id/stages/:stage/approve` (resume workflow via `resumeWorkflow`), `POST /api/v1/projects/:id/stages/:stage/regenerate`.
+
+  **Approve vs regenerate — one mutation path (no double-fire):** the script gate owns regeneration.
+  `approve` resumes the thread with `{ approved: true }`; `regenerate` resumes the SAME gate with
+  `{ approved: false, feedback }` (default feedback: `"regenerate"`), exactly like the reject loop in
+  Task 6's test. Both routes call `resumeWorkflow` on the persisted thread and nothing else — the graph
+  node is the only place a new script version is produced (`saveScript` in the `script` node), so a
+  rejected resume and a regenerate can never race into two writes. A `regenerate` while the graph is
+  still mid-run (not paused at a gate) returns `409` (matching the `CONFLICT` error code in api-design.md).
+  This matches the Phase 1+2 plan's model (`research/regenerate → resume reject (retry)`).
 - `scripts.ts`: `PUT /api/v1/projects/:id/scripts/:scriptId/versions` (user edit → new row, `created_by: "user"`, `version = max+1`), `GET /api/v1/projects/:id/scripts/:scriptId/versions` (ordered desc).
 - `stream.ts`: SSE route — hold a connection, emit `stage:started | stage:awaiting_review | stage:done | stage:failed` based on project status changes (poll the project row every 500ms for the slice; replace with push later). Keep it simple and correct: send a heartbeat comment every 15s to prevent idle disconnect.
 
