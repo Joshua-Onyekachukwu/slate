@@ -1728,6 +1728,21 @@ git commit -m "feat(ai): workflow with research, script, and storyboard gates to
   - `POST /api/v1/projects/:id/stages/research/regenerate` → resume reject (retry)
   - `POST /api/v1/projects/:id/stages/script/approve` + `regenerate`
   - `POST /api/v1/projects/:id/stages/storyboard/approve` + `regenerate`
+
+  **Approve vs regenerate — one mutation path (no double-fire):** each gate (research, script,
+  storyboard) owns its regeneration. `approve` resumes the thread with `{ approved: true }`;
+  `regenerate` resumes the **SAME gate** with `{ approved: false, feedback }` (default feedback:
+  `"regenerate"`), exactly like the reject loop in the Task 9 workflow test. Both routes call
+  `resumeWorkflow` on the persisted thread and nothing else — the graph node is the only place a new
+  version (script or storyboard) is produced, so a rejected resume and a regenerate can never race
+  into two writes. A `regenerate` (or `approve`) while the graph is still mid-run — not paused at
+  that gate — returns `409 CONFLICT` (matching the slice plan's note and api-design.md). This is the
+  same model the vertical-slice plan documents for its single script gate.
+
+  **Scope:** the "one mutation path" guarantee covers **stage-gate** regeneration only. Per-scene
+  `prompts/regenerate` and user-edited `PUT .../versions` rows are separate direct-DB writes (new
+  scene/script version) that do **not** go through the workflow gate — they can't double-fire with a
+  gate resume, so the guarantee intentionally doesn't apply to them.
   - `GET /api/v1/projects/:id/storyboard` → `{ storyboard: { version, status, scenes } }`
   - `PUT /api/v1/projects/:id/scenes/:sceneId` → `{ content, title }` → new version row
   - `PUT /api/v1/projects/:id/storyboard/order` → `{ scene_ids }` → atomic reorder
@@ -1941,7 +1956,7 @@ export function buildApiWorkflow(provider: Provider, checkpointer: PostgresSaver
 
 `apps/api/src/routes/projects.ts`:
 ```ts
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply } from "fastify";
 import { randomUUID } from "node:crypto";
 import { desc, sql } from "drizzle-orm";
 import { db, projects, scripts, storyboards, scenes } from "@slate/db";
@@ -1985,25 +2000,34 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
   });
 
   const stageApprove = async (stage: "research" | "script" | "storyboard") => {
+    const gateValue = `${stage}_review`; // matches the interrupt() payloads in Task 9
+    // 409 unless THIS gate is the one paused — getState().tasks[].interrupts is the
+    // reliable check (slice spike); resuming while a different gate is paused would
+    // silently apply this gate's decision to the wrong stage.
+    const assertGate = async (graph: ReturnType<typeof buildApiWorkflow>, id: string, reply: FastifyReply) => {
+      const snapshot = await graph.getState({ configurable: { thread_id: id } });
+      const pending = (snapshot.tasks ?? [])
+        .flatMap((t: { interrupts?: { value?: unknown }[] }) => t.interrupts ?? [])
+        .map((i) => i.value);
+      if (!pending.includes(gateValue)) {
+        return reply.code(409).send({ error: { code: "CONFLICT", message: `no pending ${gateValue} interrupt`, details: {} } });
+      }
+      return null;
+    };
     app.post(`/api/v1/projects/:id/stages/${stage}/approve`, async (req, reply) => {
       const { id } = req.params as { id: string };
       await getOwnedProject(req.userId, id);
       const body = (req.body ?? {}) as { approved?: boolean; feedback?: string };
       const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
-      try {
-        await resumeWorkflow(graph, id, { approved: body.approved ?? true, feedback: body.feedback });
-      } catch (e) {
-        if ((e as Error).message?.includes("no pending")) {
-          return reply.code(409).send({ error: { code: "CONFLICT", message: "no pending interrupt for this stage", details: {} } });
-        }
-        throw e;
-      }
+      if (await assertGate(graph, id, reply)) return;
+      await resumeWorkflow(graph, id, { approved: body.approved ?? true, feedback: body.feedback });
       return { ok: true };
     });
     app.post(`/api/v1/projects/:id/stages/${stage}/regenerate`, async (req, reply) => {
       const { id } = req.params as { id: string };
       await getOwnedProject(req.userId, id);
       const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
+      if (await assertGate(graph, id, reply)) return;
       await resumeWorkflow(graph, id, { approved: false, feedback: "regenerate" });
       return { ok: true };
     });

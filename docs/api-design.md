@@ -61,8 +61,9 @@ web sends the Clerk session token as `Authorization: Bearer …` on every `/api/
 - `POST /api/v1/projects/:id/stages/:stage/approve` — body:
   `{ approved: boolean, feedback?: string, edits?: {...} }`. Resumes the LangGraph thread with
   `Command(resume=...)`. Approved=false routes back to the producing node with feedback.
-- `POST /api/v1/projects/:id/stages/:stage/regenerate` — re-run the producing node (retry after
-  provider failure or quality-gate rejection).
+- `POST /api/v1/projects/:id/stages/:stage/regenerate` — same mutation path as approve-reject:
+  resumes the gate with `{ approved: false, feedback ?? "regenerate" }` (retry after provider
+  failure or quality-gate rejection) — see the exact contract below.
 
 ### Stage approve / regenerate — exact contract (UI-facing)
 
