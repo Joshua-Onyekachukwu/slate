@@ -1187,8 +1187,11 @@ describe("api", () => {
     expect(res.statusCode).toBe(201);
     const body = res.json();
     expect(body.project.id).toBeTruthy();
-    // The workflow pauses at the script gate; the DB row reflects it.
-    expect(body.project.stage).toBe("script");
+    // The workflow pauses at the script gate. project.stage must come from the
+    // CHECKPOINT (getState().values.stage → "script_review"), not the projects
+    // column (discovery only ever patches it to "brief") — see api-design.md
+    // "Stage approve / regenerate — exact contract" for the authoritative shape.
+    expect(body.project.stage).toBe("script_review");
   });
 
   it("returns a single error shape on validation failure", async () => {
@@ -1288,7 +1291,11 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
     await graph.invoke({ projectId: id }, { configurable: { thread_id: id } });
     const [row] = await db.select().from(projects).where(eq(projects.id, id));
     if (!row) return reply.code(404).send({ error: { code: "NOT_FOUND", message: "project not found", details: {} } });
-    return reply.code(201).send({ project: row });
+    // project.stage MUST be read from the checkpoint, not the row: the projects
+    // column is only patched to "brief" by discovery and stays stale at the gate
+    // (see api-design.md "Stage approve / regenerate — exact contract").
+    const checkpoint = await graph.getState({ configurable: { thread_id: id } });
+    return reply.code(201).send({ project: { ...row, stage: checkpoint.values.stage } });
   });
   app.get("/api/v1/projects", async () => {
     const rows = await db.select().from(projects).orderBy(projects.updatedAt);
@@ -1336,6 +1343,10 @@ await app.listen({ port: 4000, host: "0.0.0.0" });
 
 `apps/api/src/routes/stages.ts`, `scripts.ts`, `stream.ts`:
 - `stages.ts`: `GET /api/v1/projects/:id/stages` (derived from project row + latest script), `GET /api/v1/projects/:id/stages/:stage`, `POST /api/v1/projects/:id/stages/:stage/approve` (resume workflow via `resumeWorkflow`), `POST /api/v1/projects/:id/stages/:stage/regenerate`.
+
+  **Request/response contract:** exact shapes for both routes (bodies, 200/400/404/409 semantics,
+  the `stage` payload the UI renders) live in **api-design.md → "Stage approve / regenerate — exact
+  contract"**. Implement to that contract, not to this sketch.
 
   **Approve vs regenerate — one mutation path (no double-fire):** the script gate owns regeneration.
   `approve` resumes the thread with `{ approved: true }`; `regenerate` resumes the SAME gate with

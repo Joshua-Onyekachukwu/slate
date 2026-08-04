@@ -64,6 +64,100 @@ web sends the Clerk session token as `Authorization: Bearer …` on every `/api/
 - `POST /api/v1/projects/:id/stages/:stage/regenerate` — re-run the producing node (retry after
   provider failure or quality-gate rejection).
 
+### Stage approve / regenerate — exact contract (UI-facing)
+
+> The slice has **two interrupt points**: the discovery interview (`discovery_questions`, answered
+> via `POST /messages`) and the script review gate (`script_review`). The approve/regenerate routes
+> below apply to **gate pauses only** (`script_review`). Both routes resume the **same persisted
+> LangGraph thread** and are the only mutation paths — the graph's script node is the only place a
+> new script version is written (`saveScript`), so approve-reject and regenerate can never
+> double-fire. Request/response shapes below are the contract the UI builds against; implementation
+> notes live in the vertical-slice plan, Task 7.
+
+#### `POST /api/v1/projects/:id/stages/:stage/approve`
+
+Resumes the thread at the gate with the human decision.
+
+Request body:
+
+```json
+{
+  "approved": true,
+  "feedback": "optional note; only consumed when approved=false"
+}
+```
+
+| Status | When | Body |
+|---|---|---|
+| `200` | Gate resumed | `{ project, stage }` (stage payload below) |
+| `400` | `approved` missing or not boolean; unknown `:stage` | error shape, `VALIDATION_ERROR` |
+| `404` | Project does not exist | error shape, `NOT_FOUND` |
+| `409` | Thread **not paused** at this gate (mid-run, already done, or paused at a different gate) | error shape, `CONFLICT` |
+
+Semantics:
+
+- `approved: true` → gate returns `{ stage: "done" }`; workflow finishes.
+- `approved: false` → gate returns `{ feedback, stage: "script" }`; workflow re-runs the script
+  agent with the feedback, re-reviews, and pauses at the gate again — new script version.
+
+#### `POST /api/v1/projects/:id/stages/:stage/regenerate`
+
+Re-runs the producing node. Implemented as **one code path with approve-reject**: resumes the
+*same* gate with `{ approved: false, feedback: body.feedback ?? "regenerate" }` (identical to
+Task 6's reject loop). No other mutation happens.
+
+Request body (optional):
+
+```json
+{ "feedback": "optional note" }
+```
+
+| Status | When | Body |
+|---|---|---|
+| `200` | Gate resumed | `{ project, stage }` |
+| `404` | Project does not exist | error shape, `NOT_FOUND` |
+| `409` | Thread not paused at this gate (mid-run, already done) | error shape, `CONFLICT` |
+
+#### Stage payload (returned by both routes and `GET .../stages`)
+
+```json
+{
+  "project": {
+    "id": "4c1e…",
+    "stage": "script_review",
+    "status": "active"
+  },
+  "stage": {
+    "key": "script",
+    "status": "awaiting_review",
+    "version": 2,
+    "updatedAt": "2026-08-04T12:00:00.000Z",
+    "gate": { "value": "script_review" }
+  }
+}
+```
+
+- `status` uses `StageStatus` from `@slate/shared`: `idle | running | awaiting_review | approved | failed`.
+- `gate.value` is the interrupt payload (from `getState().tasks[].interrupts[0].value` —
+  `"script_review"` for the script gate, `"discovery_questions"` for the interview). It tells the
+  UI *which* gate is asking, so it can render the right controls.
+- `version` is the latest script version; it increments on every regenerate/reject round-trip
+  (the UI uses it to refresh the editor and show "v2, v3, …").
+- `project.stage` is the workflow's `stage` channel, read from the checkpoint
+  (`getState(thread).values.stage`) — **not** the `projects.stage` column, which `saveProject` only
+  patches lazily (discovery writes `brief`; the script node never patches the column). In the slice
+  the channel reads `script_review` while paused at the script gate (the `review` node wrote it just
+  before the gate's `interrupt()`), `done` after approval. The route param `:stage` uses the
+  *producing* stage (`script`); the channel value may differ — treat `gate.value` as the gate
+  identity and `project.stage` as the stepper position.
+
+**UI rule:** poll `GET /api/v1/projects/:id/stages` (or the SSE stream). Render the
+approve/regenerate controls only while `stage.status === "awaiting_review"` **and**
+`stage.gate.value === "script_review"`. When `gate.value === "discovery_questions"`, the pause is
+an interview question — show an answer box that posts to `POST /api/v1/projects/:id/messages`
+instead. A `409 CONFLICT` from either approve/regenerate route means the stage is still running —
+retry after the next poll.
+
 ### Script editing
 - `PUT /api/v1/projects/:id/scripts/:scriptId/versions` — save user edits as a new version
   (`created_by: "user"`). Rollback = restore an older version → new version row.
