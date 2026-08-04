@@ -1,4 +1,3 @@
-// @videogen/db — Drizzle schema, client, and migrations.
-// Task 4 fills these in; this placeholder keeps the workspace wiring green.
-
-export const DB_VERSION = "0.0.0";
+export * from "./schema";
+export { db, pool } from "./client";
+export { runMigrations } from "./migrate";
