@@ -8,6 +8,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
+    "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push"
   },

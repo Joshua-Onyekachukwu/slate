@@ -81,8 +81,7 @@ describe("db schema", () => {
   it("rejects a project without an owner", async () => {
     const db = drizzle(pool);
     // Cast: Drizzle's TS types forbid omitting ownerId — we assert the DB enforces NOT NULL at runtime.
-    const missingOwner = { id: crypto.randomUUID(), idea: "x" } as never;
-    await expect(db.insert(projects).values(missingOwner as any))
+    await expect(db.insert(projects).values({ id: crypto.randomUUID(), idea: "x" } as any))
       .rejects.toThrow(); // owner_id NOT NULL
   });
 
