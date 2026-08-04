@@ -2018,3 +2018,109 @@ button {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ============ SLICE: real-data workspace (Task 8) ============ */
+.api-note {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--tungsten);
+  margin: 12px 0;
+  letter-spacing: 0.06em;
+}
+.empty-note {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ash);
+  padding: 24px 0;
+  letter-spacing: 0.04em;
+}
+.chip.ok {
+  background: rgba(115, 168, 122, 0.16);
+  color: #9ec9a4;
+  border-color: rgba(115, 168, 122, 0.4);
+}
+.chip.live {
+  background: rgba(224, 75, 58, 0.14);
+  color: var(--rec);
+  border-color: rgba(224, 75, 58, 0.4);
+}
+.chip.wip {
+  background: rgba(226, 168, 92, 0.12);
+  color: var(--tungsten);
+  border-color: rgba(226, 168, 92, 0.35);
+}
+
+/* fixed approve bar */
+.gate-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(20, 17, 16, 0.92);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line-dark);
+  z-index: 50;
+  transform: translateY(0);
+  transition: transform 0.25s;
+}
+.gate-in {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.gate-note {
+  font-size: 13px;
+  color: var(--paper-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gate-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.gate-feedback {
+  background: var(--surface);
+  border: 1px solid var(--line-dark);
+  color: var(--paper);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font-size: 13px;
+  width: 260px;
+  font-family: inherit;
+}
+.gate-feedback:focus {
+  outline: 1px solid var(--tungsten);
+  outline-offset: 0;
+}
+.gate-feedback::placeholder {
+  color: var(--ash);
+}
+
+/* call sheet rows (left rail) */
+.cs-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line-dark);
+  font-size: 12px;
+}
+.cs-row .cs-nm {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ash);
+}
+.cs-row .cs-vl {
+  color: var(--paper-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}

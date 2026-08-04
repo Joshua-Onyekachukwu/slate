@@ -25,7 +25,17 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
 
   app.get("/api/v1/projects", async () => {
     const rows = await db.select().from(projects).orderBy(desc(projects.updatedAt));
-    return { projects: rows };
+    // Same checkpoint-vs-column rule as the single-project route: the projects
+    // column only ever records "discovery"/"brief" (lazily patched by the
+    // workflow), so the dashboard would show stale stages without this.
+    const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
+    const withStage = await Promise.all(
+      rows.map(async (row) => {
+        const cp = await readCheckpoint(graph, row.id);
+        return { ...row, stage: cp.stage };
+      }),
+    );
+    return { projects: withStage };
   });
 
   app.get("/api/v1/projects/:id", async (req, reply) => {

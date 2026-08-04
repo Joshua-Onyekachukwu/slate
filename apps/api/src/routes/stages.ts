@@ -85,11 +85,13 @@ export async function stageRoutes(app: FastifyInstance, deps: AppDeps) {
     const [row] = await db.select().from(projects).where(eq(projects.id, id));
     if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
     const view = await loadStageView(id, stage);
+    const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
+    const cp = await readCheckpoint(graph, id);
     const [latest] = await db.select().from(scripts).where(eq(scripts.projectId, id)).orderBy(desc(scripts.version)).limit(1);
     return {
       ...view,
       content: stage === "script"
-        ? { script: latest?.content ?? null, scores: latest?.reviewScores ?? null }
+        ? { script: latest?.content ?? null, scores: cp.scores ?? null }
         : stage === "brief" ? { brief: row.brief } : { conversation: row.conversation },
     };
   });

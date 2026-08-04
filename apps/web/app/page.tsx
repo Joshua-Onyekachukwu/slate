@@ -1,18 +1,53 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { PRODUCTION_MODES, PROJECTS, RECENT_TAKES } from "./lib/mock";
+import { useCallback, useEffect, useState } from "react";
+import { api, type ProjectRow } from "./lib/api";
+import { PRODUCTION_MODES, RECENT_TAKES } from "./lib/mock";
+
+const stageLabel = (stage: string | undefined): { chip: string; chipTone: string; progress: number } => {
+  switch (stage) {
+    case "done": return { chip: "Approved", chipTone: "ok", progress: 100 };
+    case "script_review": return { chip: "Awaiting review", chipTone: "live", progress: 75 };
+    case "brief": return { chip: "Brief ready", chipTone: "wip", progress: 50 };
+    default: return { chip: "In discovery", chipTone: "wip", progress: 25 };
+  }
+};
 
 export default function StudioHome() {
   const router = useRouter();
   const [idea, setIdea] = useState("");
-  const [mode, setMode] = useState<(typeof PRODUCTION_MODES)[number]>(PRODUCTION_MODES[0]);
+  const [busy, setBusy] = useState(false);
+  const [projects, setProjects] = useState<ProjectRow[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const beginProduction = () => {
-    const q = idea.trim() ? `&idea=${encodeURIComponent(idea.trim())}` : "";
-    const m = mode ? `&mode=${encodeURIComponent(mode)}` : "";
-    router.push(`/projects/0042?stage=0${m}${q}`);
+  const refresh = useCallback(async () => {
+    try {
+      const { projects } = await api.listProjects();
+      setProjects(projects);
+      setLoadError(null);
+    } catch (e) {
+      setLoadError((e as Error).message);
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const beginProduction = async () => {
+    if (!idea.trim() || busy) return;
+    setBusy(true);
+    try {
+      const { project } = await api.createProject(idea.trim());
+      await router.push(`/projects/${project.id}`);
+    } catch (e) {
+      // Only surface a banner for real failures; a rejected navigation is not
+      // an error worth showing. Either way, always release the busy flag.
+      setLoadError((e as Error).message ?? "");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -34,50 +69,52 @@ export default function StudioHome() {
             placeholder="“A documentary about the history of the universe.”"
             aria-label="Describe your video idea"
           />
-          <button className="btn btn-rec" onClick={beginProduction}>
-            Begin production →
+          <button className="btn btn-rec" onClick={beginProduction} disabled={busy || !idea.trim()}>
+            {busy ? "Starting production…" : "Begin production →"}
           </button>
         </div>
         <div className="mode-row" role="group" aria-label="Production modes">
           <span className="lbl">Mode</span>
           {PRODUCTION_MODES.map((m) => (
-            <button
-              key={m}
-              className={`mode-chip${mode === m ? " active" : ""}`}
-              onClick={() => setMode(m)}
-            >
+            <button key={m} className={`mode-chip${m === PRODUCTION_MODES[0] ? " active" : ""}`}>
               {m}
             </button>
           ))}
         </div>
       </section>
 
+      {loadError && <p className="api-note">API unreachable ({loadError}) — start it with FAKE_PROVIDER=1.</p>}
+
       <div className="section-label">Continue working</div>
       <div className="grid" id="projectGrid">
-        {PROJECTS.map((p) => (
-          <button
-            key={p.id}
-            className="slate"
-            onClick={() => router.push(`/projects/${p.id}?stage=${p.stage}`)}
-          >
-            <span className="bracket tl"></span>
-            <span className="bracket tr"></span>
-            <span className="bracket bl"></span>
-            <span className="bracket br"></span>
-            <div className="slate-top">
-              <span className="slate-code">PROJ {p.id}</span>
-              <span className={`chip ${p.chipTone}`}>{p.chip}</span>
-            </div>
-            <div className="slate-title">{p.title}</div>
-            <div className="slate-meta">{p.meta}</div>
-            <div className="slate-progress">
-              <i
-                className={p.progress === 100 ? "full" : ""}
-                style={{ width: `${p.progress}%` }}
-              ></i>
-            </div>
-          </button>
-        ))}
+        {projects.length === 0 && !loadError ? (
+          <p className="empty-note">No projects yet — describe an idea above to start one.</p>
+        ) : (
+          projects.map((p) => {
+            const s = stageLabel(p.stage);
+            return (
+              <button
+                key={p.id}
+                className="slate"
+                onClick={() => router.push(`/projects/${p.id}`)}
+              >
+                <span className="bracket tl"></span>
+                <span className="bracket tr"></span>
+                <span className="bracket bl"></span>
+                <span className="bracket br"></span>
+                <div className="slate-top">
+                  <span className="slate-code">PROJ {p.id.slice(0, 4).toUpperCase()}</span>
+                  <span className={`chip ${s.chipTone}`}>{s.chip}</span>
+                </div>
+                <div className="slate-title">{p.title ?? p.idea}</div>
+                <div className="slate-meta">{p.idea}</div>
+                <div className="slate-progress">
+                  <i className={s.progress === 100 ? "full" : ""} style={{ width: `${s.progress}%` }}></i>
+                </div>
+              </button>
+            );
+          })
+        )}
       </div>
 
       <div className="section-label">Recent takes</div>
@@ -86,7 +123,7 @@ export default function StudioHome() {
           <button
             key={t.id}
             className="take-card"
-            onClick={() => router.push(`/projects/${t.projectId}?stage=${t.stage}`)}
+            onClick={() => router.push(`/projects/${t.projectId}`)}
           >
             <div className="t-artifact">{t.artifact}</div>
             <div className="t-proj">{t.projectTitle}</div>

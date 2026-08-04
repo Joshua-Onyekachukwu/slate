@@ -1,4 +1,5 @@
 import Fastify, { type FastifyError } from "fastify";
+import cors from "@fastify/cors";
 import type { BaseCheckpointSaver } from "@langchain/langgraph";
 import type { Provider } from "@slate/ai";
 import { projectRoutes } from "./routes/projects";
@@ -14,6 +15,10 @@ export interface AppDeps {
 
 export function buildApp(deps: AppDeps) {
   const app = Fastify({ logger: false });
+
+  // Local-first slice (no auth): allow the Next.js dev origin. Tightened when
+  // auth lands (Phase 1+2) — CORS will be scoped to the app origin.
+  app.register(cors, { origin: true });
 
   app.register(projectRoutes, deps);
   app.register(stageRoutes, deps);

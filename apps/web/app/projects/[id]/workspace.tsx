@@ -1,174 +1,294 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
-import { CallSheet } from "../../components/call-sheet";
-import { DirectorBar } from "../../components/director-bar";
-import { DirectorsNotes } from "../../components/directors-notes";
-import { StageStepper } from "../../components/stage-stepper";
-import { Toast } from "../../components/toast";
-import { DEMO_STATES, PROJECTS, SCENES, STAGES, type DemoState, type Scene } from "../../lib/mock";
-import { StagePanel, StatePanel } from "../../lib/panels";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { api, API_URL, type ProjectRow, type StageDetail } from "../../lib/api";
 
-export function Workspace({
-  projectId,
-  initialStage,
-  initialIdea,
-  initialMode,
-}: {
-  projectId: string;
-  initialStage: number;
-  initialIdea: string;
-  initialMode: string;
-}) {
-  const project = PROJECTS.find((p) => p.id === projectId);
+// Slice stages — mirrors the workflow's checkpoint journey (idea → approved script).
+const SLICE_STAGES = [
+  { key: "discovery", name: "Idea" },
+  { key: "brief", name: "Brief" },
+  { key: "script", name: "Script" },
+  { key: "done", name: "Ready" },
+];
 
-  const [stage, setStage] = useState(initialStage);
-  const [demoState, setDemoState] = useState<DemoState>("normal");
-  const [scenes, setScenes] = useState<Scene[]>(SCENES);
-  const [activePara, setActivePara] = useState("p1");
-  const [toast, setToast] = useState<string | null>(null);
-  const [toastNonce, setToastNonce] = useState(0);
+const stageIndex = (checkpointStage: string | undefined): number => {
+  if (checkpointStage === "done") return 3;
+  if (checkpointStage === "script_review") return 2; // script gate (awaiting review)
+  if (checkpointStage === "brief") return 1;
+  return 0;
+};
 
-  const title = initialIdea || project?.title || "Untitled idea";
-  const modeSuffix = initialMode ? ` · ${initialMode}` : "";
+export function Workspace({ projectId, initialIdea }: { projectId: string; initialIdea?: string }) {
+  const [project, setProject] = useState<ProjectRow | null>(null);
+  const [detail, setDetail] = useState<StageDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState("");
+  const esRef = useRef<EventSource | null>(null);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setToastNonce((n) => n + 1);
-  };
-
-  const jump = (i: number) => {
-    setStage(i);
-    setDemoState("normal");
-  };
-
-  const reorder = (from: number, to: number) => {
-    setScenes((prev) => {
-      if (from === to) return prev;
-      const next = [...prev];
-      const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved);
-      return next;
-    });
-    showToast("Scenes reordered");
-  };
-
-  const saveScene = (sceneId: number, patch: { title?: string; content?: Partial<Scene> }) => {
-    setScenes((prev) =>
-      prev.map((s) =>
-        s.id === sceneId ? { ...s, ...(patch.title ? { title: patch.title } : {}), ...(patch.content ?? {}) } : s
-      )
-    );
-    showToast("Scene saved — v3");
-  };
-
-  const approveStage = () => {
-    if (stage < STAGES.length - 1) {
-      setStage(stage + 1);
-      setDemoState("normal");
+  const refresh = useCallback(async () => {
+    try {
+      const [{ project }, detail] = await Promise.all([
+        api.getProject(projectId),
+        api.getStageDetail(projectId, "script"),
+      ]);
+      setProject(project);
+      setDetail(detail);
+      setError(null);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
     }
-    // Final (Production) stage: nothing to advance to — the DirectorBar's own
-    // stamp + toast confirm the approval.
+  }, [projectId]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  // Live stage events via SSE; fall back to polling if it fails to connect.
+  useEffect(() => {
+    let poll: ReturnType<typeof setInterval> | null = null;
+    let es: EventSource | null = null;
+    try {
+      es = new EventSource(`${API_URL}/api/v1/projects/${projectId}/stream`);
+      esRef.current = es;
+      es.addEventListener("stage:done", () => refresh());
+      es.addEventListener("stage:awaiting_review", () => refresh());
+      es.onerror = () => {
+        es?.close();
+        poll = setInterval(refresh, 2000);
+      };
+    } catch {
+      poll = setInterval(refresh, 2000);
+    }
+    return () => {
+      es?.close();
+      if (poll) clearInterval(poll);
+    };
+  }, [projectId, refresh]);
+
+  const awaiting = detail?.stage?.status === "awaiting_review" && detail?.stage?.gate?.value === "script_review";
+  const approved = detail?.stage?.status === "approved";
+
+  const doApprove = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await api.approve(projectId, "script", true);
+      setProject((p) => (p ? { ...p, stage: res.project.stage ?? p.stage } : p));
+      await refresh();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   };
+
+  const doRegenerate = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await api.regenerate(projectId, "script", feedback.trim() || undefined);
+      setFeedback("");
+      await refresh();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const scores = detail?.content.scores ?? null;
+  const script = detail?.content.script ?? null;
+  const current = stageIndex(project?.stage);
 
   return (
     <main>
-      {/* prototype controls: jump to any stage / state */}
-      <div className="demo-bar">
-        <span className="lbl">Prototype controls</span>
-        <span className="lbl">Stage</span>
-        <div className="grp">
-          {STAGES.map((s, i) => (
-            <button
-              key={s.name}
-              className={`demo-btn${i === stage ? " active" : ""}`}
-              data-s={i}
-              onClick={() => jump(i)}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
-        <span className="lbl">State</span>
-        <div className="grp">
-          {DEMO_STATES.map((s) => (
-            <button
-              key={s}
-              className={`demo-btn${s === demoState ? " active" : ""}`}
-              data-state={s}
-              onClick={() => setDemoState(s)}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <section className="view-ws console">
         <div className="wrap">
           <div className="ws-head">
             <div>
               <div className="eyebrow" style={{ marginBottom: 6 }}>
-                Project · PROJ {project?.id ?? "NEW"}
+                Project · PROJ {projectId.slice(0, 4).toUpperCase()}
               </div>
-              <h1 className="ws-title">{title}</h1>
+              <h1 className="ws-title">{initialIdea ?? project?.idea ?? "Untitled idea"}</h1>
               <div className="ws-meta">
-                {project?.meta ?? "16:9 · 00:04:30 · documentary · NVIDIA/nvidia-llama-3.3-70b"}
-                {modeSuffix}
+                16:9 · documentary · NVIDIA/nvidia-llama-3.3-70b
+                {approved && <span className="chip ok" style={{ marginLeft: 10 }}>Approved</span>}
               </div>
             </div>
-            <Link className="btn btn-ghost" href="/">
-              ← Back to studio
-            </Link>
           </div>
 
-          {/* horizontal stepper: narrow screens only (call sheet takes over on desktop) */}
-          <div className="stepper-mobile">
-            <StageStepper current={stage} onJump={jump} />
+          {/* slate/timecode stepper */}
+          <div className="stepper" role="tablist" aria-label="Production stages">
+            {SLICE_STAGES.map((s, i) => {
+              const cls = ["stage"];
+              if (i < current) cls.push("approved");
+              if (i === current) cls.push("live");
+              return (
+                <div key={s.key} className={cls.join(" ")} role="tab" aria-selected={i === current}>
+                  <div className="tc">0{i + 1} · {s.key.toUpperCase()}</div>
+                  <div className="nm">
+                    {i === current && <span className="rec-dot"></span>}
+                    {s.name}
+                  </div>
+                  <div className="st">{i < current ? "Approved" : i === current ? (approved ? "Approved" : "Awaiting review") : "—"}</div>
+                </div>
+              );
+            })}
           </div>
 
-          <div className="console-body">
-            {/* left rail — the call sheet */}
-            <CallSheet current={stage} onJump={jump} />
+          {error && <p className="api-note">API error: {error}</p>}
+          {loading && <p className="api-note">Loading production state…</p>}
 
-            {/* center — the canvas */}
-            <div className="canvas" id="mainPanel">
-              {demoState === "normal" ? (
-                <StagePanel
-                  stage={stage}
-                  scenes={scenes}
-                  onReorder={reorder}
-                  onSaveScene={saveScene}
-                  showToast={showToast}
-                  activePara={activePara}
-                  onActivePara={setActivePara}
-                />
-              ) : (
-                <StatePanel stage={stage} demoState={demoState} showToast={showToast} />
-              )}
+          {!loading && !error && (
+            <div className="console-body">
+              {/* left rail — call sheet */}
+              <aside className="csheet">
+                <div className="csheet-title">
+                  <span className="lbl">Call sheet</span>
+                </div>
+                <div className="cs-row">
+                  <span className="cs-nm">Project</span>
+                  <span className="cs-vl">{projectId.slice(0, 8)}</span>
+                </div>
+                <div className="cs-row">
+                  <span className="cs-nm">Stage</span>
+                  <span className="cs-vl">{detail?.stage?.status ?? "—"}</span>
+                </div>
+                <div className="cs-row">
+                  <span className="cs-nm">Version</span>
+                  <span className="cs-vl">v{detail?.stage?.version ?? "—"}</span>
+                </div>
+                <div className="cs-row">
+                  <span className="cs-nm">Gate</span>
+                  <span className="cs-vl">{detail?.stage?.gate?.value ?? "none"}</span>
+                </div>
+              </aside>
+
+              {/* main panel — the script on paper */}
+              <div className="panel stage-fade">
+                <div className="p-eyebrow">
+                  {approved ? "Script · Approved" : awaiting ? "Script · Awaiting review" : "Script"}
+                  {scores && (
+                    <span className="score-chip">
+                      OVERALL <b>{scores.overall}/5</b>
+                      <span className="bar"><i style={{ width: `${scores.overall * 20}%` }}></i></span>
+                    </span>
+                  )}
+                </div>
+
+                {script ? (
+                  <div className="script-edit">
+                    <div className="script-title">{script.title}</div>
+                    <div className="script-para lead" data-p="p0">
+                      <em>{script.hook}</em>
+                    </div>
+                    <div className="script-para" data-p="p1">{script.introduction}</div>
+                    {script.body.map((para, i) => (
+                      <div key={i} className="script-para" data-p={`b${i}`}>
+                        {para}
+                      </div>
+                    ))}
+                    <div className="script-para" data-p="pc">{script.conclusion}</div>
+                    {script.cta && <div className="script-para" data-p="pcta">▶ {script.cta}</div>}
+                  </div>
+                ) : (
+                  <p className="lead" style={{ color: "#7a7265" }}>
+                    {approved
+                      ? "The script was approved. The production plan builds on this in the next phase."
+                      : awaiting
+                        ? "The script is written and scored — review it, then approve or ask for a retake."
+                        : "The workflow is still running. This panel fills in as stages complete."}
+                  </p>
+                )}
+              </div>
+
+              {/* coverage rail */}
+              <aside className="coverage">
+                <div className="cov-card">
+                  <div className="c-t">
+                    <span>Review scores</span>
+                    <span className="rec-dot"></span>
+                  </div>
+                  {scores ? (
+                    <div style={{ marginTop: 12 }}>
+                      {(Object.entries(scores) as [string, number][]).filter(([k]) => k !== "notes" && k !== "overall").map(([k, v]) => (
+                        <div key={k} className="score-line">
+                          <span className="nm">{k}</span>
+                          <span className="val"><b>{v}/5</b></span>
+                          <span className="bar"><i style={{ width: `${v * 20}%` }}></i></span>
+                        </div>
+                      ))}
+                      {scores.notes.length > 0 && (
+                        <div style={{ marginTop: 12, fontSize: 12, color: "var(--ash)" }}>
+                          {scores.notes.map((n, i) => <div key={i}>— {n}</div>)}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p style={{ color: "var(--ash)", fontSize: 12, marginTop: 12 }}>No scores yet.</p>
+                  )}
+                </div>
+
+                <div className="cov-card">
+                  <div className="c-t">
+                    <span>Versions</span>
+                  </div>
+                  <p style={{ color: "var(--ash)", fontSize: 12, marginTop: 10 }}>
+                    Latest: <b style={{ color: "var(--paper)" }}>v{detail?.stage?.version ?? "—"}</b>
+                    {detail?.stage?.updatedAt ? ` · ${new Date(detail.stage.updatedAt).toLocaleTimeString()}` : ""}
+                  </p>
+                </div>
+              </aside>
             </div>
+          )}
 
-            {/* right rail — director's notes */}
-            <DirectorsNotes
-              stage={stage}
-              demoState={demoState}
-              showToast={showToast}
-              activePara={activePara}
-            />
-          </div>
+          {/* fixed approve bar */}
+          {!loading && !error && (
+            <div className="gate-bar">
+              <div className="gate-in">
+                {awaiting ? (
+                  <>
+                    <div className="gate-note">
+                      <span className="rec-dot"></span>
+                      Script ready for review — approve to lock it, or send it back for a retake.
+                    </div>
+                    <div className="gate-actions">
+                      <input
+                        className="gate-feedback"
+                        type="text"
+                        value={feedback}
+                        onChange={(e) => setFeedback(e.target.value)}
+                        placeholder="Feedback for a retake (optional)"
+                        aria-label="Retake feedback"
+                      />
+                      <button className="btn btn-ghost" onClick={doRegenerate} disabled={busy}>
+                        Regenerate
+                      </button>
+                      <button className="btn btn-rec" onClick={doApprove} disabled={busy}>
+                        {busy ? "Working…" : "Approve & continue"}
+                      </button>
+                    </div>
+                  </>
+                ) : approved ? (
+                  <div className="gate-note">
+                    <span className="chip ok">Approved</span>
+                    Script v{detail?.stage?.version} locked — ready for the production plan.
+                  </div>
+                ) : (
+                  <div className="gate-note">
+                    <span className="rec-dot"></span>
+                    Production running…
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-
-        {/* persistent director bar */}
-        <DirectorBar
-          stage={stage}
-          hidden={demoState !== "normal"}
-          showToast={showToast}
-          onApprove={approveStage}
-        />
       </section>
-
-      <Toast message={toast} nonce={toastNonce} />
     </main>
   );
 }

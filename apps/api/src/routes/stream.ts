@@ -13,10 +13,13 @@ export async function streamRoute(app: FastifyInstance, deps: AppDeps) {
     const [row] = await db.select().from(projects).where(eq(projects.id, id));
     if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
 
+    // @fastify/cors doesn't wrap raw reply.raw responses — set the header here
+    // or the browser EventSource is blocked (no preflight for SSE).
     reply.raw.writeHead(200, {
       "content-type": "text/event-stream",
       "cache-control": "no-cache",
       connection: "keep-alive",
+      "access-control-allow-origin": "*",
     });
     reply.raw.write("retry: 2000\n\n");
 

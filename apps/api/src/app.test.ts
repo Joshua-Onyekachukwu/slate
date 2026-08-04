@@ -98,4 +98,23 @@ describe("api", () => {
     expect(res.statusCode).toBe(404);
     expect(res.json().error.code).toBe("NOT_FOUND");
   });
+
+  it("allows cross-origin requests from the web app (CORS)", async () => {
+    const app = buildApp({ provider: new FakeProvider([]), checkpointer });
+    const res = await app.inject({
+      method: "GET", url: "/api/v1/health", headers: { origin: "http://localhost:3000" },
+    });
+    expect(res.headers["access-control-allow-origin"]).toBe("http://localhost:3000");
+  });
+
+  it("lists projects with checkpoint-derived stage (not the stale column)", async () => {
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH },
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+    const list = await app.inject({ method: "GET", url: "/api/v1/projects" });
+    const row = (list.json().projects as { id: string; stage: string }[]).find((p) => p.id === id);
+    expect(row?.stage).toBe("script_review"); // checkpoint, not the column's "brief"
+  });
 });

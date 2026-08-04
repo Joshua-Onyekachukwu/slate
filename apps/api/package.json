@@ -12,10 +12,11 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@langchain/langgraph": "^0.2.33",
     "@slate/ai": "workspace:*",
     "@slate/db": "workspace:*",
     "@slate/shared": "workspace:*",
-    "@langchain/langgraph": "^0.2.33",
     "drizzle-orm": "^0.38.3",
     "fastify": "^5.2.0"
   },
