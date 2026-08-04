@@ -9,6 +9,9 @@ export * from "./agents/consistency";
 export * from "./agents/storyboard";
 export * from "./agents/editor";
 export * from "./agents/prompts";
+export * from "./workflow/state";
+export * from "./workflow/graph";
+export * from "./workflow/resume";
 
 // Kept for the worker placeholder log; real versioning lands with releases.
 export const AI_VERSION = "0.0.0";
