@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@langchain/langgraph": "^0.2.33",
+    "@langchain/langgraph-checkpoint-postgres": "^0.1.0",
+    "@videogen/shared": "workspace:*",
     "zod": "^3.24.1"
   },
   "devDependencies": {
