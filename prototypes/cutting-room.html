@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>videogen — The Cutting Room · Design mockup</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700&f[]=general-sans@400,500,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ TOKEN SHEET (approved 2026-08-03) ============ */
+  :root{
+    --ink:#141110;
+    --surface:#1E1A18;
+    --paper:#EDE6DA;
+    --paper-dim:#D9D0C0;
+    --ash:#8C8378;
+    --line-dark:#2B2622;
+    --line-paper:#C9BFAE;
+    --rec:#E04B3A;
+    --tungsten:#E2A85C;
+    --radius:2px;
+    --font-display:'Cabinet Grotesk','General Sans',sans-serif;
+    --font-body:'General Sans','Segoe UI',sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,monospace;
+    --pad:64px;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--font-body);
+    font-size:15px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--rec);color:var(--paper)}
+
+  /* ============ CHROME / NAV ============ */
+  .nav{
+    position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;
+    height:56px;padding:0 24px;
+    background:rgba(20,17,16,.92);
+    border-bottom:1px solid var(--line-dark);
+    backdrop-filter:blur(8px);
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;
+    font-family:var(--font-mono);
+    font-size:13px;font-weight:600;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--paper);
+    text-decoration:none;
+  }
+  .brand .rec-dot{width:8px;height:8px;border-radius:50%;background:var(--rec)}
+  .nav-links{display:flex;align-items:center;gap:4px}
+  .nav-link{
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--ash);
+    background:none;border:1px solid transparent;border-radius:var(--radius);
+    padding:7px 12px;cursor:pointer;transition:color .18s,border-color .18s,background .18s;
+  }
+  .nav-link:hover{color:var(--paper);border-color:var(--line-dark)}
+  .nav-link.active{color:var(--paper);border-color:var(--line-dark);background:var(--surface)}
+  .nav-meta{font-family:var(--font-mono);font-size:11px;color:var(--ash);letter-spacing:.12em}
+
+  /* ============ VIEWS ============ */
+  .view{display:none;min-height:calc(100vh - 56px)}
+  .view.active{display:block}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+  /* ============ DASHBOARD ============ */
+  .hero{padding:96px 0 64px;border-bottom:1px solid var(--line-dark)}
+  .eyebrow{
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.24em;
+    text-transform:uppercase;color:var(--tungsten);margin-bottom:18px;
+  }
+  .hero h1{
+    font-family:var(--font-display);font-weight:500;
+    font-size:clamp(38px,6vw,64px);line-height:1.05;letter-spacing:-.02em;
+    max-width:16ch;color:var(--paper);
+  }
+  .hero h1 .thin{color:var(--ash);font-weight:400}
+  .idea-box{
+    margin-top:40px;display:flex;gap:12px;max-width:640px;
+  }
+  .idea-input{
+    flex:1;background:var(--surface);border:1px solid var(--line-dark);
+    border-radius:var(--radius);color:var(--paper);
+    font-family:var(--font-body);font-size:16px;
+    padding:16px 18px;outline:none;transition:border-color .2s, box-shadow .2s;
+  }
+  .idea-input::placeholder{color:var(--ash)}
+  .idea-input:focus{border-color:var(--rec);box-shadow:0 0 0 1px var(--rec)}
+  .btn{
+    font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    border-radius:var(--radius);padding:0 22px;cursor:pointer;transition:all .18s;
+    border:1px solid transparent;white-space:nowrap;
+  }
+  .btn-rec{background:var(--rec);color:var(--paper)}
+  .btn-rec:hover{background:#c93d2f;transform:translateY(-1px)}
+  .btn-rec:active{transform:translateY(0)}
+  .btn-ghost{background:transparent;color:var(--paper);border-color:var(--line-dark)}
+  .btn-ghost:hover{border-color:var(--ash)}
+
+  .strip{
+    margin-top:48px;display:flex;align-items:center;gap:0;
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--ash);
+  }
+  .strip .step{display:flex;align-items:center;gap:8px}
+  .strip .sep{color:var(--line-dark);margin:0 8px}
+  .strip .step.done{color:var(--paper)}
+  .strip .step.live{color:var(--tungsten)}
+  .strip .step .rec-dot{width:6px;height:6px;border-radius:50%;background:var(--rec);animation:recPulse 1.6s ease-in-out infinite}
+
+  .section-label{
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.24em;
+    text-transform:uppercase;color:var(--ash);margin:56px 0 20px;
+    display:flex;align-items:center;gap:14px;
+  }
+  .section-label::after{content:"";flex:1;height:1px;background:var(--line-dark)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding-bottom:80px}
+
+  .slate{
+    position:relative;background:var(--surface);border:1px solid var(--line-dark);
+    border-radius:var(--radius);padding:22px;cursor:pointer;
+    transition:border-color .2s, transform .2s;
+  }
+  .slate:hover{border-color:var(--ash);transform:translateY(-2px)}
+  /* viewfinder corner brackets — the signature */
+  .slate .bracket{
+    position:absolute;width:14px;height:14px;border:1px solid transparent;transition:border-color .25s;
+  }
+  .slate .bracket.tl{top:-1px;left:-1px;border-top-color:var(--rec);border-left-color:var(--rec)}
+  .slate .bracket.tr{top:-1px;right:-1px;border-top-color:var(--rec);border-right-color:var(--rec)}
+  .slate .bracket.bl{bottom:-1px;left:-1px;border-bottom-color:var(--rec);border-left-color:var(--rec)}
+  .slate .bracket.br{bottom:-1px;right:-1px;border-bottom-color:var(--rec);border-right-color:var(--rec)}
+  .slate:not(:hover) .bracket{opacity:.45}
+  .slate:hover .bracket{opacity:1}
+
+  .slate-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .slate-id{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;color:var(--ash)}
+  .chip{
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    padding:3px 8px;border-radius:var(--radius);border:1px solid;
+  }
+  .chip.live{color:var(--tungsten);border-color:var(--tungsten)}
+  .chip.done{color:var(--paper);border-color:var(--line-dark)}
+  .chip.fail{color:var(--rec);border-color:var(--rec)}
+  .slate h3{font-family:var(--font-display);font-weight:500;font-size:20px;letter-spacing:-.01em;margin-bottom:6px}
+  .slate .meta{font-family:var(--font-mono);font-size:11px;color:var(--ash);letter-spacing:.06em}
+  .slate .progress{margin-top:16px;height:2px;background:var(--line-dark);border-radius:1px;overflow:hidden}
+  .slate .progress i{display:block;height:100%;background:var(--tungsten);width:62%}
+  .slate .progress i.full{background:var(--paper);width:100%}
+
+  /* ============ WORKSPACE ============ */
+  .ws-head{
+    padding:32px 0 0;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;
+  }
+  .ws-title{font-family:var(--font-display);font-weight:500;font-size:30px;letter-spacing:-.015em}
+  .ws-meta{font-family:var(--font-mono);font-size:11px;color:var(--ash);letter-spacing:.08em;margin-top:6px}
+
+  /* the slate / timecode stage strip — the signature */
+  .stepper{
+    margin-top:28px;background:var(--surface);border:1px solid var(--line-dark);
+    border-radius:var(--radius);display:flex;overflow-x:auto;position:relative;
+  }
+  .stage{
+    position:relative;flex:1;min-width:110px;padding:16px 14px 14px;cursor:pointer;
+    border-right:1px solid var(--line-dark);transition:background .2s;
+    user-select:none;
+  }
+  .stage:last-child{border-right:none}
+  .stage:hover{background:#24201d}
+  .stage .tc{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;color:var(--ash)}
+  .stage .nm{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-top:6px;color:var(--paper)}
+  .stage .st{font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;margin-top:8px;color:var(--ash)}
+  .stage.approved .tc{color:var(--ash)}
+  .stage.approved .st{color:var(--ash)}
+  .stage.approved .st::before{content:"✓ ";color:var(--paper)}
+  .stage.live{background:#241f1b}
+  .stage.live .nm{color:var(--tungsten)}
+  .stage.live .st{color:var(--tungsten)}
+  .stage.live .rec-dot{
+    display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--rec);
+    margin-right:6px;vertical-align:1px;animation:recPulse 1.6s ease-in-out infinite;
+  }
+  /* viewfinder brackets on the live stage */
+  .stage .vfb{position:absolute;width:12px;height:12px;border:1px solid transparent}
+  .stage .vfb.tl{top:6px;left:6px;border-top-color:var(--rec);border-left-color:var(--rec)}
+  .stage .vfb.tr{top:6px;right:6px;border-top-color:var(--rec);border-right-color:var(--rec)}
+  .stage .vfb.bl{bottom:6px;left:6px;border-bottom-color:var(--rec);border-left-color:var(--rec)}
+  .stage .vfb.br{bottom:6px;right:6px;border-bottom-color:var(--rec);border-right-color:var(--rec)}
+  .stage:not(.live) .vfb{display:none}
+  .stage.failed .st{color:var(--rec)}
+  .stage.failed .st::before{content:"RETAKE — ";color:var(--rec)}
+
+  /* main + coverage */
+  .ws-body{display:grid;grid-template-columns:1fr 320px;gap:0;margin-top:24px;padding-bottom:120px}
+  .panel{background:var(--paper);color:#241f1b;border-radius:var(--radius);padding:40px 44px;min-height:480px}
+  .panel .p-eyebrow{font-family:var(--font-mono);font-size:10px;letter-spacing:.22em;color:#7a7265;text-transform:uppercase}
+  .panel h2{font-family:var(--font-display);font-weight:500;font-size:26px;letter-spacing:-.01em;margin:8px 0 4px}
+  .panel .p-meta{font-family:var(--font-mono);font-size:10px;color:#9a9183;letter-spacing:.1em}
+  .panel h3{
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    color:#8a8173;margin:28px 0 10px;
+  }
+  .panel p{color:#3a342d;max-width:60ch}
+  .panel .lead{font-size:17px;line-height:1.65;color:#2a251f}
+  .score-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .score{
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;
+    border:1px solid var(--line-paper);border-radius:var(--radius);padding:4px 9px;color:#5c554a;
+  }
+  .score b{color:#2a251f;font-weight:600}
+  .score .bar{display:inline-block;width:34px;height:3px;background:var(--line-paper);vertical-align:2px;margin-left:6px;border-radius:1px;overflow:hidden}
+  .score .bar i{display:block;height:100%;background:var(--rec)}
+
+  .coverage{
+    margin-left:16px;display:flex;flex-direction:column;gap:16px;
+  }
+  .cov-card{background:var(--surface);border:1px solid var(--line-dark);border-radius:var(--radius);padding:18px}
+  .cov-card .c-t{font-family:var(--font-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ash);display:flex;justify-content:space-between;align-items:center}
+  .cov-card .c-t .rec-dot{width:7px;height:7px;border-radius:50%;background:var(--rec);animation:recPulse 1.6s ease-in-out infinite}
+  .cov-item{border-top:1px solid var(--line-dark);padding:12px 0}
+  .cov-item p{font-size:13px;color:var(--paper-dim)}
+  .cov-actions{display:flex;gap:8px;margin-top:8px}
+  .mini-btn{
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    background:none;border:1px solid var(--line-dark);color:var(--ash);border-radius:var(--radius);
+    padding:5px 10px;cursor:pointer;transition:all .15s;
+  }
+  .mini-btn:hover{color:var(--paper);border-color:var(--ash)}
+  .mini-btn.solid{color:var(--rec);border-color:var(--rec)}
+  .mini-btn.solid:hover{background:var(--rec);color:var(--paper)}
+  .ver-row{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line-dark);padding:10px 0;font-family:var(--font-mono);font-size:11px;color:var(--ash)}
+  .ver-row.current{color:var(--paper)}
+  .ver-row .v{letter-spacing:.06em}
+
+  /* approval bar */
+  .approve{
+    position:fixed;bottom:0;left:0;right:0;z-index:40;
+    background:rgba(20,17,16,.95);border-top:1px solid var(--line-dark);
+    backdrop-filter:blur(10px);
+  }
+  .approve .in{max-width:1080px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .approve .note{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;color:var(--ash)}
+  .approve .note b{color:var(--tungsten);font-weight:600}
+  .approve .tc{font-family:var(--font-mono);font-size:11px;color:var(--ash);letter-spacing:.08em}
+  .approve .acts{display:flex;gap:10px}
+  .btn-stamp{
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    border-radius:var(--radius);padding:12px 22px;cursor:pointer;border:1px solid transparent;transition:all .15s;
+  }
+  .btn-stamp.primary{background:var(--rec);color:var(--paper)}
+  .btn-stamp.primary:hover{background:#c93d2f}
+  .btn-stamp.primary:active{transform:scale(.985)}
+  .btn-stamp.ghost{background:none;color:var(--ash);border-color:var(--line-dark)}
+  .btn-stamp.ghost:hover{color:var(--paper);border-color:var(--ash)}
+
+  /* stamps + retake */
+  .stamp{
+    display:inline-block;font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;border:1px solid var(--rec);color:var(--rec);
+    padding:2px 8px;border-radius:var(--radius);margin-left:8px;vertical-align:2px;
+  }
+  .retake{
+    border:1px dashed var(--rec);color:var(--rec);border-radius:var(--radius);
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;padding:10px 14px;margin-top:16px;
+    display:flex;align-items:center;gap:10px;
+  }
+
+  @keyframes recPulse{
+    0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(224,75,58,.5)}
+    50%{opacity:.65;box-shadow:0 0 0 5px rgba(224,75,58,0)}
+  }
+
+  /* empty state */
+  .empty{
+    border:1px dashed var(--line-dark);border-radius:var(--radius);padding:40px;text-align:center;
+    color:var(--ash);font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    cursor:pointer;transition:border-color .2s,color .2s;
+  }
+  .empty:hover{border-color:var(--rec);color:var(--paper)}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important}
+  }
+  @media (max-width:860px){
+    .ws-body{grid-template-columns:1fr}
+    .coverage{margin-left:0;margin-top:16px}
+    .panel{padding:28px 22px}
+    :root{--pad:32px}
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="brand" href="#" onclick="showView('dash');return false">
+    <span class="rec-dot"></span> videogen
+  </a>
+  <div class="nav-links">
+    <button class="nav-link active" data-view="dash" onclick="showView('dash')">Dashboard</button>
+    <button class="nav-link" data-view="ws" onclick="showView('ws')">Workspace</button>
+  </div>
+  <span class="nav-meta">SLATE 2026-08-03 · CUTTING ROOM v0</span>
+</nav>
+
+<!-- ============ DASHBOARD ============ -->
+<section class="view active" id="view-dash">
+  <div class="wrap">
+    <div class="hero">
+      <div class="eyebrow">AI Creative Studio</div>
+      <h1>What do you want<br>to <span class="thin">make?</span></h1>
+      <div class="idea-box">
+        <input class="idea-input" type="text" placeholder="e.g. A documentary about the history of the universe…" aria-label="Describe your video idea">
+        <button class="btn btn-rec" onclick="showView('ws')">Begin production</button>
+      </div>
+      <div class="strip">
+        <span class="step done">Idea</span><span class="sep">/</span>
+        <span class="step done">Brief</span><span class="sep">/</span>
+        <span class="step live"><span class="rec-dot"></span>Research</span><span class="sep">/</span>
+        <span class="step">Script</span><span class="sep">/</span>
+        <span class="step">Storyboard</span><span class="sep">/</span>
+        <span class="step">Production</span>
+      </div>
+    </div>
+
+    <div class="section-label">Projects — latest takes</div>
+    <div class="grid">
+      <div class="slate" onclick="showView('ws')">
+        <span class="bracket tl"></span><span class="bracket tr"></span>
+        <span class="bracket bl"></span><span class="bracket br"></span>
+        <div class="slate-head">
+          <span class="slate-id">PROJ · 0042</span>
+          <span class="chip live">Research</span>
+        </div>
+        <h3>The History of the Universe</h3>
+        <div class="meta">16:9 · 00:04:30 · doc · updated 21:40</div>
+        <div class="progress"><i></i></div>
+      </div>
+      <div class="slate" onclick="showView('ws')">
+        <span class="bracket tl"></span><span class="bracket tr"></span>
+        <span class="bracket bl"></span><span class="bracket br"></span>
+        <div class="slate-head">
+          <span class="slate-id">PROJ · 0041</span>
+          <span class="chip done">Script ✓</span>
+        </div>
+        <h3>How Coffee Changed the World</h3>
+        <div class="meta">9:16 · 00:02:10 · short · updated 19:12</div>
+        <div class="progress"><i class="full"></i></div>
+      </div>
+      <div class="slate">
+        <span class="bracket tl"></span><span class="bracket tr"></span>
+        <span class="bracket bl"></span><span class="bracket br"></span>
+        <div class="slate-head">
+          <span class="slate-id">PROJ · 0038</span>
+          <span class="chip fail">Retake</span>
+        </div>
+        <h3>Why Deep Sea Creatures Glow</h3>
+        <div class="meta">16:9 · 00:03:00 · doc · updated Aug 02</div>
+        <div class="progress"><i style="width:38%"></i></div>
+      </div>
+      <div class="empty" onclick="showView('dash')">+ New idea</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WORKSPACE ============ -->
+<section class="view" id="view-ws">
+  <div class="wrap">
+    <div class="ws-head">
+      <div>
+        <div class="eyebrow" style="margin-bottom:6px">Project · PROJ 0042</div>
+        <h1 class="ws-title">The History of the Universe</h1>
+        <div class="ws-meta">16:9 · 00:04:30 · documentary · NVIDIA/deepseek-v3</div>
+      </div>
+      <button class="btn btn-ghost" onclick="showView('dash')">← Back to dashboard</button>
+    </div>
+
+    <!-- the slate / timecode stage strip -->
+    <div class="stepper">
+      <div class="stage approved">
+        <span class="vfb tl"></span><span class="vfb tr"></span><span class="vfb bl"></span><span class="vfb br"></span>
+        <div class="tc">01 · 00:00:12</div><div class="nm">Idea</div><div class="st">Approved</div>
+      </div>
+      <div class="stage approved">
+        <span class="vfb tl"></span><span class="vfb tr"></span><span class="vfb bl"></span><span class="vfb br"></span>
+        <div class="tc">02 · 00:00:48</div><div class="nm">Brief</div><div class="st">Approved</div>
+      </div>
+      <div class="stage live">
+        <span class="vfb tl"></span><span class="vfb tr"></span><span class="vfb bl"></span><span class="vfb br"></span>
+        <div class="tc">03 · 00:02:14</div><div class="nm"><span class="rec-dot"></span>Research</div><div class="st">Running</div>
+      </div>
+      <div class="stage">
+        <span class="vfb tl"></span><span class="vfb tr"></span><span class="vfb bl"></span><span class="vfb br"></span>
+        <div class="tc">04 · —</div><div class="nm">Script</div><div class="st">Pending</div>
+      </div>
+      <div class="stage">
+        <span class="vfb tl"></span><span class="vfb tr"></span><span class="vfb bl"></span><span class="vfb br"></span>
+        <div class="tc">05 · —</div><div class="nm">Storyboard</div><div class="st">Pending</div>
+      </div>
+      <div class="stage">
+        <span class="vfb tl"></span><span class="vfb tr"></span><span class="vfb bl"></span><span class="vfb br"></span>
+        <div class="tc">06 · —</div><div class="nm">Production</div><div class="st">Pending</div>
+      </div>
+    </div>
+
+    <div class="ws-body">
+      <!-- main panel : research packet on paper -->
+      <div class="panel">
+        <div class="p-eyebrow">Stage 03 · Research packet <span class="stamp">draft</span></div>
+        <h2>Grounding the timeline</h2>
+        <div class="p-meta">v1 · generated 21:38 · 14.2k tokens</div>
+        <p class="lead" style="margin-top:16px">The studio is gathering the factual spine your script will stand on. It draws from the approved brief: <em>documentary, general audience, 4:30 runtime, wonder-driven tone.</em></p>
+
+        <h3>Timeline</h3>
+        <p>Big Bang (13.8 bya) → first stars (13.5 bya) → galaxies form → our solar system (4.6 bya) → life on Earth → humans (300 kya) → telescopes → today.</p>
+
+        <h3>Key concepts</h3>
+        <div class="score-row">
+          <span class="score">Cosmic inflation</span><span class="score">Dark matter</span>
+          <span class="score">Dark energy</span><span class="score">Cosmic microwave background</span>
+          <span class="score">Redshift</span><span class="score">Observable universe</span>
+        </div>
+
+        <h3>References</h3>
+        <p>NASA WMAP/CMB data · Planck mission results · "A Brief History of Time" (Hawking) · PBS Space Time series. Claims without a source are marked <em>unverified</em> and cap the script's factual score.</p>
+
+        <div class="retake">RETAKE — rate limit hit (429) on one reference call, retrying with backoff…</div>
+      </div>
+
+      <!-- coverage rail -->
+      <div class="coverage">
+        <div class="cov-card">
+          <div class="c-t">Live · Scripting notes <span class="rec-dot"></span></div>
+          <div class="cov-item">
+            <p>Research complete at 98%. Recommend a hook on the "first three minutes" frame — strong emotional beat.</p>
+            <div class="cov-actions">
+              <button class="mini-btn solid">Apply</button>
+              <button class="mini-btn">Dismiss</button>
+            </div>
+          </div>
+          <div class="cov-item">
+            <p>Pacing risk: the medieval astronomy section runs long vs. the 4:30 target. Trim to 2 beats.</p>
+            <div class="cov-actions">
+              <button class="mini-btn solid">Apply</button>
+              <button class="mini-btn">Dismiss</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cov-card">
+          <div class="c-t">Script scores · v1</div>
+          <div class="cov-item">
+            <p>Clarity <b style="color:var(--paper)">4.2</b><span class="bar"><i style="width:84%"></i></span></p>
+            <p>Pacing <b style="color:var(--paper)">3.9</b><span class="bar"><i style="width:78%"></i></span></p>
+            <p>Engagement <b style="color:var(--paper)">4.4</b><span class="bar"><i style="width:88%"></i></span></p>
+            <p>Retention <b style="color:var(--paper)">4.1</b><span class="bar"><i style="width:82%"></i></span></p>
+            <p>Redundancy <b style="color:var(--paper)">4.0</b><span class="bar"><i style="width:80%"></i></span></p>
+            <p>Factual <b style="color:var(--paper)">3.6</b><span class="bar"><i style="width:72%"></i></span></p>
+          </div>
+          <div class="cov-actions" style="padding-top:6px">
+            <button class="mini-btn solid">Regenerate</button>
+            <button class="mini-btn">See notes</button>
+          </div>
+        </div>
+
+        <div class="cov-card">
+          <div class="c-t">Versions</div>
+          <div class="ver-row current"><span class="v">v3 · AI</span><span>21:41</span></div>
+          <div class="ver-row"><span class="v">v2 · AI</span><span>21:35</span></div>
+          <div class="ver-row"><span class="v">v1 · AI</span><span>21:28</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- approval bar -->
+  <div class="approve">
+    <div class="in">
+      <div class="note"><b>Awaiting your review</b> — research packet is ready. Approve to continue to the script.</div>
+      <div style="display:flex;align-items:center;gap:20px">
+        <span class="tc">TC 00:02:14 · REC ●</span>
+        <div class="acts">
+          <button class="btn-stamp ghost">Request changes</button>
+          <button class="btn-stamp primary">Approve &amp; continue →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  function showView(name){
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+name).classList.add('active');
+    document.querySelectorAll('.nav-link').forEach(b=>{
+      b.classList.toggle('active', b.dataset.view===name);
+    });
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  // demo: clicking "Apply" / "Approve" gives a tiny feedback state
+  document.addEventListener('click', e=>{
+    const t=e.target.closest('.mini-btn.solid, .btn-stamp.primary');
+    if(!t) return;
+    const prev=t.textContent;
+    t.textContent='✓ Done';
+    setTimeout(()=>{t.textContent=prev},1200);
+  });
+</script>
+</body>
+</html>

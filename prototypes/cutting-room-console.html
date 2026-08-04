@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>videogen — Cutting Room · prototype</title>
+<link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700&f[]=general-sans@400,500,600&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ============ TOKEN SHEET (approved 2026-08-03, ui-design.md) ============ */
+:root {
+  --ink: #141110;
+  --surface: #1e1a18;
+  --paper: #ede6da;
+  --paper-dim: #d9d0c0;
+  --ash: #8c8378;
+  --line-dark: #2b2622;
+  --line-paper: #c9bfae;
+  --rec: #e04b3a;
+  --tungsten: #e2a85c;
+  --radius: 2px;
+  --font-display: "Cabinet Grotesk", "General Sans", sans-serif;
+  --font-body: "General Sans", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--rec); color: var(--paper); }
+button { font-family: inherit; cursor: pointer; }
+input, textarea, [contenteditable] { font-family: inherit; }
+:focus-visible { outline: 2px solid var(--rec); outline-offset: 2px; }
+.hidden { display: none !important; }
+
+/* ============ NAV ============ */
+.nav {
+  position: sticky; top: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px; padding: 0 24px;
+  background: rgba(20, 17, 16, 0.92);
+  border-bottom: 1px solid var(--line-dark);
+  backdrop-filter: blur(8px);
+}
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.24em; text-transform: uppercase; }
+.brand .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rec); animation: recPulse 1.6s ease-in-out infinite; }
+.nav-links { display: flex; align-items: center; gap: 22px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ash); }
+.nav-links .active { color: var(--paper); }
+.nav-right { display: flex; align-items: center; gap: 14px; }
+.status-pill { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--tungsten); border: 1px solid rgba(226,168,92,0.35); border-radius: 999px; padding: 4px 10px; }
+.avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line-dark); display: grid; place-items: center; font-family: var(--font-mono); font-size: 10px; color: var(--paper-dim); }
+
+/* ============ SHARED ============ */
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+.eyebrow { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ash); }
+.btn { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; border-radius: var(--radius); padding: 12px 22px; border: 1px solid transparent; transition: all 0.15s; text-decoration: none; }
+.btn-ghost { background: none; color: var(--ash); border-color: var(--line-dark); }
+.btn-ghost:hover { color: var(--paper); border-color: var(--ash); }
+.btn-rec { background: var(--rec); color: var(--paper); }
+.btn-rec:hover { background: #c93d2f; }
+.mini-btn { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; background: none; border: 1px solid var(--line-dark); color: var(--ash); border-radius: var(--radius); padding: 6px 12px; transition: all 0.15s; }
+.mini-btn:hover { color: var(--paper); border-color: var(--ash); }
+.mini-btn.solid { color: var(--rec); border-color: var(--rec); }
+.mini-btn.solid:hover { background: var(--rec); color: var(--paper); }
+.chip { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; border: 1px solid var(--line-paper); color: #5c554a; border-radius: 999px; padding: 2px 9px; }
+.chip.rec { border-color: var(--rec); color: var(--rec); }
+
+/* ============ DASHBOARD — STUDIO LAUNCHPAD ============ */
+.hero { padding: 72px 0 40px; text-align: center; }
+.hero h1 { font-family: var(--font-display); font-size: 44px; font-weight: 500; letter-spacing: -0.02em; }
+.hero .sub { color: var(--ash); margin-top: 10px; font-size: 16px; }
+.idea-box { margin: 30px auto 0; max-width: 620px; display: flex; gap: 10px; }
+.idea-input { flex: 1; background: var(--surface); border: 1px solid var(--line-dark); border-radius: var(--radius); color: var(--paper); font-size: 15px; padding: 15px 18px; outline: none; transition: border-color 0.18s, box-shadow 0.18s; }
+.idea-input:focus { border-color: var(--tungsten); box-shadow: 0 0 0 1px var(--tungsten); }
+.idea-input::placeholder { color: var(--ash); }
+.mode-row { margin-top: 18px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.mode-row .lbl { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ash); margin-right: 4px; }
+.mode-chip { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; background: none; border: 1px solid var(--line-dark); color: var(--ash); border-radius: var(--radius); padding: 6px 12px; transition: all 0.15s; }
+.mode-chip:hover { color: var(--paper); border-color: var(--ash); }
+.mode-chip.active { color: var(--ink); background: var(--tungsten); border-color: var(--tungsten); }
+.section-label { display: flex; align-items: center; gap: 10px; margin: 48px 0 18px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ash); }
+.section-label::after { content: ""; flex: 1; height: 1px; background: var(--line-dark); }
+.slates { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.slate {
+  position: relative; display: block; text-align: left;
+  background: var(--surface); border: 1px solid var(--line-dark); border-radius: var(--radius);
+  padding: 22px; cursor: pointer; text-decoration: none; color: inherit;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.slate:hover { border-color: var(--ash); transform: translateY(-2px); }
+.slate .bracket { position: absolute; width: 14px; height: 14px; border: 1px solid transparent; transition: border-color 0.25s; }
+.slate .bracket.tl { top: -1px; left: -1px; border-top-color: var(--rec); border-left-color: var(--rec); }
+.slate .bracket.tr { top: -1px; right: -1px; border-top-color: var(--rec); border-right-color: var(--rec); }
+.slate .bracket.bl { bottom: -1px; left: -1px; border-bottom-color: var(--rec); border-left-color: var(--rec); }
+.slate .bracket.br { bottom: -1px; right: -1px; border-bottom-color: var(--rec); border-right-color: var(--rec); }
+.slate:not(:hover) .bracket { opacity: 0.45; }
+.slate:hover .bracket { opacity: 1; }
+.slate-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.slate-code { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; color: var(--ash); }
+.slate-title { font-family: var(--font-display); font-size: 19px; font-weight: 500; margin-top: 14px; letter-spacing: -0.01em; }
+.slate-meta { font-family: var(--font-mono); font-size: 10px; color: var(--ash); margin-top: 6px; letter-spacing: 0.06em; }
+.slate-progress { margin-top: 16px; height: 2px; background: var(--line-dark); overflow: hidden; border-radius: 1px; }
+.slate-progress i { display: block; height: 100%; background: var(--tungsten); }
+.takes { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; padding-bottom: 80px; }
+.take-card { text-align: left; background: var(--surface); border: 1px solid var(--line-dark); border-radius: var(--radius); padding: 14px 16px; cursor: pointer; transition: border-color 0.18s, transform 0.18s; }
+.take-card:hover { border-color: var(--ash); transform: translateY(-1px); }
+.take-card .t-artifact { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; color: var(--paper); }
+.take-card .t-proj { font-size: 12.5px; color: var(--ash); margin-top: 4px; }
+.take-card .t-time { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; color: var(--ash); margin-top: 8px; }
+
+/* ============ WORKSPACE ============ */
+.ws-head { padding: 32px 0 0; display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+.ws-title { font-family: var(--font-display); font-weight: 500; font-size: 30px; letter-spacing: -0.015em; }
+.ws-meta { font-family: var(--font-mono); font-size: 11px; color: var(--ash); letter-spacing: 0.08em; margin-top: 6px; }
+
+/* demo bar — prototype controls */
+.demo-bar {
+  position: sticky; top: 56px; z-index: 55;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 8px 24px; margin: 16px -24px 0;
+  background: rgba(20, 17, 16, 0.85); border-bottom: 1px solid var(--line-dark); backdrop-filter: blur(8px);
+}
+.demo-bar .lbl { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ash); }
+.demo-bar .grp { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.demo-btn { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; background: none; border: 1px solid transparent; color: var(--ash); border-radius: 3px; padding: 4px 9px; }
+.demo-btn:hover { color: var(--paper); }
+.demo-btn.active { color: var(--ink); background: var(--paper); }
+
+/* horizontal stepper — narrow screens only */
+.stepper { margin-top: 24px; border-bottom: 1px solid var(--line-dark); display: flex; overflow-x: auto; }
+.stage { position: relative; flex: 1; min-width: 96px; padding: 14px 12px 12px; cursor: pointer; user-select: none; background: none; border: none; color: inherit; text-align: left; }
+.stage:hover { background: rgba(255,255,255,0.03); }
+.stage .tc { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; color: var(--ash); }
+.stage .nm { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; margin-top: 6px; color: var(--paper); }
+.stage .st { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; margin-top: 8px; color: var(--ash); }
+.stage.approved .st::before { content: "✓ "; color: var(--ash); }
+.stage.live { box-shadow: inset 0 -2px 0 var(--tungsten); }
+.stage.live .nm { color: var(--tungsten); }
+.stage.live .st { color: var(--tungsten); }
+.stage.live .rec-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--rec); margin-right: 6px; vertical-align: 1px; animation: recPulse 1.6s ease-in-out infinite; }
+.stage.failed .st { color: var(--rec); }
+.stage.failed .st::before { content: "RETAKE — "; color: var(--rec); }
+
+/* ============ PRODUCTION CONSOLE (three zones) ============ */
+.console-body { display: grid; grid-template-columns: 220px minmax(0, 1fr) 320px; gap: 16px; margin-top: 24px; padding-bottom: 150px; align-items: start; }
+
+/* left rail — call sheet */
+.csheet { position: sticky; top: 112px; }
+.csheet-title { display: flex; justify-content: space-between; align-items: center; padding: 4px 2px 12px; border-bottom: 1px solid var(--line-dark); }
+.csheet-title .lbl { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ash); }
+.csheet-title .tc { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; color: var(--tungsten); }
+.csheet-list { list-style: none; margin: 0; padding: 10px 2px 2px; }
+.csheet-list li { margin: 1px 0; }
+.cs-stage {
+  position: relative; width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px 8px 10px; background: none; border: none; border-left: 2px solid transparent;
+  cursor: pointer; text-align: left; color: var(--paper); transition: background 0.18s, border-color 0.18s;
+}
+.cs-stage:hover { background: rgba(255,255,255,0.03); }
+.cs-stage .cs-num { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; color: var(--ash); min-width: 18px; }
+.cs-stage .cs-body { display: flex; flex-direction: column; }
+.cs-stage .cs-name { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--paper); display: flex; align-items: center; gap: 6px; }
+.cs-stage .cs-st { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--ash); margin-top: 2px; }
+.cs-stage.approved .cs-name::before { content: "✓ "; color: var(--ash); }
+.cs-stage.live { border-left-color: var(--tungsten); }
+.cs-stage.live .cs-name { color: var(--tungsten); }
+.cs-stage.live .cs-st { color: var(--tungsten); }
+.cs-stage.live .rec-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--rec); margin-right: 4px; animation: recPulse 1.6s ease-in-out infinite; }
+
+/* center — canvas */
+.panel { background: var(--paper); color: #241f1b; border-radius: var(--radius); padding: 40px 44px; min-height: 520px; }
+.stage-fade { animation: fadeUp 0.28s ease; }
+.panel .p-eyebrow { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #8a8173; }
+.panel .stamp { border: 1px solid var(--line-paper); color: #6d6557; border-radius: 999px; padding: 2px 8px; font-size: 8px; letter-spacing: 0.14em; margin-left: 6px; }
+.panel h2 { font-family: var(--font-display); font-weight: 500; font-size: 30px; letter-spacing: -0.015em; margin-top: 10px; color: #1e1915; }
+.panel .p-meta { font-family: var(--font-mono); font-size: 10px; color: #9a9183; letter-spacing: 0.14em; margin-top: 8px; }
+.panel h3 { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #5c554a; margin-top: 26px; }
+.lead { font-size: 16px; line-height: 1.65; color: #3a332a; }
+
+/* brief cards */
+.brief-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+.b-card { border: 1px solid var(--line-paper); border-radius: var(--radius); padding: 14px 16px; background: #faf6ec; }
+.b-card .k { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: #9a9183; }
+.b-card .v { font-size: 15px; margin-top: 5px; color: #241f1b; }
+.b-card .tag { font-family: var(--font-mono); font-size: 9px; color: #a89d8a; margin-top: 4px; }
+
+/* chat */
+.chat { margin-top: 24px; display: flex; flex-direction: column; gap: 16px; }
+.msg { display: flex; gap: 12px; }
+.msg .who { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: #a89d8a; min-width: 56px; padding-top: 3px; }
+.msg.user .who { color: #6d6557; }
+.msg .bubble { background: #f5efe3; border: 1px solid var(--line-paper); border-radius: var(--radius); padding: 14px 16px; font-size: 14.5px; color: #3a332a; flex: 1; }
+.msg .bubble ul { margin: 8px 0 0 18px; }
+.msg .bubble li { margin-top: 4px; }
+
+/* research */
+.tl { list-style: none; margin-top: 14px; }
+.tl li { padding: 7px 0; border-bottom: 1px solid var(--line-paper); font-size: 14.5px; color: #3a332a; }
+.tl .t { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--rec); display: inline-block; min-width: 92px; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.score-chip { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; border: 1px solid var(--line-paper); border-radius: 999px; padding: 4px 12px; color: #5c554a; }
+
+/* ============ TIPTAP SCRIPT EDITOR ============ */
+.script-edit { margin-top: 18px; }
+.tt-toolbar { display: flex; align-items: center; gap: 2px; padding: 8px 10px; background: #f5efe3; border: 1px solid var(--line-paper); border-bottom: none; border-radius: var(--radius) var(--radius) 0 0; }
+.tt-btn { min-width: 30px; height: 28px; padding: 0 7px; display: inline-flex; align-items: center; justify-content: center; background: none; border: 1px solid transparent; border-radius: 6px; color: #4a433a; font-size: 13px; transition: background 0.15s; }
+.tt-btn:hover { background: #e9e0cd; }
+.tt-btn.on { background: var(--tungsten); color: #241f1b; border-color: var(--tungsten); }
+.tt-sep { width: 1px; height: 18px; background: var(--line-paper); margin: 0 6px; }
+.tt-doc { background: #faf6ec; border: 1px solid var(--line-paper); border-radius: 0 0 var(--radius) var(--radius); padding: 34px 40px 20px; }
+.script-title { font-family: var(--font-display); font-size: 32px; font-weight: 500; color: #1e1915; letter-spacing: -0.01em; background: none; border: none; border-bottom: 1px solid var(--line-paper); width: 100%; padding: 4px 2px 10px; outline: none; }
+.script-meta { font-family: var(--font-mono); font-size: 10px; color: #9a9183; letter-spacing: 0.14em; margin-top: 4px; }
+.script-para { position: relative; margin-top: 16px; font-size: 15.5px; line-height: 1.75; color: #2a251f; }
+.script-para[contenteditable] { outline: none; border-left: 2px solid transparent; padding: 2px 0 2px 10px; transition: border-color 0.15s, background 0.15s; cursor: text; }
+.script-para[contenteditable]:hover { border-left-color: var(--line-paper); }
+.script-para[contenteditable]:focus { border-left-color: var(--tungsten); }
+.script-para.active { border-left-color: var(--tungsten); background: rgba(226, 168, 92, 0.07); }
+.script-para.flagged::after { content: "!"; position: absolute; top: 6px; right: -26px; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1px solid var(--rec); color: var(--rec); font-family: var(--font-mono); font-size: 10px; border-radius: 50%; }
+.tt-statusbar { display: flex; align-items: center; gap: 14px; margin-top: 26px; padding-top: 12px; border-top: 1px solid var(--line-paper); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; color: #9a9183; flex-wrap: wrap; }
+.tt-statusbar b { color: #5c554a; }
+.tt-statusbar .tt-hint { margin-left: auto; color: #b3a994; }
+
+/* ============ STORYBOARD — SLATE LINES ============ */
+.scene-list { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+.slate-line { position: relative; background: #241f1b; border: 1px solid #3a332d; border-radius: var(--radius); padding: 12px 16px; cursor: grab; transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s; }
+.slate-line:hover { border-color: var(--ash); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
+.slate-line:active { cursor: grabbing; }
+.slate-line.rec { border-color: rgba(224,75,58,0.55); }
+.slate-line .sl-bracket { position: absolute; width: 12px; height: 12px; border: 1px solid transparent; opacity: 0.55; }
+.slate-line .sl-bracket.tl { top: 6px; left: 6px; border-top-color: var(--rec); border-left-color: var(--rec); }
+.slate-line .sl-bracket.tr { top: 6px; right: 6px; border-top-color: var(--rec); border-right-color: var(--rec); }
+.slate-line .sl-bracket.bl { bottom: 6px; left: 6px; border-bottom-color: var(--rec); border-left-color: var(--rec); }
+.slate-line .sl-bracket.br { bottom: 6px; right: 6px; border-bottom-color: var(--rec); border-right-color: var(--rec); }
+.slate-line:hover .sl-bracket { opacity: 1; }
+.slate-line .sl-handle { position: absolute; top: 50%; transform: translateY(-50%); right: 14px; color: #8c8378; opacity: 0; transition: opacity 0.15s; }
+.slate-line:hover .sl-handle { opacity: 1; }
+.slate-line .sl-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.slate-line .sl-code { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; color: var(--ash); }
+.slate-line .sl-code b { color: var(--paper); }
+.slate-line .sl-title { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--paper); margin-top: 8px; }
+.slate-line .sl-meta { font-family: var(--font-mono); font-size: 10px; color: var(--ash); margin-top: 4px; letter-spacing: 0.06em; }
+.slate-line .sl-insert { position: absolute; left: 0; right: 0; height: 2px; background: transparent; pointer-events: none; }
+.slate-line .sl-insert[data-over="top"] { top: -7px; background: var(--tungsten); }
+.slate-line .sl-insert[data-over="bottom"] { bottom: -7px; background: var(--tungsten); }
+.slate-line.over-top { border-top-color: var(--tungsten); }
+.slate-line.over-bottom { border-bottom-color: var(--tungsten); }
+
+/* ============ RIGHT RAIL — DIRECTOR'S NOTES ============ */
+.coverage { margin-left: 0; display: flex; flex-direction: column; gap: 16px; }
+.cov-card { background: var(--surface); border: 1px solid var(--line-dark); border-radius: var(--radius); padding: 18px; }
+.cov-card .c-t { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ash); display: flex; justify-content: space-between; align-items: center; }
+.cov-card .c-t .rec-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--rec); animation: recPulse 1.6s ease-in-out infinite; }
+.cov-item { border-top: 1px solid var(--line-dark); padding: 12px 0; }
+.cov-item p { font-size: 13px; color: var(--paper-dim); }
+.cov-item p b { color: var(--paper); font-weight: 600; }
+.cov-lead { font-size: 12px; color: var(--ash); margin: 10px 0 2px; font-family: var(--font-mono); letter-spacing: 0.04em; }
+.cov-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.score-line { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line-dark); padding: 9px 0; font-family: var(--font-mono); font-size: 11px; color: var(--ash); }
+.score-line .nm { letter-spacing: 0.08em; }
+.score-line .val b { color: var(--paper); font-weight: 600; }
+.score-line .bar { display: inline-block; width: 52px; height: 3px; background: var(--line-dark); vertical-align: 2px; margin-left: 8px; border-radius: 1px; overflow: hidden; }
+.score-line .bar i { display: block; height: 100%; background: var(--rec); }
+.score-line .bar i.amber { background: var(--tungsten); }
+.note-row { display: flex; gap: 10px; align-items: baseline; border-top: 1px solid var(--line-dark); padding: 8px 6px; margin: 0 -6px; font-size: 12px; color: var(--paper-dim); transition: background 0.15s; }
+.note-row.active { background: rgba(226,168,92,0.1); border-radius: 6px; }
+.note-row.flagged .nr-p { color: var(--rec); }
+.note-row .nr-p { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--ash); min-width: 22px; }
+.note-row .nr-score { font-family: var(--font-mono); font-size: 11px; color: var(--tungsten); min-width: 26px; }
+.note-row .nr-text { line-height: 1.5; }
+.ver-row { display: flex; justify-content: space-between; border-top: 1px solid var(--line-dark); padding: 8px 0; font-family: var(--font-mono); font-size: 11px; color: var(--ash); }
+.ver-row .v { color: var(--paper-dim); }
+.ver-row.current .v::before { content: "✓ "; color: var(--tungsten); }
+.take-row { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line-dark); padding: 9px 0; font-family: var(--font-mono); font-size: 11px; color: var(--paper-dim); }
+.take-row .t-actions { display: flex; gap: 6px; }
+.take-row .mini-btn { padding: 3px 8px; font-size: 9px; }
+.asset-row { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line-dark); padding: 9px 0; gap: 8px; }
+.asset-row .a-kind { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; color: var(--tungsten); min-width: 34px; }
+.asset-row .a-name { font-size: 12px; color: var(--paper-dim); flex: 1; }
+.asset-row .a-status { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; }
+.asset-row .a-status.approved { color: var(--paper); }
+.asset-row .a-status.draft { color: var(--ash); }
+.asset-row .a-status.retake { color: var(--rec); }
+
+/* ============ DIRECTOR BAR ============ */
+.director-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 40; background: rgba(20,17,16,0.9); border-top: 1px solid rgba(43,38,34,0.7); backdrop-filter: blur(12px); }
+.director-bar.hidden { display: none; }
+.director-bar .in { max-width: 1280px; margin: 0 auto; padding: 12px 24px; }
+.db-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.db-top .tc { font-family: var(--font-mono); font-size: 11px; color: var(--ash); letter-spacing: 0.08em; }
+.db-suggestions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.db-suggestions .lbl { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ash); }
+.db-main { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.db-input-wrap { flex: 1; min-width: 260px; display: flex; align-items: center; gap: 8px; }
+.db-input { flex: 1; background: var(--surface); border: 1px solid var(--line-dark); border-radius: var(--radius); color: var(--paper); font-size: 14px; padding: 11px 14px; outline: none; transition: border-color 0.18s, box-shadow 0.18s; }
+.db-input::placeholder { color: var(--ash); }
+.db-input:focus { border-color: var(--tungsten); box-shadow: 0 0 0 1px var(--tungsten); }
+.db-actions { display: flex; gap: 10px; }
+.btn-stamp { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; border-radius: var(--radius); padding: 12px 22px; border: 1px solid transparent; transition: all 0.15s; }
+.btn-stamp.primary { background: var(--rec); color: var(--paper); }
+.btn-stamp.primary:hover { background: #c93d2f; }
+.btn-stamp.primary:active { transform: scale(0.985); }
+.btn-stamp.primary.stamped { background: transparent; color: var(--paper); border-color: var(--line-dark); }
+.btn-stamp.ghost { background: none; color: var(--ash); border-color: var(--line-dark); }
+.btn-stamp.ghost:hover { color: var(--paper); border-color: var(--ash); }
+
+/* ============ TOAST / STATE ============ */
+.toast {
+  position: fixed; bottom: 92px; right: 24px; z-index: 70;
+  background: var(--surface); border: 1px solid var(--line-dark); border-left: 2px solid var(--rec);
+  border-radius: var(--radius); padding: 12px 16px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; color: var(--paper);
+  transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.2,0.8,0.2,1);
+}
+.toast.show { transform: translateX(0); }
+.skeleton .sk { height: 14px; background: var(--line-dark); border-radius: 3px; margin-top: 12px; animation: skPulse 1.2s ease-in-out infinite; }
+.skeleton .l1 { width: 72%; } .skeleton .l2 { width: 100%; } .skeleton .l3 { width: 88%; }
+.retake { margin-top: 18px; border: 1px solid var(--rec); color: var(--rec); font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; padding: 12px 14px; border-radius: var(--radius); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.caret { display: inline-block; width: 8px; height: 15px; background: var(--rec); margin-left: 6px; vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+
+/* ============ ANIMATIONS ============ */
+@keyframes recPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes skPulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.9; } }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1180px) {
+  .console-body { grid-template-columns: minmax(0, 1fr) 320px; }
+  .csheet { display: none; }
+  .coverage { margin-left: 16px; }
+}
+@media (max-width: 880px) {
+  .console-body { grid-template-columns: 1fr; }
+  .coverage { margin-left: 0; margin-top: 16px; }
+  .panel { padding: 28px 22px; }
+  .brief-grid { grid-template-columns: 1fr; }
+  .hero h1 { font-size: 32px; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<nav class="nav">
+  <div class="brand"><span class="rec-dot"></span>videogen</div>
+  <div class="nav-links">
+    <span class="active">Studio</span>
+    <span>Projects</span>
+    <span>Library</span>
+  </div>
+  <div class="nav-right">
+    <span class="status-pill">nvidia build · live</span>
+    <div class="avatar">S</div>
+  </div>
+</nav>
+
+<!-- ============ DASHBOARD ============ -->
+<main id="dashboard" class="wrap">
+  <section class="hero">
+    <div class="eyebrow">AI creative studio · idea → film</div>
+    <h1>What do you want to make?</h1>
+    <p class="sub">Describe it in one line. The studio handles research, script, storyboard, and prompts.</p>
+    <div class="idea-box">
+      <input id="ideaInput" class="idea-input" placeholder="“A documentary about the history of the universe.”" />
+      <button class="btn btn-rec" id="beginBtn">Begin production →</button>
+    </div>
+    <div class="mode-row">
+      <span class="lbl">Mode</span>
+      <button class="mode-chip active" data-mode="Film">Film</button>
+      <button class="mode-chip" data-mode="Essay">Essay</button>
+      <button class="mode-chip" data-mode="Explainer">Explainer</button>
+      <button class="mode-chip" data-mode="Ad">Ad</button>
+    </div>
+  </section>
+
+  <div class="section-label">Continue working</div>
+  <div class="slates" id="slateGrid"></div>
+
+  <div class="section-label">Recent takes</div>
+  <div class="takes" id="takesGrid"></div>
+</main>
+
+<!-- ============ WORKSPACE ============ -->
+<main id="workspace" class="wrap hidden">
+  <div class="ws-head">
+    <div>
+      <div class="eyebrow" style="margin-bottom:6px;">Project · PROJ 0042</div>
+      <h1 class="ws-title" id="wsTitle">The History of the Universe</h1>
+      <div class="ws-meta" id="wsMeta">16:9 · 00:04:30 · documentary · nvidia/nvidia-llama-3.3-70b</div>
+    </div>
+    <button class="btn btn-ghost" id="backBtn">← Back to studio</button>
+  </div>
+
+  <!-- prototype controls -->
+  <div class="demo-bar">
+    <span class="lbl">Prototype controls</span>
+    <span class="lbl">Stage</span>
+    <div class="grp" id="stageBtns"></div>
+    <span class="lbl">State</span>
+    <div class="grp" id="stateBtns"></div>
+  </div>
+
+  <div class="console-body">
+    <!-- left rail — call sheet -->
+    <aside class="csheet" aria-label="Call sheet — production stages">
+      <div class="csheet-title">
+        <span class="lbl">Call sheet</span>
+        <span class="tc" id="csTc">01 · 00:00:12</span>
+      </div>
+      <ol class="csheet-list" id="csList"></ol>
+    </aside>
+
+    <!-- center — canvas -->
+    <div class="canvas" id="mainPanel"></div>
+
+    <!-- right rail — director's notes -->
+    <div class="coverage" id="notesRail"></div>
+  </div>
+</main>
+
+<!-- director bar (workspace) -->
+<div class="director-bar hidden" id="directorBar">
+  <div class="in">
+    <div class="db-top">
+      <span class="tc" id="dbTc">TC 01 · 00:00:12 · REC ●</span>
+      <div class="db-suggestions">
+        <span class="lbl">Try:</span>
+        <button class="mini-btn" data-sug="Make scene 3 more dramatic">Make scene 3 more dramatic</button>
+        <button class="mini-btn" data-sug="Tighten the intro to 20s">Tighten the intro to 20s</button>
+        <button class="mini-btn" data-sug="Use a warmer narrator">Use a warmer narrator</button>
+      </div>
+    </div>
+    <div class="db-main">
+      <div class="db-input-wrap">
+        <input class="db-input" id="dbInput" placeholder="Tell the studio what to change — “make scene 3 more dramatic”…" />
+        <button class="mini-btn solid" id="dbSend">Send</button>
+      </div>
+      <div class="db-actions">
+        <button class="btn-stamp ghost" id="dbChanges">Request changes</button>
+        <button class="btn-stamp primary" id="dbApprove">Approve take →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= DATA ================= */
+const STAGES = [
+  { tc: "01 · 00:00:12", name: "Idea", status: "Approved" },
+  { tc: "02 · 00:00:48", name: "Brief", status: "Approved" },
+  { tc: "03 · 00:02:14", name: "Research", status: "Approved" },
+  { tc: "04 · 00:03:02", name: "Script", status: "Approved" },
+  { tc: "05 · 00:03:41", name: "Storyboard", status: "Approved" },
+  { tc: "06 · 00:04:05", name: "Production", status: "Awaiting review" },
+];
+const DEMO_STATES = ["normal", "loading", "streaming", "retake", "empty"];
+const PROJECTS = [
+  { id: "0042", title: "The History of the Universe", meta: "16:9 · 00:04:30 · doc · updated 21:40", chip: "Plan ready", tone: "rec", progress: 100, stage: 5 },
+  { id: "0041", title: "How Coffee Changed the World", meta: "9:16 · 00:02:10 · short · updated 19:12", chip: "Storyboard", tone: "live", progress: 74, stage: 4 },
+  { id: "0039", title: "The Last Lightkeepers", meta: "16:9 · 00:03:20 · doc · updated Aug 02", chip: "Script", tone: "live", progress: 52, stage: 3 },
+  { id: "0038", title: "Why Deep Sea Creatures Glow", meta: "16:9 · 00:03:00 · doc · updated Aug 02", chip: "Retake", tone: "fail", progress: 38, stage: 2 },
+  { id: "0036", title: "A Year on a Rooftop Garden", meta: "1:1 · 00:01:45 · slice · updated Jul 29", chip: "Brief ✓", tone: "done", progress: 26, stage: 1 },
+  { id: "0034", title: "How Fonts Decide What We Trust", meta: "16:9 · ? · essay · updated Jul 27", chip: "Discovery", tone: "live", progress: 12, stage: 0 },
+];
+const TAKES = [
+  { artifact: "Production plan v1 · 6 scenes", proj: "The History of the Universe", time: "21:58" },
+  { artifact: "Script v3 · scored 4.1", proj: "The History of the Universe", time: "21:47" },
+  { artifact: "Storyboard v2 · 6 scenes", proj: "How Coffee Changed the World", time: "19:12" },
+  { artifact: "Research packet v1", proj: "Why Deep Sea Creatures Glow", time: "Aug 02" },
+];
+const SCENES = [
+  { id: 1, title: "The Bang", dur: 42, trans: "CUT", meta: "Slow push-in · narration 00:38 · music: low drone", status: "Approved", tone: "" },
+  { id: 2, title: "The First Stars", dur: 38, trans: "DISSOLVE", meta: "Whip-pan across dark hydrogen · strings enter", status: "Approved", tone: "" },
+  { id: 3, title: "Galaxies Assemble", dur: 45, trans: "DISSOLVE", meta: "Orbital drift · timelapse feel · brass swell", status: "Approved", tone: "" },
+  { id: 4, title: "Our Solar System", dur: 40, trans: "CUT", meta: "Tilt down from void to dust disk · piano", status: "Approved", tone: "" },
+  { id: 5, title: "Life Looks Back", dur: 38, trans: "DISSOLVE", meta: "Slow zoom to an eye, then sky · choir", status: "Approved", tone: "" },
+  { id: 6, title: "We Are Stardust", dur: 37, trans: "FADE", meta: "Static wide · narration resolves · fade to paper", status: "Retake — music overlap", tone: "rec" },
+];
+const PARAS = [
+  { id: "p1", text: "Every atom in your body was forged inside a star. Before that — nothing we can picture. This is the story of how the universe began, in the time it takes a kettle to boil.", note: "Hook lands in the first line — strong open. Consider a 4-second title card here.", score: "4.4" },
+  { id: "p2", text: "Thirteen point eight billion years ago, all of it — every galaxy, every grain — was a point hotter than the sun's core. Then it expanded. Not an explosion into space: space itself stretching, cooling, becoming.", note: "Pacing is deliberate; the dash rhythm carries it. Trim “every grain” to cut 1.2s.", score: "4.2" },
+  { id: "p3", text: "For the first three minutes, the universe was a furnace. Hydrogen fused into helium. When it cooled enough, matter stopped annihilating and started assembling — stars, galaxies, planets, us.", note: "Redundancy check: “furnace / hydrogen fused” overlaps p2's heat imagery. Slight rewrite suggested.", score: "3.8", flagged: true },
+  { id: "p4", text: "Four hundred million years later, the first stars switched on in the dark. Every heavy element in your coffee, your phone, your lungs — stardust, delivered by supernovae.", note: "Factual check passed — 400 Myr post-Bang matches Planck-era estimates.", score: "4.6" },
+  { id: "p5", text: "On one rocky world, chemistry became biology, biology became awareness, and awareness turned back toward the sky. The universe, briefly, came to know itself.", note: "The turn is the emotional peak — retention high here. No change.", score: "4.5" },
+  { id: "p6", text: "We are not observers of the cosmos. We are a part of it — the part that wonders.", note: "Close is two clauses long; the script reviewer suggests ending on “the part that wonders.”", score: "4.0" },
+];
+
+/* ================= STATE ================= */
+let stage = 0;
+let demoState = "normal";
+let activePara = "p1";
+let toastTimer = null;
+
+/* ================= DOM HELPERS ================= */
+const $ = (s) => document.querySelector(s);
+const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
+
+function showToast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2400);
+}
+function fmtTC(sec) { const m = Math.floor(sec / 60); const s = sec % 60; return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0"); }
+
+/* ================= DASHBOARD ================= */
+function renderDashboard() {
+  const grid = $("#slateGrid");
+  grid.innerHTML = "";
+  PROJECTS.forEach((p) => {
+    const card = el("button", "slate");
+    card.innerHTML =
+      `<span class="bracket tl"></span><span class="bracket tr"></span>` +
+      `<span class="bracket bl"></span><span class="bracket br"></span>` +
+      `<div class="slate-top"><span class="slate-code">PROJ ${p.id}</span><span class="chip ${p.tone === 'rec' ? 'rec' : ''}">${p.chip}</span></div>` +
+      `<div class="slate-title">${p.title}</div>` +
+      `<div class="slate-meta">${p.meta}</div>` +
+      `<div class="slate-progress"><i style="width:${p.progress}%"></i></div>`;
+    card.addEventListener("click", () => openWorkspace(p.stage, p.title, p.meta));
+    grid.appendChild(card);
+  });
+  const takes = $("#takesGrid");
+  takes.innerHTML = "";
+  TAKES.forEach((t) => {
+    const card = el("button", "take-card");
+    card.innerHTML = `<div class="t-artifact">${t.artifact}</div><div class="t-proj">${t.proj}</div><div class="t-time">${t.time}</div>`;
+    card.addEventListener("click", () => openWorkspace(STAGES.findIndex((s) => t.artifact.includes("Script") ? s.name === "Script" : s.name === "Storyboard"), t.proj, t.artifact));
+    takes.appendChild(card);
+  });
+}
+
+/* ================= WORKSPACE ================= */
+function openWorkspace(st, title, meta) {
+  stage = st;
+  demoState = "normal";
+  activePara = "p1";
+  $("#dashboard").classList.add("hidden");
+  $("#workspace").classList.remove("hidden");
+  $("#directorBar").classList.remove("hidden");
+  if (title) $("#wsTitle").textContent = title;
+  if (meta) $("#wsMeta").textContent = meta + " · nvidia/nvidia-llama-3.3-70b";
+  renderStageBtns();
+  renderStateBtns();
+  renderCallSheet();
+  renderPanel();
+  renderNotes();
+  syncBar();
+  window.scrollTo(0, 0);
+}
+function closeWorkspace() {
+  $("#dashboard").classList.remove("hidden");
+  $("#workspace").classList.add("hidden");
+  $("#directorBar").classList.add("hidden");
+  window.scrollTo(0, 0);
+}
+
+function renderStageBtns() {
+  const g = $("#stageBtns");
+  g.innerHTML = "";
+  STAGES.forEach((s, i) => {
+    const b = el("button", "demo-btn" + (i === stage ? " active" : ""), s.name);
+    b.addEventListener("click", () => jump(i));
+    g.appendChild(b);
+  });
+}
+function renderStateBtns() {
+  const g = $("#stateBtns");
+  g.innerHTML = "";
+  DEMO_STATES.forEach((s) => {
+    const b = el("button", "demo-btn" + (s === demoState ? " active" : ""), s);
+    b.addEventListener("click", () => { demoState = s; renderStageBtns(); renderStateBtns(); renderCallSheet(); renderPanel(); renderNotes(); syncBar(); });
+    g.appendChild(b);
+  });
+}
+function jump(i) {
+  stage = i;
+  demoState = "normal";
+  renderStageBtns(); renderStateBtns(); renderCallSheet(); renderPanel(); renderNotes(); syncBar();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderCallSheet() {
+  const list = $("#csList");
+  list.innerHTML = "";
+  STAGES.forEach((s, i) => {
+    const cls = ["cs-stage"];
+    if (i < stage) cls.push("approved");
+    if (i === stage) cls.push("live");
+    const li = el("li");
+    const btn = el("button", cls.join(" "));
+    btn.innerHTML =
+      `<span class="cs-num">${String(i + 1).padStart(2, "0")}</span>` +
+      `<span class="cs-body"><span class="cs-name">${i === stage ? '<span class="rec-dot"></span>' : ""}${s.name}</span>` +
+      `<span class="cs-st">${s.status}</span></span>`;
+    btn.addEventListener("click", () => jump(i));
+    li.appendChild(btn);
+    list.appendChild(li);
+  });
+  $("#csTc").textContent = STAGES[stage].tc;
+  const hList = $("#stageBtns");
+  [...hList.children].forEach((b, i) => {
+    b.className = "demo-btn" + (i === stage ? " active" : "");
+    if (i < stage) b.className = "demo-btn approved";
+  });
+}
+
+/* ================= PANELS ================= */
+function renderPanel() {
+  const panel = $("#mainPanel");
+  if (demoState !== "normal") { panel.innerHTML = statePanel(); return; }
+  panel.innerHTML = `<div class="panel stage-fade">${panelInner()}</div>`;
+  bindPanel();
+  if (stage === 3) bindScript();
+  if (stage === 4) bindReorder();
+}
+function statePanel() {
+  const name = STAGES[stage].name;
+  if (demoState === "loading")
+    return `<div class="panel stage-fade"><div class="p-eyebrow">Stage ${String(stage + 1).padStart(2, "0")} · ${name} <span class="stamp">generating</span></div><h2>${name} is being written…</h2><div class="p-meta">agent running · tokens streaming to cache</div><div class="skeleton"><div class="sk l1"></div><div class="sk l2"></div><div class="sk l3"></div><div class="sk l2"></div></div></div>`;
+  if (demoState === "streaming")
+    return `<div class="panel stage-fade"><div class="p-eyebrow">Stage ${String(stage + 1).padStart(2, "0")} · ${name} <span class="stamp">streaming</span></div><h2>${name}</h2><div class="p-meta">agent writing<span class="caret"></span></div><p class="lead" style="margin-top:16px;">The studio is drafting the first pass — the opening lands on the wonder of the first three minutes<span class="caret"></span></p></div>`;
+  if (demoState === "retake")
+    return `<div class="panel stage-fade"><div class="p-eyebrow">Stage ${String(stage + 1).padStart(2, "0")} · ${name} <span class="stamp">failed</span></div><h2>${name} needs a retake</h2><div class="p-meta">provider 429 · retrying with backoff</div><div class="retake">RETAKE — rate limit hit (429) on provider call, retrying in 30s <button class="mini-btn solid" id="retryBtn">Retry now</button></div></div>`;
+  return `<div class="panel stage-fade"><div class="p-eyebrow">No projects yet</div><h2>Start with an idea</h2><p class="lead" style="margin-top:12px;">Type a one-line idea on the dashboard and the studio handles the rest.</p></div>`;
+}
+function panelInner() {
+  switch (stage) {
+    case 0: return ideaPanel();
+    case 1: return briefPanel();
+    case 2: return researchPanel();
+    case 3: return scriptPanel();
+    case 4: return storyboardPanel();
+    default: return productionPanel();
+  }
+}
+function ideaPanel() {
+  return `<div class="p-eyebrow">Stage 01 · Creative discovery</div><h2>Turning your idea into a brief</h2><div class="p-meta">conversation v1 · answered 21:31</div>
+  <div class="chat">
+    <div class="msg user"><div class="who">You</div><div class="bubble">A documentary about the history of the universe.</div></div>
+    <div class="msg"><div class="who">Studio</div><div class="bubble">Love it. A few questions before I draft the brief:<ul><li>Who is this for — general audience, students, or enthusiasts?</li><li>Where will it live — YouTube, a course, social?</li><li>How long — under 3 minutes, 4–5, or longer?</li><li>Any visual style you lean toward — archival, cinematic, animated diagrams?</li></ul></div></div>
+    <div class="msg user"><div class="who">You</div><div class="bubble">General audience on YouTube. 4–5 minutes. Cinematic, with a little wonder.</div></div>
+    <div class="msg"><div class="who">Studio</div><div class="bubble">That gives me everything — drafting the brief now.</div></div>
+  </div>`;
+}
+function briefPanel() {
+  const cards = [
+    ["Topic", "The history of the universe"], ["Audience", "General, curious newcomers"], ["Platform", "YouTube"], ["Style", "Cinematic documentary"],
+    ["Duration", "00:04:30", "≈ 650 words"], ["Tone", "Wonder-driven, calm"], ["Narration", "Female, warm documentary"], ["Aspect ratio", "16:9"],
+  ];
+  return `<div class="p-eyebrow">Stage 02 · Creative brief <span class="stamp">approved 21:34</span></div><h2>The History of the Universe</h2><div class="p-meta">v2 · generated 21:33 · 3.1k tokens · tap any value to edit</div>
+  <div class="brief-grid">${cards.map((c) => `<div class="b-card"><div class="k">${c[0]}</div><div class="v" contenteditable="true">${c[1]}</div>${c[2] ? `<div class="tag">${c[2]}</div>` : ""}</div>`).join("")}</div>`;
+}
+function researchPanel() {
+  return `<div class="p-eyebrow">Stage 03 · Research packet <span class="stamp">approved 21:40</span></div><h2>Grounding the timeline</h2><div class="p-meta">v3 · generated 21:39 · 14.2k tokens · 6 sources</div>
+  <p class="lead" style="margin-top:16px;">The factual spine your script stands on. Drawn from the approved brief: <em>documentary, general audience, 4:30, wonder-driven.</em></p>
+  <h3>Timeline</h3><ul class="tl">
+    <li><span class="t">13.8 bya</span>Big Bang — space and time begin</li>
+    <li><span class="t">13.5 bya</span>First stars ignite in dark hydrogen</li>
+    <li><span class="t">13.1 bya</span>Galaxies assemble; the Milky Way forms</li>
+    <li><span class="t">4.6 bya</span>Our solar system condenses from a dust disk</li>
+    <li><span class="t">3.8 bya</span>Life appears on Earth</li>
+    <li><span class="t">300 kya</span>Homo sapiens — the universe looks back at itself</li>
+  </ul>
+  <h3>Key concepts</h3><div class="chip-row">${["Cosmic inflation", "Dark matter", "Dark energy", "CMB radiation", "Redshift"].map((c) => `<span class="score-chip">${c}</span>`).join("")}</div>`;
+}
+function scriptPanel() {
+  return `<div class="p-eyebrow">Stage 04 · Script <span class="stamp">approved 21:47</span></div><h2>The First Three Minutes</h2><div class="p-meta">v3 · revised after review · 00:04:12 read · editor: TipTap</div>
+  <div class="script-edit">
+    <div class="tt-toolbar" role="toolbar" aria-label="Text formatting">
+      <button class="tt-btn" data-cmd="bold" aria-label="Bold"><b>B</b></button>
+      <button class="tt-btn" data-cmd="italic" aria-label="Italic"><i>I</i></button>
+      <span class="tt-sep"></span>
+      <button class="tt-btn" data-cmd="h2" aria-label="Heading 2">H2</button>
+      <button class="tt-btn" data-cmd="quote" aria-label="Blockquote">❝</button>
+      <button class="tt-btn" data-cmd="list" aria-label="Bullet list">•=</button>
+      <span class="tt-sep"></span>
+      <button class="tt-btn" data-cmd="comment" aria-label="Add comment">💬</button>
+      <button class="tt-btn" data-cmd="ask" aria-label="Ask the studio">✨</button>
+    </div>
+    <div class="tt-doc">
+      <div class="script-title" contenteditable="true">The First Three Minutes</div>
+      <div class="script-meta">TITLE · v3 · 21:46</div>
+      ${PARAS.map((p, i) => `<div class="script-para${p.id === activePara ? " active" : ""}${p.flagged ? " flagged" : ""}" contenteditable="true" data-para="${p.id}" data-idx="${i}">${p.text}</div>`).join("")}
+      <div class="tt-statusbar"><span class="tt-words"><b id="wordCount">170</b> words</span><span class="tt-read">≈ 1:08 read</span><span class="tt-saved" id="savedMark">Saved</span><span class="tt-hint">TipTap · click a paragraph to see its review note in the rail</span></div>
+    </div>
+  </div>`;
+}
+function storyboardPanel() {
+  return `<div class="p-eyebrow">Stage 05 · Storyboard <span class="stamp">approved 21:52</span></div><h2>Six scenes, one throughline</h2><div class="p-meta">v2 · 6 scenes · 00:04:30 · drag to reorder</div>
+  <div class="scene-list" id="sceneList">${SCENES.map((s, i) => slateLine(s, i)).join("")}</div>`;
+}
+function slateLine(s, i) {
+  return `<div class="slate-line${s.tone ? " rec" : ""}" draggable="true" data-index="${i}" data-testid="scene-card-${i + 1}">
+    <span class="sl-bracket tl"></span><span class="sl-bracket tr"></span><span class="sl-bracket bl"></span><span class="sl-bracket br"></span>
+    <span class="sl-handle">⠿</span>
+    <div class="sl-top"><span class="sl-code">SC ${String(s.id).padStart(2, "0")} · <b>${fmtTC(s.dur)}</b> · ${s.trans}</span><span class="chip${s.tone ? " rec" : ""}">${s.status}</span></div>
+    <div class="sl-title">${s.title}</div><div class="sl-meta">${s.meta}</div>
+    <div class="sl-insert" data-over=""></div>
+  </div>`;
+}
+function productionPanel() {
+  return `<div class="p-eyebrow">Stage 06 · Production <span class="stamp">awaiting review</span></div><h2>Finalize the plan</h2><div class="p-meta">scenes · prompt packs · crew sheet · approve to export</div>
+  <div class="plan-section"><h3>Scene editor · SC 03</h3>
+    <p class="lead" style="margin-top:12px;"><b>Narration:</b> Four hundred million years after the Bang, gravity pulled the first gas into spinning cities of light.</p>
+    <p class="lead" style="margin-top:12px;"><b>Visual:</b> Orbital drift over assembling galaxies — filaments of gas, then points of light switching on across a dark web.</p>
+    <div class="chip-row" style="margin-top:16px;"><span class="score-chip">Camera: slow orbital drift, 5° tilt</span><span class="score-chip">Duration: 00:00:45</span><span class="score-chip">Transition: DISSOLVE</span><span class="score-chip">Music: brass swell</span></div>
+  </div>
+  <div class="plan-section"><h3>Prompt packs · all scenes</h3>
+    <div class="scene-list" style="margin-top:16px;">
+      <div class="scene-card" draggable="false"><div class="sc-top"><span class="sc-code">SC 01 · The Bang</span><span class="chip" style="border-color:var(--line-paper);color:#5c554a">image · video · vo · music · sfx</span></div><div class="sc-meta">transition: CUT · music cue: Low drone</div><div class="sc-actions"><button class="mini-btn" data-note="Regenerating SC 01 image prompt…">Regenerate image</button><button class="mini-btn" data-note="Full pack queued for SC 01">Regenerate pack</button></div></div>
+      <div class="scene-card" draggable="false"><div class="sc-top"><span class="sc-code">SC 02 · The First Stars</span><span class="chip" style="border-color:var(--line-paper);color:#5c554a">image · video · vo · music · sfx</span></div><div class="sc-meta">transition: DISSOLVE · music cue: Strings enter</div><div class="sc-actions"><button class="mini-btn" data-note="Regenerating SC 02 video prompt…">Regenerate video</button><button class="mini-btn" data-note="Full pack queued for SC 02">Regenerate pack</button></div></div>
+    </div>
+  </div>
+  <div class="chip-row" style="margin-top:16px;"><span class="score-chip">Scenes 6</span><span class="score-chip">Runtime 00:04:30</span><span class="score-chip">Packs 6</span><span class="score-chip">Score 4.1</span></div>`;
+}
+
+/* panel-level bindings */
+function bindPanel() {
+  const retry = $("#retryBtn");
+  if (retry) retry.addEventListener("click", () => showToast("Retrying now…"));
+  document.querySelectorAll("[data-note]").forEach((b) => b.addEventListener("click", () => showToast(b.dataset.note)));
+}
+function bindScript() {
+  document.querySelectorAll(".tt-btn").forEach((b) => {
+    b.addEventListener("click", () => {
+      const cmd = b.dataset.cmd;
+      if (cmd === "comment") return showToast(`Comment pinned to paragraph ${activePara.toUpperCase()} — routed to the script reviewer`);
+      if (cmd === "ask") return showToast("Rewrite suggestion requested for this paragraph");
+      const map = { bold: ["bold", "Bold"], italic: ["italic", "Italic"], h2: ["formatBlock,h2", "Heading 2"], quote: ["formatBlock,blockquote", "Quote"], list: ["insertUnorderedList", "Bullet list"] };
+      const [c, v] = map[cmd][0].split(",");
+      try { document.execCommand(c, false, v); b.classList.toggle("on"); showToast(`${map[cmd][1]} — applied to selection`); } catch { showToast(`${map[cmd][1]} — routed to the studio`); }
+    });
+  });
+  document.querySelectorAll(".script-para[contenteditable]").forEach((p) => {
+    p.addEventListener("click", () => {
+      activePara = p.dataset.para;
+      document.querySelectorAll(".script-para").forEach((x) => x.classList.toggle("active", x.dataset.para === activePara));
+      renderNotes();
+    });
+    p.addEventListener("input", () => {
+      const mark = $("#savedMark");
+      if (mark) mark.textContent = "Editing…";
+    });
+    p.addEventListener("blur", () => { const mark = $("#savedMark"); if (mark) mark.textContent = "Saved"; });
+  });
+}
+
+/* drag-to-reorder — slate lines */
+function bindReorder() {
+  const list = $("#sceneList");
+  if (!list) return;
+  let dragFrom = null;
+  list.querySelectorAll(".slate-line").forEach((card) => {
+    let depth = 0;
+    card.addEventListener("dragstart", (e) => {
+      dragFrom = Number(card.dataset.index);
+      e.dataTransfer.setData("text/plain", String(dragFrom));
+      e.dataTransfer.effectAllowed = "move";
+    });
+    card.addEventListener("dragenter", (e) => {
+      e.preventDefault(); e.dataTransfer.dropEffect = "move";
+      depth += 1;
+      setInsert(card, e);
+    });
+    card.addEventListener("dragover", (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setInsert(card, e); });
+    card.addEventListener("dragleave", () => { depth = Math.max(0, depth - 1); if (depth === 0) clearInsert(card); });
+    card.addEventListener("drop", (e) => {
+      e.preventDefault();
+      depth = 0; clearInsert(card);
+      const raw = e.dataTransfer.getData("text/plain");
+      if (!raw || dragFrom == null) return;
+      const from = Number(raw);
+      if (!Number.isInteger(from) || from < 0) return;
+      const idx = Number(card.dataset.index);
+      const rect = card.getBoundingClientRect();
+      const below = e.clientY > rect.top + rect.height / 2;
+      let to;
+      if (from < idx) to = below ? idx : idx - 1;
+      else if (from > idx) to = below ? idx + 1 : idx;
+      else return;
+      reorderScenes(from, to);
+    });
+    card.addEventListener("dragend", () => { depth = 0; dragFrom = null; list.querySelectorAll(".slate-line").forEach(clearInsert); });
+  });
+}
+function setInsert(card, e) {
+  const rect = card.getBoundingClientRect();
+  const half = e.clientY > rect.top + rect.height / 2 ? "bottom" : "top";
+  const ins = card.querySelector(".sl-insert");
+  if (ins) ins.dataset.over = half;
+  card.classList.remove("over-top", "over-bottom");
+  card.classList.add("over-" + half);
+}
+function clearInsert(card) {
+  const ins = card.querySelector(".sl-insert");
+  if (ins) ins.dataset.over = "";
+  card.classList.remove("over-top", "over-bottom");
+}
+function reorderScenes(from, to) {
+  const [moved] = SCENES.splice(from, 1);
+  SCENES.splice(to, 0, moved);
+  // re-render the list preserving order
+  const list = $("#sceneList");
+  list.innerHTML = SCENES.map((s, i) => slateLine(s, i)).join("");
+  bindReorder();
+  showToast("Scenes reordered");
+}
+
+/* ================= NOTES RAIL ================= */
+function renderNotes() {
+  const rail = $("#notesRail");
+  rail.innerHTML = "";
+  if (demoState !== "normal") {
+    rail.appendChild(notesCard(`Agent status <span class="rec-dot"></span>`, `<div class="cov-item"><p>Planning agent on <b>nvidia-llama-3.3-70b</b> — drafting ${STAGES[stage].name.toLowerCase()}.</p></div>`));
+    rail.appendChild(takeLogCard());
+    return;
+  }
+  coverageCards().forEach((c) => rail.appendChild(c));
+  rail.appendChild(takeLogCard());
+  rail.appendChild(assetCard());
+}
+function notesCard(title, body) {
+  const c = el("div", "cov-card");
+  c.innerHTML = `<div class="c-t">${title}</div>${body}`;
+  return c;
+}
+function coverageCards() {
+  const cards = [];
+  const c = el("div", "cov-card");
+  switch (stage) {
+    case 0: c.innerHTML = `<div class="c-t">Studio notes <span class="rec-dot"></span></div><div class="cov-item"><p>Your answers cover audience, platform, length, and tone. One more signal would help: <b>any visual references</b>.</p></div><div class="cov-actions"><button class="mini-btn solid" data-note="Note applied — drafting brief">Apply</button><button class="mini-btn">Dismiss</button></div>`; break;
+    case 1: c.innerHTML = `<div class="c-t">Suggestions</div><div class="cov-item"><p>A <b>female narration</b> pairs well with a wonder-driven tone for general audiences.</p></div><div class="cov-actions"><button class="mini-btn solid" data-note="Applied — narration locked">Apply</button></div>`; break;
+    case 2: c.innerHTML = `<div class="c-t">Factual score</div><div class="score-line"><span class="nm">Sourced</span><span class="val"><b>6</b>/6</span></div><div class="score-line"><span class="nm">Confidence</span><span class="val"><b>0.98</b></span></div><div class="score-line"><span class="nm">Unverified</span><span class="val"><b>0</b> claims</span></div>`; break;
+    case 3:
+      c.innerHTML = `<div class="c-t">Script scores · v3</div>` +
+        scoreLine("Clarity", "4.3", 86) + scoreLine("Pacing", "4.1", 82) + scoreLine("Engagement", "4.4", 88) +
+        scoreLine("Retention", "4.2", 84) + scoreLine("Redundancy", "4.0", 80) + scoreLine("Factual", "3.9", 78, true) +
+        `<div class="cov-actions"><button class="mini-btn solid" data-note="Regenerating script v4…">Regenerate</button></div>`;
+      break;
+    case 4: c.innerHTML = `<div class="c-t">Consistency records</div><div class="cov-item"><p><b>Characters:</b> 1 (Narrator) — consistent across scenes.</p></div><div class="cov-item"><p><b>Locations:</b> void → galaxy web → solar system → Earth — continuity held.</p></div>`; break;
+    case 5: c.innerHTML = `<div class="c-t">Production coverage</div><div class="score-line"><span class="nm">Packs ready</span><span class="val"><b>6</b>/6</span></div><div class="score-line"><span class="nm">Transitions set</span><span class="val"><b>6</b>/6</span></div><div class="score-line"><span class="nm">Music cues set</span><span class="val"><b>6</b>/6</span></div><div class="score-line"><span class="nm">Runtime</span><span class="val"><b>00:04:30</b></span></div><div class="score-line"><span class="nm">Score</span><span class="val"><b>4.1</b></span></div><div class="ver-row current"><span class="v">SC 03 v2 · edited</span><span>21:55</span></div><div class="cov-item"><p>Scenes finalized, prompt packs set, crew sheet locked. Approve to export the plan package.</p></div>`; break;
+    default: c.innerHTML = `<div class="c-t">Plan summary</div><div class="score-line"><span class="nm">Scenes</span><span class="val"><b>6</b></span></div><div class="score-line"><span class="nm">Runtime</span><span class="val"><b>00:04:30</b></span></div><div class="score-line"><span class="nm">Score</span><span class="val"><b>4.1</b></span></div><div class="cov-item"><p>Approve to export the plan package. Regeneration is available per scene.</p></div>`; break;
+  }
+  c.querySelectorAll("[data-note]").forEach((b) => b.addEventListener("click", () => showToast(b.dataset.note)));
+  cards.push(c);
+  if (stage === 3) {
+    const notes = el("div", "cov-card");
+    notes.innerHTML = `<div class="c-t">Review notes · inline</div><p class="cov-lead">Click a paragraph in the editor to see its note here.</p>`;
+    PARAS.forEach((p) => {
+      notes.insertAdjacentHTML("beforeend",
+        `<div class="note-row${p.id === activePara ? " active" : ""}${p.flagged ? " flagged" : ""}"><span class="nr-p">${p.id.toUpperCase()}</span><span class="nr-score">${p.score}</span><span class="nr-text">${p.note}</span></div>`);
+    });
+    const acts = el("div", "cov-actions");
+    const apply = el("button", "mini-btn", `Apply to ${activePara.toUpperCase()}`);
+    apply.addEventListener("click", () => showToast(`Applied note to paragraph ${activePara.toUpperCase()}`));
+    const send = el("button", "mini-btn", "Send to writer");
+    send.addEventListener("click", () => showToast("Sent notes to the writer agent"));
+    acts.append(apply, send);
+    notes.appendChild(acts);
+    cards.push(notes);
+  }
+  return cards;
+}
+function scoreLine(name, value, pct, amber) {
+  return `<div class="score-line"><span class="nm">${name}</span><span class="val"><b>${value}</b><span class="bar"><i class="${amber ? "amber" : ""}" style="width:${pct}%"></i></span></span></div>`;
+}
+function takeLogCard() {
+  const c = el("div", "cov-card");
+  c.innerHTML = `<div class="c-t">Take log</div>` +
+    `<div class="take-row"><span class="v">v4 · edited</span><span class="t-actions"><button class="mini-btn" data-take="Compared v4 — your edit kept">Compare</button></span></div>` +
+    `<div class="take-row"><span class="v">v3 · AI</span><span class="t-actions"><button class="mini-btn" data-take="Variation generated from v3">Vary</button></span></div>` +
+    `<div class="take-row"><span class="v">v2 · AI</span><span class="t-actions"><button class="mini-btn" data-take="Rolled back to v2">Rollback</button></span></div>`;
+  c.querySelectorAll("[data-take]").forEach((b) => b.addEventListener("click", () => showToast(b.dataset.take)));
+  return c;
+}
+function assetCard() {
+  const assets = stage === 3 ? [
+    ["IMG", "Title treatment", "approved"], ["VO", "Narration master", "draft"],
+  ] : [
+    ["IMG", "SC 01 still · The Bang", "approved"], ["VID", "SC 02 · First Stars", "approved"], ["IMG", "SC 03 · Galaxies", "draft"],
+  ];
+  const c = el("div", "cov-card");
+  c.innerHTML = `<div class="c-t">Asset tray</div>` + assets.map(([k, n, s]) =>
+    `<div class="asset-row"><span class="a-kind">${k}</span><span class="a-name">${n}</span><span class="a-status ${s}">${s}</span></div>`).join("") +
+    `<div class="cov-actions"><button class="mini-btn" data-asset="Regenerating the selected asset">Regenerate</button></div>`;
+  c.querySelectorAll("[data-asset]").forEach((b) => b.addEventListener("click", () => showToast(b.dataset.asset)));
+  return c;
+}
+
+/* ================= DIRECTOR BAR ================= */
+function syncBar() {
+  const hidden = demoState !== "normal";
+  $("#directorBar").classList.toggle("hidden", hidden);
+  if (hidden) return;
+  $("#dbTc").textContent = `TC ${STAGES[stage].tc} · REC ●`;
+  const isFinal = stage === STAGES.length - 1;
+  $("#dbApprove").textContent = isFinal ? "Approve & export →" : "Approve take →";
+  $("#dbApprove").classList.remove("stamped");
+  $("#dbApprove").textContent = isFinal ? "Approve & export →" : "Approve take →";
+}
+function bindBar() {
+  $("#backBtn").addEventListener("click", closeWorkspace);
+  $("#beginBtn").addEventListener("click", () => {
+    const idea = $("#ideaInput").value.trim();
+    const mode = document.querySelector(".mode-chip.active")?.dataset.mode || "Film";
+    openWorkspace(0, idea || "The History of the Universe", idea ? "16:9 · 00:04:30 · " + mode.toLowerCase() : "16:9 · 00:04:30 · documentary");
+  });
+  $("#dbSend").addEventListener("click", () => {
+    const v = $("#dbInput").value.trim();
+    if (!v) return;
+    showToast(`Routed to the studio: “${v}”`);
+    $("#dbInput").value = "";
+  });
+  $("#dbInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#dbSend").click(); });
+  document.querySelectorAll("[data-sug]").forEach((b) => b.addEventListener("click", () => showToast(`Routed to the studio: “${b.dataset.sug}”`)));
+  $("#dbChanges").addEventListener("click", () => showToast("Change request logged — the studio will revise."));
+  $("#dbApprove").addEventListener("click", () => {
+    const isFinal = stage === STAGES.length - 1;
+    $("#dbApprove").textContent = "✓ Approved";
+    $("#dbApprove").classList.add("stamped");
+    showToast(isFinal ? "Production plan approved — ready to export" : "Take approved — moving on");
+    setTimeout(() => {
+      if (isFinal) { syncBar(); return; }
+      jump(stage + 1);
+    }, 700);
+  });
+  document.querySelectorAll(".mode-chip").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll(".mode-chip").forEach((x) => x.classList.remove("active"));
+    b.classList.add("active");
+  }));
+}
+
+/* ================= INIT ================= */
+renderDashboard();
+bindBar();
+syncBar();
+</script>
+</body>
+</html>

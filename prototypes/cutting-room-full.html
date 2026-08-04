@@ -1,0 +1,1283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>videogen — The Cutting Room · Complete system prototype</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700&f[]=general-sans@400,500,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ TOKEN SHEET (approved 2026-08-03, ui-design.md) ============ */
+  :root{
+    --ink:#141110;
+    --surface:#1E1A18;
+    --paper:#EDE6DA;
+    --paper-dim:#D9D0C0;
+    --ash:#8C8378;
+    --line-dark:#2B2622;
+    --line-paper:#C9BFAE;
+    --rec:#E04B3A;
+    --tungsten:#E2A85C;
+    --radius:2px;
+    --font-display:'Cabinet Grotesk','General Sans',sans-serif;
+    --font-body:'General Sans','Segoe UI',sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--font-body);
+    font-size:15px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--rec);color:var(--paper)}
+  button{font-family:inherit}
+  :focus-visible{outline:2px solid var(--rec);outline-offset:2px}
+
+  /* ============ NAV ============ */
+  .nav{
+    position:sticky;top:0;z-index:60;
+    display:flex;align-items:center;justify-content:space-between;
+    height:56px;padding:0 24px;
+    background:rgba(20,17,16,.92);
+    border-bottom:1px solid var(--line-dark);
+    backdrop-filter:blur(8px);
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-mono);font-size:13px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--paper);text-decoration:none;cursor:pointer;background:none;border:none}
+  .brand .rec-dot{width:8px;height:8px;border-radius:50%;background:var(--rec)}
+  .nav-links{display:flex;align-items:center;gap:4px}
+  .nav-link{
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--ash);background:none;border:1px solid transparent;border-radius:var(--radius);
+    padding:7px 12px;cursor:pointer;transition:color .18s,border-color .18s,background .18s;
+  }
+  .nav-link:hover{color:var(--paper);border-color:var(--line-dark)}
+  .nav-link.active{color:var(--paper);border-color:var(--line-dark);background:var(--surface)}
+  .nav-meta{font-family:var(--font-mono);font-size:11px;color:var(--ash);letter-spacing:.12em}
+
+  /* prototype controls bar */
+  .demo-bar{
+    position:sticky;top:56px;z-index:55;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:8px 24px;background:rgba(20,17,16,.85);border-bottom:1px solid var(--line-dark);
+    backdrop-filter:blur(8px);
+  }
+  .demo-bar .lbl{font-family:var(--font-mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--ash)}
+  .demo-bar .grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+  .demo-btn{
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    background:none;border:1px solid var(--line-dark);color:var(--ash);border-radius:var(--radius);
+    padding:4px 9px;cursor:pointer;transition:all .15s;
+  }
+  .demo-btn:hover{color:var(--paper);border-color:var(--ash)}
+  .demo-btn.active{color:var(--ink);background:var(--tungsten);border-color:var(--tungsten)}
+
+  /* ============ VIEWS ============ */
+  .view{display:none;min-height:calc(100vh - 56px)}
+  .view.active{display:block}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+
+  /* ============ DASHBOARD ============ */
+  .hero{padding:88px 0 56px;border-bottom:1px solid var(--line-dark)}
+  .eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--tungsten);margin-bottom:18px}
+  .hero h1{font-family:var(--font-display);font-weight:500;font-size:clamp(38px,6vw,64px);line-height:1.05;letter-spacing:-.02em;max-width:16ch;color:var(--paper)}
+  .hero h1 .thin{color:var(--ash);font-weight:400}
+  .idea-box{margin-top:40px;display:flex;gap:12px;max-width:680px}
+  .idea-input{
+    flex:1;background:var(--surface);border:1px solid var(--line-dark);border-radius:var(--radius);
+    color:var(--paper);font-family:var(--font-body);font-size:16px;padding:16px 18px;outline:none;
+    transition:border-color .2s, box-shadow .2s;
+  }
+  .idea-input::placeholder{color:var(--ash)}
+  .idea-input:focus{border-color:var(--rec);box-shadow:0 0 0 1px var(--rec)}
+  .btn{font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;border-radius:var(--radius);padding:0 22px;cursor:pointer;transition:all .18s;border:1px solid transparent;white-space:nowrap;height:52px}
+  .btn-rec{background:var(--rec);color:var(--paper)}
+  .btn-rec:hover{background:#c93d2f;transform:translateY(-1px)}
+  .btn-rec:active{transform:translateY(0)}
+  .btn-ghost{background:transparent;color:var(--paper);border-color:var(--line-dark);height:auto;padding:10px 16px}
+  .btn-ghost:hover{border-color:var(--ash)}
+
+  .strip{margin-top:44px;display:flex;align-items:center;flex-wrap:wrap;font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ash)}
+  .strip .step{display:flex;align-items:center;gap:8px}
+  .strip .sep{color:var(--line-dark);margin:0 8px}
+  .strip .step.done{color:var(--paper)}
+  .strip .step.live{color:var(--tungsten)}
+  .strip .step .rec-dot{width:6px;height:6px;border-radius:50%;background:var(--rec);animation:recPulse 1.6s ease-in-out infinite}
+
+  .section-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ash);margin:48px 0 20px;display:flex;align-items:center;gap:14px}
+  .section-label::after{content:"";flex:1;height:1px;background:var(--line-dark)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding-bottom:96px}
+  .slate{
+    position:relative;background:var(--surface);border:1px solid var(--line-dark);border-radius:var(--radius);
+    padding:22px;cursor:pointer;transition:border-color .2s, transform .2s;
+  }
+  .slate:hover{border-color:var(--ash);transform:translateY(-2px)}
+  .slate .bracket{position:absolute;width:14px;height:14px;border:1px solid transparent;transition:border-color .25s}
+  .slate .bracket.tl{top:-1px;left:-1px;border-top-color:var(--rec);border-left-color:var(--rec)}
+  .slate .bracket.tr{top:-1px;right:-1px;border-top-color:var(--rec);border-right-color:var(--rec)}
+  .slate .bracket.bl{bottom:-1px;left:-1px;border-bottom-color:var(--rec);border-left-color:var(--rec)}
+  .slate .bracket.br{bottom:-1px;right:-1px;border-bottom-color:var(--rec);border-right-color:var(--rec)}
+  .slate:not(:hover) .bracket{opacity:.45}
+  .slate:hover .bracket{opacity:1}
+  .slate-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .slate-id{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;color:var(--ash)}
+  .chip{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:3px 8px;border-radius:var(--radius);border:1px solid}
+  .chip.live{color:var(--tungsten);border-color:var(--tungsten)}
+  .chip.done{color:var(--paper);border-color:var(--line-dark)}
+  .chip.fail{color:var(--rec);border-color:var(--rec)}
+  .chip.rec{color:var(--paper);background:var(--rec);border-color:var(--rec)}
+  .slate h3{font-family:var(--font-display);font-weight:500;font-size:20px;letter-spacing:-.01em;margin-bottom:6px}
+  .slate .meta{font-family:var(--font-mono);font-size:11px;color:var(--ash);letter-spacing:.06em}
+  .slate .progress{margin-top:16px;height:2px;background:var(--line-dark);border-radius:1px;overflow:hidden}
+  .slate .progress i{display:block;height:100%;background:var(--tungsten);width:62%}
+  .slate .progress i.full{background:var(--paper);width:100%}
+
+  .empty{border:1px dashed var(--line-dark);border-radius:var(--radius);padding:48px;text-align:center;color:var(--ash);font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;transition:border-color .2s,color .2s}
+  .empty:hover{border-color:var(--rec);color:var(--paper)}
+
+  /* ============ WORKSPACE ============ */
+  .ws-head{padding:32px 0 0;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
+  .ws-title{font-family:var(--font-display);font-weight:500;font-size:30px;letter-spacing:-.015em}
+  .ws-meta{font-family:var(--font-mono);font-size:11px;color:var(--ash);letter-spacing:.08em;margin-top:6px}
+
+  .stepper{margin-top:28px;background:var(--surface);border:1px solid var(--line-dark);border-radius:var(--radius);display:flex;overflow-x:auto;position:relative}
+  .stage{
+    position:relative;flex:1;min-width:104px;padding:16px 14px 14px;cursor:pointer;
+    border-right:1px solid var(--line-dark);transition:background .2s;user-select:none;background:none;color:inherit;text-align:left;
+  }
+  .stage:last-child{border-right:none}
+  .stage:hover{background:#24201d}
+  .stage .tc{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;color:var(--ash)}
+  .stage .nm{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-top:6px;color:var(--paper)}
+  .stage .st{font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;margin-top:8px;color:var(--ash)}
+  .stage.approved .st::before{content:"✓ ";color:var(--paper)}
+  .stage.live{background:#241f1b}
+  .stage.live .nm{color:var(--tungsten)}
+  .stage.live .st{color:var(--tungsten)}
+  .stage.live .rec-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--rec);margin-right:6px;vertical-align:1px;animation:recPulse 1.6s ease-in-out infinite}
+  .stage .vfb{position:absolute;width:12px;height:12px;border:1px solid transparent}
+  .stage .vfb.tl{top:6px;left:6px;border-top-color:var(--rec);border-left-color:var(--rec)}
+  .stage .vfb.tr{top:6px;right:6px;border-top-color:var(--rec);border-right-color:var(--rec)}
+  .stage .vfb.bl{bottom:6px;left:6px;border-bottom-color:var(--rec);border-left-color:var(--rec)}
+  .stage .vfb.br{bottom:6px;right:6px;border-bottom-color:var(--rec);border-right-color:var(--rec)}
+  .stage:not(.live) .vfb{display:none}
+  .stage.failed .st{color:var(--rec)}
+  .stage.failed .st::before{content:"RETAKE — ";color:var(--rec)}
+
+  .ws-body{display:grid;grid-template-columns:1fr 320px;gap:0;margin-top:24px;padding-bottom:140px}
+  .panel{background:var(--paper);color:#241f1b;border-radius:var(--radius);padding:40px 44px;min-height:520px}
+  .panel .p-eyebrow{font-family:var(--font-mono);font-size:10px;letter-spacing:.22em;color:#7a7265;text-transform:uppercase;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .panel h2{font-family:var(--font-display);font-weight:500;font-size:26px;letter-spacing:-.01em;margin:8px 0 4px}
+  .panel .p-meta{font-family:var(--font-mono);font-size:10px;color:#9a9183;letter-spacing:.1em}
+  .panel h3{font-family:var(--font-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#8a8173;margin:28px 0 10px}
+  .panel p{color:#3a342d;max-width:64ch}
+  .panel .lead{font-size:17px;line-height:1.65;color:#2a251f}
+  .panel em{font-style:italic;color:#5c554a}
+  .stamp{display:inline-block;font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;border:1px solid var(--rec);color:var(--rec);padding:2px 8px;border-radius:var(--radius);vertical-align:1px}
+  .stamp.dark{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+  .retake{border:1px dashed var(--rec);color:var(--rec);border-radius:var(--radius);font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;padding:10px 14px;margin-top:16px;display:flex;align-items:center;gap:10px}
+  .retake .mini-btn.solid{margin-left:auto}
+
+  /* brief cards */
+  .brief-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:20px}
+  .b-card{border:1px solid var(--line-paper);border-radius:var(--radius);padding:14px 16px;background:#f5efe3;transition:border-color .15s, background .15s}
+  .b-card:hover{border-color:#a89d8a;background:#f2eadb}
+  .b-card .k{font-family:var(--font-mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#8a8173}
+  .b-card .v{font-size:16px;color:#241f1b;margin-top:5px;font-weight:500}
+  .b-card .v[contenteditable]{outline:none;border-bottom:1px dashed transparent;transition:border-color .15s}
+  .b-card .v[contenteditable]:focus{border-bottom-color:var(--rec)}
+  .b-card .tag{display:inline-block;font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;color:#8a8173;border:1px solid var(--line-paper);border-radius:var(--radius);padding:1px 6px;margin-top:8px;margin-right:4px}
+
+  /* research */
+  .tl{list-style:none;border-left:1px solid var(--line-paper);margin:12px 0 0 6px;padding-left:0}
+  .tl li{position:relative;padding:0 0 16px 22px;font-size:14px;color:#3a342d}
+  .tl li::before{content:"";position:absolute;left:-4px;top:5px;width:7px;height:7px;border-radius:50%;background:var(--ink)}
+  .tl li .t{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;color:#8a8173;display:block}
+  .chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .score-chip{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;border:1px solid var(--line-paper);border-radius:var(--radius);padding:4px 9px;color:#5c554a}
+  .score-chip b{color:#2a251f;font-weight:600}
+  .score-chip .bar{display:inline-block;width:34px;height:3px;background:var(--line-paper);vertical-align:2px;margin-left:6px;border-radius:1px;overflow:hidden}
+  .score-chip .bar i{display:block;height:100%;background:var(--rec)}
+  .score-chip .bar i.amber{background:var(--tungsten)}
+  .term-table{width:100%;border-collapse:collapse;margin-top:10px}
+  .term-table td{border-bottom:1px solid var(--line-paper);padding:8px 4px;font-size:13.5px;color:#3a342d;vertical-align:top}
+  .term-table td:first-child{font-family:var(--font-mono);font-size:12px;color:#241f1b;width:38%}
+
+  /* script editor */
+  .script-edit{margin-top:18px}
+  .script-title{font-family:var(--font-display);font-size:32px;font-weight:500;color:#1e1915;letter-spacing:-.01em;background:none;border:none;border-bottom:1px solid var(--line-paper);width:100%;padding:4px 2px 10px;outline:none}
+  .script-title:focus{border-bottom-color:var(--rec)}
+  .script-para{margin-top:18px;font-size:16px;line-height:1.75;color:#2a251f}
+  .script-para[contenteditable]{outline:none;border-left:2px solid transparent;padding-left:10px;transition:border-color .15s}
+  .script-para[contenteditable]:hover{border-left-color:var(--line-paper)}
+  .script-para[contenteditable]:focus{border-left-color:var(--tungsten)}
+  .script-meta{font-family:var(--font-mono);font-size:10px;color:#9a9183;letter-spacing:.14em;margin-top:4px}
+
+  /* storyboard scene cards */
+  .scene-list{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+  .scene-card{
+    background:#f5efe3;border:1px solid var(--line-paper);border-left:2px solid var(--ink);border-radius:var(--radius);
+    padding:14px 16px;cursor:grab;transition:transform .15s, box-shadow .15s, border-color .15s;position:relative;
+  }
+  .scene-card:active{cursor:grabbing}
+  .scene-card.dragging{opacity:.35;border-color:var(--rec)}
+  .scene-card.drop-target{border-top:2px solid var(--rec)}
+  .scene-card:hover{border-left-color:var(--rec)}
+  .sc-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .sc-code{font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;color:#8a8173}
+  .sc-code b{color:#241f1b}
+  .sc-title{font-family:var(--font-display);font-size:17px;font-weight:500;color:#241f1b;margin-top:6px}
+  .sc-meta{font-family:var(--font-mono);font-size:10px;color:#8a8173;margin-top:4px;letter-spacing:.06em}
+  .sc-actions{margin-top:10px;display:flex;gap:6px}
+  .mini-btn{
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    background:none;border:1px solid var(--line-paper);color:#6d6557;border-radius:var(--radius);
+    padding:5px 10px;cursor:pointer;transition:all .15s;
+  }
+  .mini-btn:hover{color:#241f1b;border-color:#a89d8a}
+  .mini-btn.solid{color:var(--rec);border-color:var(--rec)}
+  .mini-btn.solid:hover{background:var(--rec);color:var(--paper)}
+  .mini-btn.dark{color:var(--paper);border-color:var(--line-dark);background:var(--surface)}
+  .mini-btn.dark:hover{border-color:var(--ash)}
+
+  /* scene editor */
+  .field{margin-top:16px}
+  .field label{font-family:var(--font-mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#8a8173;display:block;margin-bottom:6px}
+  .field input,.field textarea,.field select{
+    width:100%;background:#f5efe3;border:1px solid var(--line-paper);border-radius:var(--radius);
+    font-family:var(--font-body);font-size:14px;color:#241f1b;padding:10px 12px;outline:none;transition:border-color .15s;
+  }
+  .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--rec)}
+  .field textarea{min-height:72px;resize:vertical}
+  .field-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+
+  /* advanced toggle + prompt tabs */
+  .adv{display:flex;align-items:center;gap:12px;margin-top:26px;padding-top:18px;border-top:1px solid var(--line-paper)}
+  .adv .sw{position:relative;width:36px;height:20px;border:1px solid var(--line-paper);border-radius:11px;background:#efe6d4;cursor:pointer;transition:background .2s,border-color .2s}
+  .adv .sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#8a8173;transition:transform .2s,background .2s}
+  .adv.on .sw{background:var(--ink);border-color:var(--ink)}
+  .adv.on .sw::after{transform:translateX(16px);background:var(--tungsten)}
+  .adv .t{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#5c554a;cursor:pointer}
+  .adv.on .t{color:#241f1b}
+  .prompt-tabs{display:none;margin-top:16px}
+  .adv.on + .prompt-tabs,.adv.on ~ .prompt-tabs{display:block}
+  .tab-row{display:flex;gap:4px;border-bottom:1px solid var(--line-paper);margin-bottom:12px}
+  .tab{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8a8173;background:none;border:none;border-bottom:2px solid transparent;padding:8px 12px;cursor:pointer;transition:color .15s,border-color .15s}
+  .tab.active{color:#241f1b;border-bottom-color:var(--rec)}
+  .prompt-pane{display:none;background:#f5efe3;border:1px solid var(--line-paper);border-radius:var(--radius);padding:16px}
+  .prompt-pane.active{display:block}
+  .prompt-pane .pp-label{font-family:var(--font-mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#8a8173;margin-bottom:8px}
+  .prompt-pane code{font-family:var(--font-mono);font-size:12px;line-height:1.7;color:#241f1b;white-space:pre-wrap}
+
+  /* production plan view */
+  .plan-section{margin-top:26px;padding-top:20px;border-top:1px solid var(--line-paper)}
+  .plan-section:first-of-type{margin-top:20px;padding-top:0;border-top:none}
+  .plan-row{display:flex;gap:12px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line-paper);font-size:14px;color:#2a251f}
+  .plan-row .idx{font-family:var(--font-mono);font-size:10px;color:#8a8173;min-width:44px}
+  .plan-row .nm{font-weight:500;min-width:150px}
+  .plan-row .ds{color:#5c554a;flex:1}
+  .crew-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  .crew-card{border:1px solid var(--line-paper);border-radius:var(--radius);padding:14px 16px;background:#f5efe3}
+  .crew-card .k{font-family:var(--font-mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#8a8173}
+  .crew-card .v{font-size:14px;color:#241f1b;margin-top:6px}
+  .crew-card .v small{color:#8a8173}
+
+  /* coverage rail */
+  .coverage{margin-left:16px;display:flex;flex-direction:column;gap:16px}
+  .cov-card{background:var(--surface);border:1px solid var(--line-dark);border-radius:var(--radius);padding:18px}
+  .cov-card .c-t{font-family:var(--font-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ash);display:flex;justify-content:space-between;align-items:center}
+  .cov-card .c-t .rec-dot{width:7px;height:7px;border-radius:50%;background:var(--rec);animation:recPulse 1.6s ease-in-out infinite}
+  .cov-item{border-top:1px solid var(--line-dark);padding:12px 0}
+  .cov-item p{font-size:13px;color:var(--paper-dim)}
+  .cov-item p b{color:var(--paper);font-weight:600}
+  .cov-actions{display:flex;gap:8px;margin-top:8px}
+  .cov-card .mini-btn{color:var(--ash);border-color:var(--line-dark)}
+  .cov-card .mini-btn:hover{color:var(--paper);border-color:var(--ash)}
+  .cov-card .mini-btn.solid{color:var(--rec);border-color:var(--rec)}
+  .cov-card .mini-btn.solid:hover{background:var(--rec);color:var(--paper)}
+  .ver-row{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line-dark);padding:10px 0;font-family:var(--font-mono);font-size:11px;color:var(--ash)}
+  .ver-row.current{color:var(--paper)}
+  .ver-row .v{letter-spacing:.06em;cursor:pointer}
+  .ver-row.current .v::before{content:"✓ "}
+  .score-line{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line-dark);padding:9px 0;font-family:var(--font-mono);font-size:11px;color:var(--ash)}
+  .score-line .nm{letter-spacing:.08em}
+  .score-line .val b{color:var(--paper);font-weight:600}
+  .score-line .bar{display:inline-block;width:52px;height:3px;background:var(--line-dark);vertical-align:2px;margin-left:8px;border-radius:1px;overflow:hidden}
+  .score-line .bar i{display:block;height:100%;background:var(--rec)}
+  .score-line .bar i.amber{background:var(--tungsten)}
+  .cov-list{border-top:1px solid var(--line-dark);padding:10px 0;font-size:12.5px;color:var(--paper-dim)}
+  .cov-list li{list-style:none;padding:5px 0 5px 16px;position:relative}
+  .cov-list li::before{content:"—";position:absolute;left:0;color:var(--ash)}
+
+  /* conversation (discovery) */
+  .chat{display:flex;flex-direction:column;gap:16px;margin-top:18px}
+  .msg{display:flex;gap:12px;max-width:56ch}
+  .msg .who{font-family:var(--font-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#8a8173;min-width:56px;padding-top:4px}
+  .msg.user{flex-direction:row-reverse;margin-left:auto}
+  .msg.user .who{color:var(--rec)}
+  .msg .bubble{background:#f5efe3;border:1px solid var(--line-paper);border-radius:var(--radius);padding:12px 16px;font-size:15px;color:#2a251f}
+  .msg.user .bubble{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+  .msg .bubble ul{margin:8px 0 0 18px}
+  .msg .bubble li{margin:4px 0}
+  .msg .q{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;color:#8a8173;margin-bottom:4px}
+  .caret{display:inline-block;width:8px;height:15px;background:var(--rec);vertical-align:-2px;animation:blink 1s steps(2) infinite}
+
+  /* skeleton + streaming */
+  .skeleton .sk{background:rgba(0,0,0,.06);border-radius:var(--radius);position:relative;overflow:hidden;margin-top:12px}
+  .skeleton .sk::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);animation:shine 1.4s infinite}
+  .skeleton .sk.l1{height:16px;width:70%}
+  .skeleton .sk.l2{height:16px;width:100%}
+  .skeleton .sk.l3{height:120px;width:100%}
+
+  @keyframes recPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(224,75,58,.5)}50%{opacity:.65;box-shadow:0 0 0 5px rgba(224,75,58,0)}}
+  @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+  @keyframes shine{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+  /* approval bar */
+  .approve{position:fixed;bottom:0;left:0;right:0;z-index:40;background:rgba(20,17,16,.96);border-top:1px solid var(--line-dark);backdrop-filter:blur(10px);transform:translateY(0);transition:transform .25s}
+  .approve.hidden{transform:translateY(110%)}
+  .approve .in{max-width:1120px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .approve .note{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;color:var(--ash)}
+  .approve .note b{color:var(--tungsten);font-weight:600}
+  .approve .tc{font-family:var(--font-mono);font-size:11px;color:var(--ash);letter-spacing:.08em}
+  .approve .acts{display:flex;gap:10px}
+  .btn-stamp{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;border-radius:var(--radius);padding:12px 22px;cursor:pointer;border:1px solid transparent;transition:all .15s}
+  .btn-stamp.primary{background:var(--rec);color:var(--paper)}
+  .btn-stamp.primary:hover{background:#c93d2f}
+  .btn-stamp.primary:active{transform:scale(.985)}
+  .btn-stamp.ghost{background:none;color:var(--ash);border-color:var(--line-dark)}
+  .btn-stamp.ghost:hover{color:var(--paper);border-color:var(--ash)}
+
+  .toast{
+    position:fixed;top:72px;right:24px;z-index:80;background:var(--ink);border:1px solid var(--line-dark);
+    border-left:2px solid var(--rec);border-radius:var(--radius);padding:12px 16px;
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;color:var(--paper);
+    transform:translateX(120%);transition:transform .3s cubic-bezier(.2,.8,.2,1);
+  }
+  .toast.show{transform:translateX(0)}
+
+  /* ============ AUTH GATE (slate-style call sheets) ============ */
+  .gate{min-height:calc(100vh - 160px);display:flex;align-items:center;justify-content:center;padding:56px 24px 130px;position:relative;overflow:hidden}
+  .gate::before{content:"";position:absolute;inset:0;background:linear-gradient(var(--line-dark) 1px,transparent 1px),linear-gradient(90deg,var(--line-dark) 1px,transparent 1px);background-size:56px 56px;opacity:.22;pointer-events:none}
+  .watermark{position:absolute;right:-40px;bottom:-30px;pointer-events:none;font-family:var(--font-mono);font-size:clamp(90px,16vw,190px);font-weight:600;letter-spacing:-.04em;color:var(--surface);line-height:1;user-select:none}
+  .call-sheet{position:relative;width:100%;max-width:440px;background:var(--surface);border:1px solid var(--line-dark);border-radius:var(--radius);padding:44px 44px 38px;z-index:1;margin:0 auto}
+  .call-sheet .bracket{position:absolute;width:16px;height:16px;border:1px solid var(--rec);transition:opacity .25s;opacity:.55}
+  .call-sheet .bracket.tl{top:-1px;left:-1px;border-right:none;border-bottom:none}
+  .call-sheet .bracket.tr{top:-1px;right:-1px;border-left:none;border-bottom:none}
+  .call-sheet .bracket.bl{bottom:-1px;left:-1px;border-right:none;border-top:none}
+  .call-sheet .bracket.br{bottom:-1px;right:-1px;border-left:none;border-top:none}
+  .call-sheet:hover .bracket{opacity:1}
+  .cs-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px}
+  .cs-eyebrow{font-family:var(--font-mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ash);display:flex;align-items:center;gap:8px}
+  .cs-eyebrow .rec-dot{width:7px;height:7px;border-radius:50%;background:var(--rec)}
+  .cs-roll{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;color:var(--ash)}
+  .call-sheet h1{font-family:var(--font-display);font-weight:500;font-size:30px;letter-spacing:-.015em;line-height:1.1}
+  .call-sheet .sub{font-size:14.5px;color:var(--paper-dim);margin-top:8px;max-width:34ch}
+  .call-sheet .sub b{color:var(--tungsten);font-weight:500}
+  .auth-form{margin-top:28px;display:flex;flex-direction:column;gap:16px}
+  .call-sheet .field{margin-top:0}
+  .call-sheet .field label{font-family:var(--font-mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--ash);display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .call-sheet .field label .hint{color:var(--line-dark);letter-spacing:.1em;cursor:pointer;transition:color .15s}
+  .call-sheet .field label .hint:hover{color:var(--tungsten)}
+  .in-wrap{position:relative}
+  .in-wrap .eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--ash);font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;cursor:pointer;padding:4px;transition:color .15s}
+  .in-wrap .eye:hover{color:var(--paper)}
+  .call-sheet .field input{width:100%;background:var(--ink);border:1px solid var(--line-dark);border-radius:var(--radius);color:var(--paper);font-family:var(--font-body);font-size:15px;padding:13px 14px;outline:none;transition:border-color .2s, box-shadow .2s}
+  .call-sheet .field input::placeholder{color:#4a443d}
+  .call-sheet .field input:focus{border-color:var(--tungsten);box-shadow:0 0 0 1px var(--tungsten)}
+  .call-sheet .field input[aria-invalid="true"]{border-color:var(--rec);box-shadow:0 0 0 1px var(--rec)}
+  .call-sheet .btn{width:100%;height:auto;padding:15px 22px;margin-top:4px}
+  .btn-rec.loading{opacity:.75;pointer-events:none}
+  .btn .spinner{display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:var(--paper);animation:spin .8s linear infinite;margin-right:8px;vertical-align:-1px}
+  .divider{display:flex;align-items:center;gap:14px;margin:22px 0 4px;font-family:var(--font-mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--line-dark)}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line-dark)}
+  .providers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .provider{font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;background:var(--ink);border:1px solid var(--line-dark);color:var(--ash);border-radius:var(--radius);padding:10px 6px;cursor:pointer;transition:all .15s}
+  .provider:hover{color:var(--paper);border-color:var(--ash);transform:translateY(-1px)}
+  .provider svg{width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:6px}
+  .switch{margin-top:24px;padding-top:18px;border-top:1px solid var(--line-dark);text-align:center;font-size:13.5px;color:var(--ash)}
+  .switch button{background:none;border:none;color:var(--tungsten);font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;padding:2px 4px;transition:color .15s}
+  .switch button:hover{color:var(--paper);text-decoration:underline;text-underline-offset:3px}
+  .call-sheet .retake{border:1px dashed var(--rec);color:var(--rec);border-radius:var(--radius);font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;padding:10px 14px;margin-top:18px;display:none;align-items:flex-start;gap:10px;line-height:1.5}
+  .call-sheet .retake.show{display:flex;animation:fadeUp .25s ease}
+  .call-sheet .retake .rec-dot{width:6px;height:6px;border-radius:50%;background:var(--rec);margin-top:4px;flex:none}
+  .cs-foot{margin-top:30px;padding-top:16px;border-top:1px solid var(--line-dark);display:flex;justify-content:space-between;align-items:center;font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;color:var(--ash)}
+  .cs-foot .tc b{color:var(--paper);font-weight:500}
+  .cs-foot .rec-live{display:flex;align-items:center;gap:6px;color:var(--rec)}
+  .cs-foot .rec-live .rec-dot{width:6px;height:6px;border-radius:50%;background:var(--rec);animation:recPulse 1.6s ease-in-out infinite}
+  .sk{background:rgba(255,255,255,.04);border-radius:var(--radius);position:relative;overflow:hidden}
+  .sk::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:shine 1.4s infinite}
+  .sk.l1{height:14px;width:38%}
+  .sk.l2{height:48px;width:100%}
+  .sk.l3{height:48px;width:100%}
+  .sk.l4{height:52px;width:100%}
+  .cs-verify{display:none;flex-direction:column;gap:14px;margin-top:30px}
+  .cs-verify.show{display:flex}
+  .cs-verify .v-label{font-family:var(--font-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ash)}
+  .cs-verify .v-row{display:flex;align-items:center;gap:12px}
+  .cs-verify .rec-dot{width:8px;height:8px;border-radius:50%;background:var(--rec);animation:recPulse 1.6s ease-in-out infinite}
+  .cs-verify .v-text{font-size:14px;color:var(--paper-dim)}
+
+  /* ============ USER CHROME (multi-user) ============ */
+  .user-chip{position:relative;display:none;align-items:center;gap:8px;cursor:pointer;padding:4px 10px 4px 5px;border:1px solid var(--line-dark);border-radius:var(--radius);background:var(--surface);transition:border-color .15s;user-select:none}
+  .user-chip:hover{border-color:var(--ash)}
+  .avatar{width:26px;height:26px;border-radius:50%;background:var(--rec);color:var(--paper);font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;display:flex;align-items:center;justify-content:center;font-weight:600}
+  .uname{font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--paper);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chev{color:var(--ash);font-size:9px}
+  .user-menu{position:absolute;top:calc(100% + 8px);right:0;width:250px;background:var(--surface);border:1px solid var(--line-dark);border-radius:var(--radius);padding:6px;display:none;z-index:70;box-shadow:0 12px 32px rgba(0,0,0,.5)}
+  .user-menu.open{display:block;animation:fadeUp .18s ease}
+  .um-head{padding:10px 12px;border-bottom:1px solid var(--line-dark);margin-bottom:6px}
+  .um-head .n{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--paper)}
+  .um-head .e{font-size:11px;color:var(--ash);margin-top:2px}
+  .um-head .r{font-family:var(--font-mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--tungsten);margin-top:4px}
+  .um-item{display:block;width:100%;text-align:left;background:none;border:none;color:var(--ash);font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:9px 12px;cursor:pointer;border-radius:var(--radius);transition:all .15s}
+  .um-item:hover{color:var(--paper);background:#26211d}
+  .um-item.danger:hover{color:var(--rec)}
+  .ws-only{display:none}
+
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+  @media (max-width:880px){
+    .ws-body{grid-template-columns:1fr}
+    .coverage{margin-left:0;margin-top:16px}
+    .panel{padding:28px 22px}
+    .brief-grid,.crew-grid{grid-template-columns:1fr}
+    .field-row{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <button class="brand" onclick="showView('auth')"><span class="rec-dot"></span> videogen</button>
+  <div class="nav-links" id="navLinks">
+    <button class="nav-link" data-view="dash" onclick="showView('dash')">Dashboard</button>
+    <button class="nav-link" data-view="ws" onclick="showView('ws')">Workspace</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <span class="nav-meta">FULL SYSTEM · CUTTING ROOM v1 · 2026-08-03</span>
+    <div class="user-chip" id="userChip" onclick="toggleUserMenu(event)" aria-haspopup="true" aria-expanded="false">
+      <span class="avatar" id="userAvatar">AC</span>
+      <span class="uname" id="userName">Ava Chen</span>
+      <span class="chev">▾</span>
+      <div class="user-menu" id="userMenu">
+        <div class="um-head">
+          <div class="n" id="umName">Ava Chen</div>
+          <div class="e" id="umEmail">ava@studio.dev · user_2aBf4K</div>
+          <div class="r" id="umRole">Director</div>
+        </div>
+        <button class="um-item" onclick="switchUser('ava');closeMenu()">Switch to Ava</button>
+        <button class="um-item" onclick="switchUser('milo');closeMenu()">Switch to Milo</button>
+        <button class="um-item" onclick="switchUser('sam');closeMenu()">Switch to Sam</button>
+        <button class="um-item danger" onclick="signOut()">Sign out</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- prototype controls: jump to any stage / state -->
+<div class="demo-bar">
+  <span class="lbl">Gate</span>
+  <div class="grp" id="gateJump">
+    <button class="demo-btn" data-g="signin" onclick="setGate('signin')">Sign in</button>
+    <button class="demo-btn" data-g="signup" onclick="setGate('signup')">Sign up</button>
+    <button class="demo-btn" data-g="retake" onclick="gateRetake()">Retake</button>
+    <button class="demo-btn" data-g="out" onclick="signOut()">Sign out</button>
+  </div>
+  <span class="lbl">User</span>
+  <div class="grp" id="userJump">
+    <button class="demo-btn" data-u="ava" onclick="switchUser('ava')">Ava</button>
+    <button class="demo-btn" data-u="milo" onclick="switchUser('milo')">Milo</button>
+    <button class="demo-btn" data-u="sam" onclick="switchUser('sam')">Sam</button>
+    <button class="demo-btn" data-u="noa" onclick="switchUser('noa')">Noa</button>
+  </div>
+  <span class="lbl ws-only">Stage</span>
+  <div class="grp ws-only" id="stageJump">
+    <button class="demo-btn" data-s="0">Idea</button>
+    <button class="demo-btn" data-s="1">Brief</button>
+    <button class="demo-btn" data-s="2">Research</button>
+    <button class="demo-btn" data-s="3">Script</button>
+    <button class="demo-btn" data-s="4">Storyboard</button>
+    <button class="demo-btn" data-s="5">Production</button>
+  </div>
+  <span class="lbl ws-only">State</span>
+  <div class="grp ws-only" id="stateJump">
+    <button class="demo-btn" data-state="normal">Normal</button>
+    <button class="demo-btn" data-state="loading">Loading</button>
+    <button class="demo-btn" data-state="streaming">Streaming</button>
+    <button class="demo-btn" data-state="retake">Retake</button>
+    <button class="demo-btn" data-state="empty">Empty</button>
+  </div>
+</div>
+
+<!-- ============ DASHBOARD ============ -->
+<section class="view" id="view-dash">
+  <div class="wrap">
+    <div class="hero">
+      <div class="eyebrow">AI Creative Studio</div>
+      <h1>What do you want<br>to <span class="thin">make?</span></h1>
+      <div class="idea-box">
+        <input class="idea-input" type="text" id="ideaInput" placeholder="e.g. A documentary about the history of the universe…" aria-label="Describe your video idea">
+        <button class="btn btn-rec" onclick="beginProduction()">Begin production</button>
+      </div>
+      <div class="strip">
+        <span class="step done">Idea</span><span class="sep">/</span>
+        <span class="step done">Brief</span><span class="sep">/</span>
+        <span class="step live"><span class="rec-dot"></span>Research</span><span class="sep">/</span>
+        <span class="step">Script</span><span class="sep">/</span>
+        <span class="step">Storyboard</span><span class="sep">/</span>
+        <span class="step">Production</span>
+      </div>
+    </div>
+
+    <div class="section-label">Projects — <span id="projectOwner" style="color:var(--tungsten)">Ava Chen</span> · latest takes <span id="projectCount" style="color:var(--ash)">(6)</span></div>
+    <div class="grid" id="projectGrid"></div>
+  </div>
+</section>
+
+<!-- ============ AUTH GATE ============ -->
+<section class="view active" id="view-auth">
+  <div class="gate">
+    <div class="watermark">TC 00:00</div>
+
+    <!-- sign-in sheet -->
+    <div class="call-sheet" id="sheetSignin">
+      <span class="bracket tl"></span><span class="bracket tr"></span><span class="bracket bl"></span><span class="bracket br"></span>
+      <div class="cs-top">
+        <div class="cs-eyebrow"><span class="rec-dot"></span> Gate · Sign in</div>
+        <div class="cs-roll">ROLL 07</div>
+      </div>
+      <h1>Enter the cutting room</h1>
+      <div class="sub">Pick up where your last take left off. Entering as <b id="gateAsName">Ava Chen</b> — every project, scene, and score is waiting on your slate.</div>
+
+      <form class="auth-form" id="signinForm" onsubmit="return submitSignin(event)">
+        <div class="field">
+          <label for="email-si">Email</label>
+          <div class="in-wrap">
+            <input type="email" id="email-si" placeholder="you@studio.dev" autocomplete="email" aria-label="Email">
+          </div>
+        </div>
+        <div class="field">
+          <label for="pw-si">Password <span class="hint" onclick="toast('Reset link queued — check your inbox.')">Forgot?</span></label>
+          <div class="in-wrap">
+            <input type="password" id="pw-si" placeholder="••••••••••••" autocomplete="current-password" aria-label="Password">
+            <button type="button" class="eye" onclick="togglePw('pw-si',this)" aria-label="Show password">SHOW</button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-rec" id="signinBtn">Sign in →</button>
+      </form>
+
+      <div class="retake" id="retakeSi">
+        <span class="rec-dot"></span>
+        <span>RETAKE — <b>Sign-in failed.</b> The email or password didn't match. Two attempts remain before the gate holds for 60s.</span>
+      </div>
+
+      <div class="cs-verify" id="verifySi">
+        <div class="v-label">Session check</div>
+        <div class="sk l1"></div>
+        <div class="sk l2"></div>
+        <div class="sk l3"></div>
+        <div class="sk l4"></div>
+        <div class="v-row" style="margin-top:6px"><span class="rec-dot"></span><span class="v-text">Verifying session with Clerk…</span></div>
+      </div>
+
+      <div class="divider">or continue with</div>
+      <div class="providers">
+        <button class="provider" onclick="oauthSignIn('Google')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v3.6h5.4c-.6 2.5-2.6 4-5.4 4a6 6 0 1 1 4.1-10.4l2.7-2.7A10 10 0 1 0 12 22c5.5 0 9.4-3.9 9.4-9.4 0-.5 0-1-.1-1.5z"/></svg>Google</button>
+        <button class="provider" onclick="oauthSignIn('GitHub')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.9 10.9c.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0C17.3 4.9 18.3 5.2 18.3 5.2c.6 1.6.2 2.8.1 3.1.7.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5z"/></svg>GitHub</button>
+        <button class="provider" onclick="oauthSignIn('Apple')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.3 2.6 1.3 0 1.8-.8 3.4-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.2-2.5 1-1.5 1.4-2.9 1.5-3-.1 0-2.9-1.1-2.9-4.2zM13.9 5.1c.7-.9 1.2-2.1 1.1-3.3-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2.1-1.1 3.3 1.2.1 2.5-.6 3.2-1.6z"/></svg>Apple</button>
+      </div>
+
+      <div class="switch">First time on this set? <button onclick="setGate('signup')">Create an account</button></div>
+
+      <div class="cs-foot">
+        <span class="tc">SESSION <b>—</b> · GATE 01</span>
+        <span class="rec-live"><span class="rec-dot"></span> REC</span>
+      </div>
+    </div>
+
+    <!-- sign-up sheet -->
+    <div class="call-sheet" id="sheetSignup" style="display:none">
+      <span class="bracket tl"></span><span class="bracket tr"></span><span class="bracket bl"></span><span class="bracket br"></span>
+      <div class="cs-top">
+        <div class="cs-eyebrow"><span class="rec-dot"></span> Gate · New account</div>
+        <div class="cs-roll">ROLL 00</div>
+      </div>
+      <h1>First take, today</h1>
+      <div class="sub">Give the studio a name and a door key. Your reel starts the moment you approve your first brief.</div>
+
+      <form class="auth-form" id="signupForm" onsubmit="return submitSignup(event)">
+        <div class="field">
+          <label for="name-su">Name</label>
+          <div class="in-wrap">
+            <input type="text" id="name-su" placeholder="Alex Rivera" autocomplete="name" aria-label="Name">
+          </div>
+        </div>
+        <div class="field">
+          <label for="email-su">Email</label>
+          <div class="in-wrap">
+            <input type="email" id="email-su" placeholder="you@studio.dev" autocomplete="email" aria-label="Email">
+          </div>
+        </div>
+        <div class="field">
+          <label for="pw-su">Password</label>
+          <div class="in-wrap">
+            <input type="password" id="pw-su" placeholder="Min 8 characters" autocomplete="new-password" aria-label="Password">
+            <button type="button" class="eye" onclick="togglePw('pw-su',this)" aria-label="Show password">SHOW</button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-rec" id="signupBtn">Create account →</button>
+      </form>
+
+      <div class="retake" id="retakeSu">
+        <span class="rec-dot"></span>
+        <span>RETAKE — <b>Sign-up incomplete.</b> That email is already rolling on this set. Try signing in instead.</span>
+      </div>
+
+      <div class="cs-verify" id="verifySu">
+        <div class="v-label">Creating account</div>
+        <div class="sk l1"></div>
+        <div class="sk l2"></div>
+        <div class="sk l3"></div>
+        <div class="sk l4"></div>
+        <div class="v-row" style="margin-top:6px"><span class="rec-dot"></span><span class="v-text">Spinning up your slate with Clerk…</span></div>
+      </div>
+
+      <div class="divider">or continue with</div>
+      <div class="providers">
+        <button class="provider" onclick="oauthSignIn('Google')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v3.6h5.4c-.6 2.5-2.6 4-5.4 4a6 6 0 1 1 4.1-10.4l2.7-2.7A10 10 0 1 0 12 22c5.5 0 9.4-3.9 9.4-9.4 0-.5 0-1-.1-1.5z"/></svg>Google</button>
+        <button class="provider" onclick="oauthSignIn('GitHub')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.9 10.9c.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0C17.3 4.9 18.3 5.2 18.3 5.2c.6 1.6.2 2.8.1 3.1.7.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5z"/></svg>GitHub</button>
+        <button class="provider" onclick="oauthSignIn('Apple')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.3 2.6 1.3 0 1.8-.8 3.4-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.2-2.5 1-1.5 1.4-2.9 1.5-3-.1 0-2.9-1.1-2.9-4.2zM13.9 5.1c.7-.9 1.2-2.1 1.1-3.3-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2.1-1.1 3.3 1.2.1 2.5-.6 3.2-1.6z"/></svg>Apple</button>
+      </div>
+
+      <div class="switch">Already rolling? <button onclick="setGate('signin')">Sign in</button></div>
+
+      <div class="cs-foot">
+        <span class="tc">SESSION <b>—</b> · GATE 00</span>
+        <span class="rec-live"><span class="rec-dot"></span> REC</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WORKSPACE ============ -->
+<section class="view" id="view-ws">
+  <div class="wrap">
+    <div class="ws-head">
+      <div>
+        <div class="eyebrow" style="margin-bottom:6px">Project · PROJ 0042</div>
+        <h1 class="ws-title" id="wsTitle">The History of the Universe</h1>
+        <div class="ws-meta" id="wsMeta">16:9 · 00:04:30 · documentary · NVIDIA/nvidia-llama-3.3-70b</div>
+      </div>
+      <button class="btn btn-ghost" onclick="showView('dash')">← Back to dashboard</button>
+    </div>
+
+    <!-- the slate / timecode stage strip -->
+    <div class="stepper" id="stepper">
+      <button class="stage" data-stage="0"><span class="vfb tl"></span><span class="vfb tr"></span><span class="vfb bl"></span><span class="vfb br"></span><div class="tc">01 · 00:00:12</div><div class="nm">Idea</div><div class="st">Approved</div></button>
+      <button class="stage" data-stage="1"><span class="vfb tl"></span><span class="vfb tr"></span><span class="vfb bl"></span><span class="vfb br"></span><div class="tc">02 · 00:00:48</div><div class="nm">Brief</div><div class="st">Approved</div></button>
+      <button class="stage" data-stage="2"><span class="vfb tl"></span><span class="vfb tr"></span><span class="vfb bl"></span><span class="vfb br"></span><div class="tc">03 · 00:02:14</div><div class="nm">Research</div><div class="st">Approved</div></button>
+      <button class="stage" data-stage="3"><span class="vfb tl"></span><span class="vfb tr"></span><span class="vfb bl"></span><span class="vfb br"></span><div class="tc">04 · 00:03:02</div><div class="nm">Script</div><div class="st">Approved</div></button>
+      <button class="stage" data-stage="4"><span class="vfb tl"></span><span class="vfb tr"></span><span class="vfb bl"></span><span class="vfb br"></span><div class="tc">05 · 00:03:41</div><div class="nm">Storyboard</div><div class="st">Approved</div></button>
+      <button class="stage live" data-stage="5"><span class="vfb tl"></span><span class="vfb tr"></span><span class="vfb bl"></span><span class="vfb br"></span><div class="tc">06 · 00:04:05</div><div class="nm"><span class="rec-dot"></span>Production</div><div class="st">Awaiting review</div></button>
+    </div>
+
+    <div class="ws-body">
+      <!-- ============ MAIN PANEL ============ -->
+      <div class="panel" id="mainPanel"></div>
+
+      <!-- ============ COVERAGE RAIL ============ -->
+      <div class="coverage" id="coverageRail"></div>
+    </div>
+  </div>
+
+  <!-- approval bar -->
+  <div class="approve" id="approveBar">
+    <div class="in">
+      <div class="note" id="approveNote"></div>
+      <div style="display:flex;align-items:center;gap:20px">
+        <span class="tc" id="approveTc">TC 00:04:18 · REC ●</span>
+        <div class="acts">
+          <button class="btn-stamp ghost" onclick="toast('Change request logged — the agent will revise.')">Request changes</button>
+          <button class="btn-stamp primary" onclick="approve()">Approve &amp; continue →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= STATE ================= */
+var currentStage = 5; // 0..5 — plan awaiting review by default (PANELS has 6 entries)
+
+var STAGES = [
+  { tc:"01 · 00:00:12", name:"Idea",      status:"Approved" },
+  { tc:"02 · 00:00:48", name:"Brief",     status:"Approved" },
+  { tc:"03 · 00:02:14", name:"Research",  status:"Approved" },
+  { tc:"04 · 00:03:02", name:"Script",    status:"Approved" },
+  { tc:"05 · 00:03:41", name:"Storyboard",status:"Approved" },
+  { tc:"06 · 00:04:05", name:"Production",status:"Awaiting review" },
+];
+var APPROVE_NOTES = {
+  0:"<b>Discovery complete</b> — 3 clarifying questions answered. Approve to lock the creative brief.",
+  1:"<b>Brief ready</b> — topic, audience, style and runtime are set. Approve to begin research.",
+  2:"<b>Research packet ready</b> — timeline and sources compiled. Approve to move to the script.",
+  3:"<b>Script v3 scores 4.1</b> — above the 3.8 threshold. Approve to storyboard.",
+  4:"<b>6 scenes storyboarded</b> — drag to reorder, edit per scene. Approve to finalize the plan.",
+  5:"<b>Production ready</b> — scenes finalized, prompt packs set, crew sheet locked. Approve to export.",
+};
+
+/* ================= AUTH + MULTI-USER (Clerk / ADR-023) ================= */
+var signedIn = false;
+var currentUser = 'ava';   // ava | milo | sam | noa
+var gateMode = 'signin';   // signin | signup
+var gateState = 'normal';  // normal | loading | error
+
+var USERS = {
+  ava: { name:'Ava Chen',      initials:'AC', email:'ava@studio.dev',  role:'Director',       clerk:'user_2aBf4K' },
+  milo:{ name:'Milo Reyes',    initials:'MR', email:'milo@studio.dev', role:'Editor',         clerk:'user_7xQp2L' },
+  sam: { name:'Sam Okoye',     initials:'SO', email:'sam@studio.dev',  role:'Colorist',       clerk:'user_3cTv9N' },
+  noa: { name:'Noa Kim',       initials:'NK', email:'noa@studio.dev',  role:'Assistant editor', clerk:'user_9dRg5W' }
+};
+
+var PROJECTS = [
+  { id:'0042', owner:'ava',  stage:4, chip:'rec',  chipTxt:'Plan ready', title:'The History of the Universe',  meta:'16:9 · 00:04:30 · doc · updated 21:40',       pct:'full' },
+  { id:'0041', owner:'ava',  stage:4, chip:'live', chipTxt:'Storyboard', title:'How Coffee Changed the World', meta:'9:16 · 00:02:10 · short · updated 19:12',     pct:74 },
+  { id:'0039', owner:'ava',  stage:3, chip:'live', chipTxt:'Script',     title:'The Last Lightkeepers',        meta:'16:9 · 00:03:20 · doc · updated Aug 02',      pct:52 },
+  { id:'0038', owner:'milo', stage:2, chip:'fail', chipTxt:'Retake',     title:'Why Deep Sea Creatures Glow',  meta:'16:9 · 00:03:00 · doc · updated Aug 02',      pct:38 },
+  { id:'0036', owner:'milo', stage:1, chip:'done', chipTxt:'Brief ✓',    title:'A Year on a Rooftop Garden',    meta:'1:1 · 00:01:45 · slice · updated Jul 29',     pct:26 },
+  { id:'0034', owner:'sam',  stage:0, chip:'live', chipTxt:'Discovery',  title:'How Fonts Decide What We Trust',meta:'16:9 · ? · essay · updated Jul 27',            pct:12 }
+];
+
+function $id(i){ return document.getElementById(i); }
+function userOf(id){ return USERS[id]; }
+
+function renderProjectGrid(){
+  var mine = PROJECTS.filter(function(p){ return p.owner === currentUser; });
+  $id('projectOwner').textContent = userOf(currentUser).name;
+  $id('projectCount').textContent = '(' + mine.length + ')';
+  var grid = $id('projectGrid');
+  if(mine.length === 0){
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1">This reel is blank — no projects yet.<br><span style="text-transform:none;letter-spacing:.05em;color:#6d6557;display:inline-block;margin-top:8px">Multi-user isolation: ' + userOf(currentUser).name.split(' ')[0] + ' sees only their own projects — other users\' reels stay locked.</span></div>';
+    return;
+  }
+  grid.innerHTML = mine.map(function(p){
+    return '<div class="slate" onclick="openProject(' + p.stage + ')">' +
+      '<span class="bracket tl"></span><span class="bracket tr"></span><span class="bracket bl"></span><span class="bracket br"></span>' +
+      '<div class="slate-head"><span class="slate-id">PROJ · ' + p.id + ' · ' + userOf(p.owner).initials + '</span><span class="chip ' + p.chip + '">' + p.chipTxt + '</span></div>' +
+      '<h3>' + p.title + '</h3>' +
+      '<div class="meta">' + p.meta + '</div>' +
+      '<div class="progress">' + (p.pct === 'full' ? '<i class="full"></i>' : '<i style="width:' + p.pct + '%"></i>') + '</div></div>';
+  }).join('');
+}
+
+function renderNav(){
+  var chip = $id('userChip');
+  chip.style.display = signedIn ? 'flex' : 'none';
+  $id('navLinks').style.display = signedIn ? 'flex' : 'none';
+  if(signedIn){
+    var u = userOf(currentUser);
+    $id('userAvatar').textContent = u.initials;
+    $id('userName').textContent = u.name;
+    $id('umName').textContent = u.name;
+    $id('umEmail').textContent = u.email + ' · ' + u.clerk;
+    $id('umRole').textContent = u.role;
+  }
+  // user demo buttons
+  document.querySelectorAll('#userJump .demo-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.u === currentUser);
+  });
+}
+
+function syncGateBar(){
+  document.querySelectorAll('#gateJump .demo-btn').forEach(function(b){
+    var g = b.dataset.g;
+    var on = (!signedIn && g === gateMode && gateMode !== 'out') ||
+             (g === 'retake' && gateState === 'error') ||
+             (g === 'out' && signedIn);
+    b.classList.toggle('active', on);
+  });
+  // workspace-only demo groups hide while signed out
+  document.querySelectorAll('.ws-only').forEach(function(el){
+    el.style.display = signedIn ? '' : 'none';
+  });
+}
+
+function applyGateState(){
+  var si = gateMode === 'signin';
+  var retake = $id(si ? 'retakeSi' : 'retakeSu');
+  var verify = $id(si ? 'verifySi' : 'verifySu');
+  var form = $id(si ? 'signinForm' : 'signupForm');
+  var btn = $id(si ? 'signinBtn' : 'signupBtn');
+  var email = $id(si ? 'email-si' : 'email-su');
+  var pw = $id(si ? 'pw-si' : 'pw-su');
+  retake.classList.toggle('show', gateState === 'error');
+  verify.classList.toggle('show', gateState === 'loading');
+  form.style.display = gateState === 'loading' ? 'none' : 'flex';
+  if(gateState === 'loading'){
+    btn.classList.add('loading');
+    btn.innerHTML = '<span class="spinner"></span>' + (si ? 'Signing in…' : 'Creating account…');
+  } else {
+    btn.classList.remove('loading');
+    btn.innerHTML = si ? 'Sign in →' : 'Create account →';
+  }
+  if(gateState === 'error'){
+    email.setAttribute('aria-invalid','true');
+    pw.setAttribute('aria-invalid','true');
+  } else {
+    email.removeAttribute('aria-invalid');
+    pw.removeAttribute('aria-invalid');
+  }
+}
+
+function setGate(mode){
+  gateMode = mode;
+  gateState = 'normal';
+  $id('sheetSignin').style.display = mode === 'signin' ? 'block' : 'none';
+  $id('sheetSignup').style.display = mode === 'signup' ? 'block' : 'none';
+  applyGateState();
+  syncGateBar();
+}
+
+function gateRetake(){
+  if(signedIn){ toast('Already signed in — sign out first.'); return; }
+  gateState = 'error';
+  applyGateState();
+  syncGateBar();
+}
+
+function togglePw(id, btn){
+  var el = $id(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+  btn.textContent = el.type === 'password' ? 'SHOW' : 'HIDE';
+}
+
+function submitSignin(e){
+  e.preventDefault();
+  gateState = 'loading'; applyGateState();
+  toast('Sign-in queued — verifying session with Clerk…');
+  setTimeout(function(){ completeSignIn(); }, 1400);
+  return false;
+}
+function submitSignup(e){
+  e.preventDefault();
+  gateState = 'loading'; applyGateState();
+  toast('Account queued — spinning up your slate…');
+  setTimeout(function(){ completeSignIn(); }, 1400);
+  return false;
+}
+function oauthSignIn(provider){
+  toast(provider + ' OAuth — link opens (Clerk-hosted).');
+  gateState = 'loading'; applyGateState();
+  setTimeout(function(){ completeSignIn(); }, 1400);
+}
+function completeSignIn(){
+  signedIn = true;
+  gateState = 'normal';
+  renderNav();
+  syncGateBar();
+  showView('dash');
+  renderProjectGrid();
+  toast('Welcome to the cutting room, ' + userOf(currentUser).name.split(' ')[0] + '.');
+}
+function signOut(){
+  signedIn = false;
+  renderNav();
+  syncGateBar();
+  showView('auth');
+  setGate('signin');
+  toast('Signed out — session ended.');
+}
+function switchUser(id){
+  currentUser = id;
+  $id('gateAsName').textContent = userOf(id).name;
+  renderNav();
+  syncGateBar();
+  if(signedIn){
+    renderProjectGrid();
+    toast('Switched user — showing ' + userOf(id).name.split(' ')[0] + '\'s projects (owner_id scoping).');
+  } else {
+    toast('Gate ready for ' + userOf(id).name + ' — sign in to open their slate.');
+  }
+}
+function toggleUserMenu(e){
+  e.stopPropagation();
+  var m = $id('userMenu');
+  m.classList.toggle('open');
+  $id('userChip').setAttribute('aria-expanded', m.classList.contains('open'));
+}
+function closeMenu(){ $id('userMenu').classList.remove('open'); $id('userChip').setAttribute('aria-expanded','false'); }
+
+/* ================= MAIN PANEL RENDERERS ================= */
+function panelIdea(){
+  return '<div class="p-eyebrow">Stage 01 · Creative discovery</div>'+
+    '<h2>Turning your idea into a brief</h2>'+
+    '<div class="p-meta">conversation v1 · answered 21:31</div>'+
+    '<div class="chat">'+
+      '<div class="msg user"><div class="who">You</div><div class="bubble">A documentary about the history of the universe.</div></div>'+
+      '<div class="msg"><div class="who">Studio</div><div class="bubble">Love it. A few questions before I draft the brief:'+
+        '<ul><li>Who is this for — general audience, students, or enthusiasts?</li><li>Where will it live — YouTube, a course, social?</li><li>How long — under 3 minutes, 4–5, or longer?</li><li>Any visual style you lean toward — archival, cinematic, animated diagrams?</li></ul></div></div>'+
+      '<div class="msg user"><div class="who">You</div><div class="bubble">General audience on YouTube. 4–5 minutes. Cinematic, with a little wonder.</div></div>'+
+      '<div class="msg"><div class="who">Studio</div><div class="bubble">That gives me everything — drafting the brief now.</div></div>'+
+    '</div>';
+}
+function panelBrief(){
+  return '<div class="p-eyebrow">Stage 02 · Creative brief <span class="stamp">approved 21:34</span></div>'+
+    '<h2>The History of the Universe</h2>'+
+    '<div class="p-meta">v2 · generated 21:33 · 3.1k tokens · tap any value to edit</div>'+
+    '<div class="brief-grid">'+
+      '<div class="b-card"><div class="k">Topic</div><div class="v" contenteditable="true">The history of the universe</div></div>'+
+      '<div class="b-card"><div class="k">Audience</div><div class="v" contenteditable="true">General, curious newcomers</div></div>'+
+      '<div class="b-card"><div class="k">Platform</div><div class="v" contenteditable="true">YouTube</div></div>'+
+      '<div class="b-card"><div class="k">Style</div><div class="v" contenteditable="true">Cinematic documentary</div></div>'+
+      '<div class="b-card"><div class="k">Duration</div><div class="v" contenteditable="true">00:04:30</div><div class="tag">≈ 650 words</div></div>'+
+      '<div class="b-card"><div class="k">Tone</div><div class="v" contenteditable="true">Wonder-driven, calm</div></div>'+
+      '<div class="b-card"><div class="k">Narration</div><div class="v" contenteditable="true">Female, warm documentary</div></div>'+
+      '<div class="b-card"><div class="k">Aspect ratio</div><div class="v" contenteditable="true">16:9</div></div>'+
+    '</div>';
+}
+function panelResearch(){
+  return '<div class="p-eyebrow">Stage 03 · Research packet <span class="stamp">approved 21:40</span></div>'+
+    '<h2>Grounding the timeline</h2>'+
+    '<div class="p-meta">v3 · generated 21:39 · 14.2k tokens · 6 sources</div>'+
+    '<p class="lead" style="margin-top:16px">The factual spine your script stands on. Drawn from the approved brief: <em>documentary, general audience, 4:30, wonder-driven.</em></p>'+
+    '<h3>Timeline</h3>'+
+    '<ul class="tl">'+
+      '<li><span class="t">13.8 bya</span>Big Bang — space and time begin</li>'+
+      '<li><span class="t">13.5 bya</span>First stars ignite in dark hydrogen</li>'+
+      '<li><span class="t">13.1 bya</span>Galaxies assemble; the Milky Way forms</li>'+
+      '<li><span class="t">4.6 bya</span>Our solar system condenses from a dust disk</li>'+
+      '<li><span class="t">3.8 bya</span>Life appears on Earth</li>'+
+      '<li><span class="t">300 kya</span>Homo sapiens — the universe looks back at itself</li>'+
+    '</ul>'+
+    '<h3>Key concepts</h3>'+
+    '<div class="chip-row">'+
+      '<span class="score-chip">Cosmic inflation</span><span class="score-chip">Dark matter</span><span class="score-chip">Dark energy</span>'+
+      '<span class="score-chip">CMB radiation</span><span class="score-chip">Redshift</span><span class="score-chip">Observable universe</span>'+
+    '</div>'+
+    '<h3>Terminology</h3>'+
+    '<table class="term-table"><tr><td>redshift</td><td>light stretched by expanding space — a cosmic yardstick</td></tr>'+
+    '<tr><td>CMB</td><td>the afterglow of the Big Bang, detected 1965</td></tr>'+
+    '<tr><td>inflation</td><td>the universe\'s brief, violent expansion in its first instant</td></tr></table>'+
+    '<h3>References</h3>'+
+    '<p>NASA WMAP/Planck data · "A Brief History of Time" (Hawking) · PBS Space Time. Claims without a source are marked <em>unverified</em> and cap the script\'s factual score.</p>';
+}
+function panelScript(){
+  return '<div class="p-eyebrow">Stage 04 · Script <span class="stamp">approved 21:47</span></div>'+
+    '<h2>The First Three Minutes</h2>'+
+    '<div class="p-meta">v3 · revised after review · 00:04:12 read · editor: TipTap</div>'+
+    '<div class="script-edit">'+
+      '<div class="script-title" contenteditable="true">The First Three Minutes</div>'+
+      '<div class="script-meta">TITLE · v3 · 21:46</div>'+
+      '<div class="script-para" contenteditable="true">Every atom in your body was forged inside a star. Before that — nothing we can picture. This is the story of how the universe began, in the time it takes a kettle to boil.</div>'+
+      '<div class="script-para" contenteditable="true">Thirteen point eight billion years ago, all of it — every galaxy, every grain — was a point hotter than the sun\'s core. Then it expanded. Not an explosion into space: space itself stretching, cooling, becoming.</div>'+
+      '<div class="script-para" contenteditable="true">For the first three minutes, the universe was a furnace. Hydrogen fused into helium. When it cooled enough, matter stopped annihilating and started assembling — stars, galaxies, planets, us.</div>'+
+      '<div class="script-para" contenteditable="true">Four hundred million years later, the first stars switched on in the dark. Every heavy element in your coffee, your phone, your lungs — stardust, delivered by supernovae.</div>'+
+      '<div class="script-para" contenteditable="true">On one rocky world, chemistry became biology, biology became awareness, and awareness turned back toward the sky. The universe, briefly, came to know itself.</div>'+
+      '<div class="script-para" contenteditable="true">We are not observers of the cosmos. We are a part of it — the part that wonders.</div>'+
+    '</div>';
+}
+function panelStoryboard(){
+  return '<div class="p-eyebrow">Stage 05 · Storyboard <span class="stamp">approved 21:52</span></div>'+
+    '<h2>Six scenes, one throughline</h2>'+
+    '<div class="p-meta">v2 · 6 scenes · 00:04:30 · drag to reorder</div>'+
+    '<div class="scene-list" id="sceneList">'+
+      '<div class="scene-card" draggable="true" data-i="0"><div class="sc-top"><span class="sc-code">SC 01 · <b>00:42</b> · CUT</span><span class="chip" style="border-color:var(--line-paper);color:#5c554a">Approved</span></div><div class="sc-title">The Bang</div><div class="sc-meta">Slow push-in · narration 00:38 · music: low drone</div></div>'+
+      '<div class="scene-card" draggable="true" data-i="1"><div class="sc-top"><span class="sc-code">SC 02 · <b>00:38</b> · DISSOLVE</span><span class="chip" style="border-color:var(--line-paper);color:#5c554a">Approved</span></div><div class="sc-title">The First Stars</div><div class="sc-meta">Whip-pan across dark hydrogen · strings enter</div></div>'+
+      '<div class="scene-card" draggable="true" data-i="2"><div class="sc-top"><span class="sc-code">SC 03 · <b>00:45</b> · CUT</span><span class="chip" style="border-color:var(--line-paper);color:#5c554a">Approved</span></div><div class="sc-title">Galaxies Assemble</div><div class="sc-meta">Orbital drift · timelapse feel · brass swell</div></div>'+
+      '<div class="scene-card" draggable="true" data-i="3"><div class="sc-top"><span class="sc-code">SC 04 · <b>00:40</b> · CUT</span><span class="chip" style="border-color:var(--line-paper);color:#5c554a">Approved</span></div><div class="sc-title">Our Solar System</div><div class="sc-meta">Tilt down from void to dust disk · piano</div></div>'+
+      '<div class="scene-card" draggable="true" data-i="4"><div class="sc-top"><span class="sc-code">SC 05 · <b>00:38</b> · DISSOLVE</span><span class="chip" style="border-color:var(--line-paper);color:#5c554a">Approved</span></div><div class="sc-title">Life Looks Back</div><div class="sc-meta">Slow zoom to an eye, then sky · choir</div></div>'+
+      '<div class="scene-card" draggable="true" data-i="5"><div class="sc-top"><span class="sc-code">SC 06 · <b>00:37</b> · FADE</span><span class="chip" style="border-color:var(--rec);color:var(--rec)">Retake — music overlap</span></div><div class="sc-title">We Are Stardust</div><div class="sc-meta">Static wide · narration resolves · fade to paper</div></div>'+
+    '</div>';
+}
+function panelProduction(){
+  return '<div class="p-eyebrow">Stage 06 · Production <span class="stamp">awaiting review</span></div>'+
+    '<h2>Finalize the plan</h2>'+
+    '<div class="p-meta">scenes · prompt packs · crew sheet · approve to export</div>'+
+
+    '<div class="plan-section"><h3>Scene editor · SC 03</h3>'+
+    '<div class="field"><label>Title</label><input value="Galaxies Assemble"></div>'+
+    '<div class="field"><label>Narration</label><textarea>Four hundred million years after the Bang, gravity pulled the first gas into spinning cities of light.</textarea></div>'+
+    '<div class="field"><label>Visual description</label><textarea>Orbital drift over assembling galaxies — filaments of gas, then points of light switching on across a dark web.</textarea></div>'+
+    '<div class="field-row">'+
+      '<div class="field"><label>Camera direction</label><input value="Slow orbital drift, 5° tilt"></div>'+
+      '<div class="field"><label>Duration</label><input value="00:00:45"></div>'+
+      '<div class="field"><label>Transition</label><select><option>CUT</option><option selected>DISSOLVE</option><option>FADE</option></select></div>'+
+    '</div>'+
+    '<div class="field"><label>Music cue</label><input value="Brass swell, low strings under narration"></div>'+
+    '<div class="adv" id="advToggle" onclick="toggleAdv()"><div class="sw"></div><div class="t">Advanced — prompt packs</div></div>'+
+    '<div class="prompt-tabs">'+
+      '<div class="tab-row">'+
+        '<button class="tab active" onclick="tab(this,0)">Image</button><button class="tab" onclick="tab(this,1)">Video</button>'+
+        '<button class="tab" onclick="tab(this,2)">Narration</button><button class="tab" onclick="tab(this,3)">Music</button><button class="tab" onclick="tab(this,4)">SFX</button>'+
+      '</div>'+
+      '<div class="prompt-pane active"><div class="pp-label">Image prompt · SC 03</div><code>Filamentary galaxy web at z≈2, orbital camera drift, volumetric dust, warm tungsten key, 16:9, photoreal documentary grade — no text overlays.</code></div>'+
+      '<div class="prompt-pane"><div class="pp-label">Video prompt · SC 03</div><code>Slow orbital drift over assembling galaxies, 5° tilt, 45s, 24fps, depth-of-field pull from dust to light, no camera shake.</code></div>'+
+      '<div class="prompt-pane"><div class="pp-label">Narration prompt · SC 03</div><code>Female, warm documentary register. Pace 145 wpm, wonder + restraint. 38s. Emphasis: "cities of light".</code></div>'+
+      '<div class="prompt-pane"><div class="pp-label">Music prompt · SC 03</div><code>Low strings, brass swell at 0:22, resolve at 0:38. Key: D minor. No percussion in first half. Bed −18 LUFS.</code></div>'+
+      '<div class="prompt-pane"><div class="pp-label">SFX prompt · SC 03</div><code>Deep cosmic rumble under narration, wind texture on transition, soft chime on first star ignition.</code></div>'+
+    '</div></div>'+
+
+    '<div class="plan-section"><h3>Prompt packs · all scenes</h3>'+
+    '<div class="scene-list" style="margin-top:20px">'+
+      '<div class="scene-card" draggable="false"><div class="sc-top"><span class="sc-code">SC 01 · The Bang</span><span class="chip" style="border-color:var(--line-paper);color:#5c554a">image · video · vo · music · sfx</span></div><div class="sc-meta">transition: CUT · music cue: Low drone</div><div class="sc-actions"><button class="mini-btn" onclick="toast(\'Regenerating SC 01 image prompt…\')">Regenerate image</button><button class="mini-btn" onclick="toast(\'Full pack queued for SC 01\')">Regenerate pack</button></div></div>'+
+      '<div class="scene-card" draggable="false"><div class="sc-top"><span class="sc-code">SC 02 · The First Stars</span><span class="chip" style="border-color:var(--line-paper);color:#5c554a">image · video · vo · music · sfx</span></div><div class="sc-meta">transition: DISSOLVE · music cue: Strings enter</div><div class="sc-actions"><button class="mini-btn" onclick="toast(\'Regenerating SC 02 video prompt…\')">Regenerate video</button><button class="mini-btn" onclick="toast(\'Full pack queued for SC 02\')">Regenerate pack</button></div></div>'+
+    '</div></div>'+
+
+    '<div class="plan-section"><h3>Production plan</h3>'+
+    '<div class="plan-row"><span class="idx">SC 01</span><span class="nm">The Bang</span><span class="ds">Slow push-in · 42s · CUT · music: low drone</span></div>'+
+    '<div class="plan-row"><span class="idx">SC 02</span><span class="nm">The First Stars</span><span class="ds">Whip-pan · 38s · DISSOLVE · strings</span></div>'+
+    '<div class="plan-row"><span class="idx">SC 03</span><span class="nm">Galaxies Assemble</span><span class="ds">Orbital drift · 45s · CUT · brass swell</span></div>'+
+    '<div class="plan-row"><span class="idx">SC 04</span><span class="nm">Our Solar System</span><span class="ds">Tilt down · 40s · CUT · piano</span></div>'+
+    '<div class="plan-row"><span class="idx">SC 05</span><span class="nm">Life Looks Back</span><span class="ds">Slow zoom · 38s · DISSOLVE · choir</span></div>'+
+    '<div class="plan-row"><span class="idx">SC 06</span><span class="nm">We Are Stardust</span><span class="ds">Static wide · 37s · FADE · resolve</span></div></div>'+
+
+    '<div class="plan-section"><h3>Crew sheet — consistency</h3>'+
+    '<div class="crew-grid">'+
+      '<div class="crew-card"><div class="k">Characters</div><div class="v">Narrator — unnamed, omniscient <small>· consistent voice</small></div></div>'+
+      '<div class="crew-card"><div class="k">Locations</div><div class="v">Deep space (void), galaxy web, solar system, Earth at night</div></div>'+
+      '<div class="crew-card"><div class="k">Editor</div><div class="v">Per-scene transitions + music cues, set on each scene\'s content</div></div>'+
+    '</div></div>';
+}
+
+/* ================= COVERAGE RAIL ================= */
+function coverageFor(stage){
+  var c = '<div class="cov-card">';
+  if(stage===0){
+    c+='<div class="c-t">Live · Studio notes <span class="rec-dot"></span></div>'+
+      '<div class="cov-item"><p>Your answers cover audience, platform, length, and tone. One more signal would help: <b>any visual references</b>.</p><div class="cov-actions"><button class="mini-btn solid" onclick="toast(\'Note applied — drafting brief\')">Apply</button><button class="mini-btn">Dismiss</button></div></div>';
+  } else if(stage===1){
+    c+='<div class="c-t">Suggestions</div>'+
+      '<div class="cov-item"><p>A <b>female narration</b> pairs well with a wonder-driven tone for general audiences.</p><div class="cov-actions"><button class="mini-btn solid" onclick="toast(\'Applied — narration locked\')">Apply</button><button class="mini-btn">Dismiss</button></div></div>'+
+      '<div class="cov-item"><p>4:30 is the sweet spot for YouTube retention; <b>consider a cold open</b>.</p><div class="cov-actions"><button class="mini-btn solid" onclick="toast(\'Applied — cold open noted\')">Apply</button><button class="mini-btn">Dismiss</button></div></div>';
+  } else if(stage===2){
+    c+='<div class="c-t">Factual score</div>'+
+      '<div class="score-line"><span class="nm">Sourced</span><span class="val"><b>6</b>/6</span></div>'+
+      '<div class="score-line"><span class="nm">Confidence</span><span class="val"><b>0.98</b></span></div>'+
+      '<div class="score-line"><span class="nm">Unverified</span><span class="val"><b>0</b> claims</span></div>'+
+      '<div class="cov-item" style="border-top:1px solid var(--line-dark)"><p>All timeline claims map to a source. The "first stars 13.5 bya" figure matches Planck-era estimates.</p></div>';
+  } else if(stage===3){
+    c+='<div class="c-t">Script scores · v3</div>'+
+      '<div class="score-line"><span class="nm">Clarity</span><span class="val"><b>4.3</b><span class="bar"><i style="width:86%"></i></span></span></div>'+
+      '<div class="score-line"><span class="nm">Pacing</span><span class="val"><b>4.1</b><span class="bar"><i style="width:82%"></i></span></span></div>'+
+      '<div class="score-line"><span class="nm">Engagement</span><span class="val"><b>4.4</b><span class="bar"><i style="width:88%"></i></span></span></div>'+
+      '<div class="score-line"><span class="nm">Retention</span><span class="val"><b>4.2</b><span class="bar"><i style="width:84%"></i></span></span></div>'+
+      '<div class="score-line"><span class="nm">Redundancy</span><span class="val"><b>4.0</b><span class="bar"><i style="width:80%"></i></span></span></div>'+
+      '<div class="score-line"><span class="nm">Factual</span><span class="val"><b>3.9</b><span class="bar"><i class="amber" style="width:78%"></i></span></span></div>'+
+      '<div class="cov-actions" style="padding-top:10px"><button class="mini-btn solid" onclick="toast(\'Regenerating script v4…\')">Regenerate</button><button class="mini-btn">See notes</button></div>';
+  } else if(stage===4){
+    c+='<div class="c-t">Consistency records</div>'+
+      '<div class="cov-item"><p><b>Characters:</b> 1 (Narrator) — consistent across scenes.</p></div>'+
+      '<div class="cov-item"><p><b>Locations:</b> void → galaxy web → solar system → Earth — continuity held.</p></div>'+
+      '<div class="cov-item"><p><b>Editor:</b> SC 05→06 transition lands on the resolve; music swells cleared.</p></div>'+
+      '<div class="cov-actions"><button class="mini-btn" onclick="toast(\'Suggesting a new transition…\')">Suggest transition</button></div>';
+  } else if(stage===5){
+    c+='<div class="c-t">Production coverage</div>'+
+      '<div class="score-line"><span class="nm">Packs ready</span><span class="val"><b>6</b>/6</span></div>'+
+      '<div class="score-line"><span class="nm">Transitions set</span><span class="val"><b>6</b>/6</span></div>'+
+      '<div class="score-line"><span class="nm">Music cues set</span><span class="val"><b>6</b>/6</span></div>'+
+      '<div class="score-line"><span class="nm">Runtime</span><span class="val"><b>00:04:30</b></span></div>'+
+      '<div class="score-line"><span class="nm">Score</span><span class="val"><b>4.1</b></span></div>'+
+      '<div class="ver-row current"><span class="v">SC 03 v2 · edited</span><span>21:55</span></div>'+
+      '<div class="cov-item"><p>Scenes finalized, prompt packs set, crew sheet locked. Approve to export the plan package.</p></div>';
+  } else {
+    c+='<div class="c-t">Plan summary</div>'+
+      '<div class="score-line"><span class="nm">Scenes</span><span class="val"><b>6</b></span></div>'+
+      '<div class="score-line"><span class="nm">Runtime</span><span class="val"><b>00:04:30</b></span></div>'+
+      '<div class="score-line"><span class="nm">Packs</span><span class="val"><b>6</b></span></div>'+
+      '<div class="score-line"><span class="nm">Score</span><span class="val"><b>4.1</b></span></div>'+
+      '<div class="cov-item"><p>Approve to export the plan package. Regeneration is available per scene at any time.</p></div>';
+  }
+  c+='</div><div class="cov-card"><div class="c-t">Versions</div>'+
+    '<div class="ver-row current"><span class="v">v3 · AI</span><span>21:41</span></div>'+
+    '<div class="ver-row"><span class="v">v2 · AI</span><span>21:35</span></div>'+
+    '<div class="ver-row"><span class="v">v1 · AI</span><span>21:28</span></div></div>';
+  return c;
+}
+
+/* ================= RENDER ================= */
+var PANELS=[panelIdea,panelBrief,panelResearch,panelScript,panelStoryboard,panelProduction];
+function render(){
+  var panel=PANELS[currentStage]();
+  var el=document.getElementById('mainPanel');
+  el.style.animation='none'; void el.offsetWidth;
+  el.style.animation='fadeUp .28s ease';
+  el.innerHTML=panel;
+  document.getElementById('coverageRail').innerHTML=coverageFor(currentStage);
+  document.getElementById('approveNote').innerHTML=APPROVE_NOTES[currentStage];
+  // stepper classes
+  document.querySelectorAll('#stepper .stage').forEach(function(s,i){
+    s.classList.toggle('live', i===currentStage);
+    s.classList.toggle('approved', i<currentStage);
+    s.querySelector('.rec-dot')?.remove();
+    if(i===currentStage){var d=document.createElement('span');d.className='rec-dot';s.querySelector('.nm').prepend(d);}
+  });
+  document.querySelectorAll('#stageJump .demo-btn').forEach(function(b){
+    b.classList.toggle('active', Number(b.dataset.s)===currentStage);
+  });
+  // approve bar visibility: hidden only in retake/loading/streaming states
+  var bar=document.getElementById('approveBar');
+  bar.classList.toggle('hidden', demoState!=='normal');
+  wireDrag();
+  bindTabTriggers();
+}
+function wireDrag(){
+  var cards=document.querySelectorAll('.scene-card[draggable="true"]');
+  var list=document.getElementById('sceneList');
+  if(!list) return;
+  cards.forEach(function(card){
+    card.addEventListener('dragstart',function(){card.classList.add('dragging');});
+    card.addEventListener('dragend',function(){card.classList.remove('dragging');document.querySelectorAll('.drop-target').forEach(function(d){d.classList.remove('drop-target');});});
+    card.addEventListener('dragover',function(e){e.preventDefault();});
+    card.addEventListener('drop',function(e){
+      e.preventDefault();
+      var from=card.parentNode.querySelector('.dragging');
+      if(!from||from===card) return;
+      list.insertBefore(from,card.nextSibling);
+      renumberScenes();
+      toast('Scenes reordered');
+    });
+  });
+  document.querySelectorAll('.scene-card[draggable="true"]').forEach(function(card){
+    card.addEventListener('dragenter',function(){card.classList.add('drop-target');});
+    card.addEventListener('dragleave',function(){card.classList.remove('drop-target');});
+  });
+}
+function renumberScenes(){
+  document.querySelectorAll('#sceneList .scene-card').forEach(function(c,i){
+    var code=c.querySelector('.sc-code b');
+    if(code) code.textContent=(i+1)===1?'00:42':(i+1)===2?'00:38':(i+1)===3?'00:45':(i+1)===4?'00:40':(i+1)===5?'00:38':'00:37';
+    var label=c.querySelector('.sc-top .sc-code');
+    if(label) label.childNodes[0].textContent='SC '+String(i+1).padStart(2,'0')+' · ';
+  });
+}
+function bindTabTriggers(){
+  document.querySelectorAll('.adv').forEach(function(a){
+    a.onclick=function(){toggleAdv(a);};
+  });
+}
+function toggleAdv(a){
+  if(!a) a=document.getElementById('advToggle');
+  a.classList.toggle('on');
+  if(a.classList.contains('on')) toast('Advanced — prompt packs revealed');
+}
+function tab(btn,idx){
+  var row=btn.parentNode;
+  row.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',i===idx);});
+  var box=row.parentNode;
+  box.querySelectorAll('.prompt-pane').forEach(function(p,i){p.classList.toggle('active',i===idx);});
+}
+
+/* ================= STATES ================= */
+var demoState='normal';
+function setState(s){
+  demoState=s;
+  document.querySelectorAll('#stateJump .demo-btn').forEach(function(b){b.classList.toggle('active',b.dataset.state===s);});
+  var el=document.getElementById('mainPanel');
+  var bar=document.getElementById('approveBar');
+  var cov=document.getElementById('coverageRail');
+  if(s==='normal'){ el.innerHTML=PANELS[currentStage](); cov.innerHTML=coverageFor(currentStage); bar.classList.remove('hidden'); wireDrag(); bindTabTriggers(); return; }
+  bar.classList.add('hidden');
+  if(s==='loading'){
+    el.innerHTML='<div class="p-eyebrow">Stage 0'+(currentStage+1)+' · '+STAGES[currentStage].name+' <span class="stamp">generating</span></div>'+
+      '<h2>'+STAGES[currentStage].name+' is being written…</h2>'+
+      '<div class="p-meta">agent running · tokens streaming to cache</div>'+
+      '<div class="skeleton"><div class="sk l1"></div><div class="sk l2"></div><div class="sk l3"></div><div class="sk l2"></div></div>';
+    cov.innerHTML='<div class="cov-card"><div class="c-t">Agent status <span class="rec-dot"></span></div><div class="cov-item"><p>Planning agent on <b>nvidia-llama-3.3-70b</b> — drafting '+STAGES[currentStage].name.toLowerCase()+'.</p></div></div>';
+  } else if(s==='streaming'){
+    el.innerHTML='<div class="p-eyebrow">Stage 0'+(currentStage+1)+' · '+STAGES[currentStage].name+' <span class="stamp">streaming</span></div>'+
+      '<h2>'+STAGES[currentStage].name+'</h2>'+
+      '<div class="p-meta">agent writing<span class="caret"></span></div>'+
+      '<p class="lead" style="margin-top:16px">The studio is drafting the first pass — '+
+      'the opening lands on the wonder of the first three minutes<span class="caret"></span></p>';
+    cov.innerHTML='<div class="cov-card"><div class="c-t">Live <span class="rec-dot"></span></div><div class="cov-item"><p>Streaming output to the panel. You can interrupt any time.</p><div class="cov-actions"><button class="mini-btn solid" onclick="toast(\'Generation interrupted — partial saved\')">Interrupt</button></div></div></div>';
+  } else if(s==='retake'){
+    el.innerHTML='<div class="p-eyebrow">Stage 0'+(currentStage+1)+' · '+STAGES[currentStage].name+' <span class="stamp">failed</span></div>'+
+      '<h2>'+STAGES[currentStage].name+' needs a retake</h2>'+
+      '<div class="p-meta">provider 429 · retrying with backoff</div>'+
+      '<p class="lead" style="margin-top:16px">The studio hit a rate limit while generating. Nothing is lost — the partial draft is saved and we will resume automatically.</p>'+
+      '<div class="retake">RETAKE — rate limit hit (429) on provider call, retrying in 30s <button class="mini-btn solid" onclick="toast(\'Retrying now…\')">Retry now</button></div>';
+    cov.innerHTML='<div class="cov-card"><div class="c-t">Error</div><div class="cov-item"><p><b>code:</b> PROVIDER_429 · <b>stage:</b> '+STAGES[currentStage].name.toLowerCase()+' · partial draft saved.</p></div></div>';
+  } else if(s==='empty'){
+    el.innerHTML='<div class="p-eyebrow">No projects yet</div>'+
+      '<h2>Start with an idea</h2>'+
+      '<p class="lead" style="margin-top:12px">Type a one-line idea on the dashboard and the studio handles the rest — research, script, storyboard, prompts.</p>'+
+      '<div style="margin-top:20px"><button class="mini-btn dark" onclick="showView(\'dash\')">← Back to idea input</button></div>';
+    cov.innerHTML='<div class="cov-card"><div class="c-t">Empty state</div><div class="cov-item"><p>Designed: no projects yet → the dashboard invites the first idea.</p></div></div>';
+  }
+}
+
+/* ================= NAV ================= */
+function showView(name){
+  // gate-keep: app views require a session
+  if(!signedIn && name !== 'auth'){ name = 'auth'; }
+  if(signedIn && name === 'auth'){ name = 'dash'; }
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(function(b){b.classList.toggle('active',b.dataset.view===name);});
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(name==='dash'){ renderProjectGrid(); }
+  if(name==='ws'){ setState('normal'); render(); }
+  if(name==='auth'){ syncGateBar(); }
+}
+function openProject(stage){
+  currentStage=stage;
+  showView('ws');
+}
+function beginProduction(){
+  var v=document.getElementById('ideaInput').value.trim();
+  if(v) document.getElementById('wsTitle').textContent=v;
+  openProject(0);
+  toast('Production started — discovery running');
+}
+function approve(){
+  var b=document.querySelector('#approveBar .btn-stamp.primary');
+  var prev=b.textContent;
+  b.textContent='✓ Approved';
+  b.style.background='transparent';b.style.color='var(--paper)';b.style.borderColor='var(--line-dark)';
+  var s=document.getElementById('stepper').querySelector('.stage.live');
+  if(s){s.classList.remove('live');s.classList.add('approved');}
+  toast('Stage approved — moving on');
+  setTimeout(function(){b.textContent=prev;b.style.background='';b.style.color='';b.style.borderColor='';},1600);
+}
+var toastTimer;
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){t.classList.remove('show');},1800);
+}
+
+/* init: global click delegation — stepper stages, demo-bar stage/state jumps */
+document.addEventListener('click',function(e){
+  // close the user menu on outside click
+  if(!e.target.closest('.user-chip')) closeMenu();
+  var st=e.target.closest('.stepper .stage');
+  if(st){ currentStage=Number(st.dataset.stage); setState('normal'); render(); return; }
+  var dj=e.target.closest('#stageJump .demo-btn');
+  if(dj){ currentStage=Number(dj.dataset.s); setState('normal'); render(); return; }
+  var sj=e.target.closest('#stateJump .demo-btn');
+  if(sj){ setState(sj.dataset.state); return; }
+});
+
+/* boot: signed-out gate is the entry point */
+renderNav();
+syncGateBar();
+showView('auth');
+setGate('signin');
+renderProjectGrid();
+</script>
+</body>
+</html>

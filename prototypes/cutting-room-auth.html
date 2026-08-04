@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>videogen — The Cutting Room · Identity gate</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700&f[]=general-sans@400,500,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ TOKEN SHEET (approved 2026-08-03, ui-design.md) ============ */
+  :root{
+    --ink:#141110;
+    --surface:#1E1A18;
+    --paper:#EDE6DA;
+    --paper-dim:#D9D0C0;
+    --ash:#8C8378;
+    --line-dark:#2B2622;
+    --line-paper:#C9BFAE;
+    --rec:#E04B3A;
+    --tungsten:#E2A85C;
+    --radius:2px;
+    --font-display:'Cabinet Grotesk','General Sans',sans-serif;
+    --font-body:'General Sans','Segoe UI',sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--font-body);
+    font-size:15px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    display:flex;flex-direction:column;
+  }
+  ::selection{background:var(--rec);color:var(--paper)}
+  button,input{font-family:inherit}
+  :focus-visible{outline:2px solid var(--rec);outline-offset:2px}
+
+  /* ============ NAV ============ */
+  .nav{
+    display:flex;align-items:center;justify-content:space-between;
+    height:56px;padding:0 24px;
+    background:rgba(20,17,16,.92);
+    border-bottom:1px solid var(--line-dark);
+    backdrop-filter:blur(8px);
+    position:sticky;top:0;z-index:60;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-mono);font-size:13px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--paper)}
+  .brand .rec-dot{width:8px;height:8px;border-radius:50%;background:var(--rec)}
+  .nav-meta{font-family:var(--font-mono);font-size:11px;color:var(--ash);letter-spacing:.12em}
+
+  /* prototype controls bar */
+  .demo-bar{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:8px 24px;background:rgba(20,17,16,.85);border-bottom:1px solid var(--line-dark);
+    backdrop-filter:blur(8px);position:sticky;top:56px;z-index:55;
+  }
+  .demo-bar .lbl{font-family:var(--font-mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--ash)}
+  .demo-bar .grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+  .demo-btn{
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    background:none;border:1px solid var(--line-dark);color:var(--ash);border-radius:var(--radius);
+    padding:4px 9px;cursor:pointer;transition:all .15s;
+  }
+  .demo-btn:hover{color:var(--paper);border-color:var(--ash)}
+  .demo-btn.active{color:var(--ink);background:var(--tungsten);border-color:var(--tungsten)}
+
+  /* ============ AUTH STAGE ============ */
+  .stage{
+    flex:1;display:flex;align-items:center;justify-content:center;
+    padding:72px 24px 96px;position:relative;overflow:hidden;
+  }
+  /* faint production grid watermark */
+  .stage::before{
+    content:"";position:absolute;inset:0;
+    background:
+      linear-gradient(var(--line-dark) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line-dark) 1px,transparent 1px);
+    background-size:56px 56px;
+    opacity:.22;pointer-events:none;
+  }
+  /* giant timecode watermark */
+  .watermark{
+    position:absolute;right:-40px;bottom:-30px;pointer-events:none;
+    font-family:var(--font-mono);font-size:clamp(90px,16vw,190px);font-weight:600;
+    letter-spacing:-.04em;color:var(--surface);line-height:1;user-select:none;
+  }
+
+  /* the call sheet — the auth card */
+  .call-sheet{
+    position:relative;width:100%;max-width:440px;
+    background:var(--surface);border:1px solid var(--line-dark);border-radius:var(--radius);
+    padding:44px 44px 38px;
+  }
+  .call-sheet .bracket{position:absolute;width:16px;height:16px;border:1px solid var(--rec);transition:opacity .25s}
+  .call-sheet .bracket.tl{top:-1px;left:-1px;border-right:none;border-bottom:none}
+  .call-sheet .bracket.tr{top:-1px;right:-1px;border-left:none;border-bottom:none}
+  .call-sheet .bracket.bl{bottom:-1px;left:-1px;border-right:none;border-top:none}
+  .call-sheet .bracket.br{bottom:-1px;right:-1px;border-left:none;border-top:none}
+  .call-sheet .bracket{opacity:.55}
+  .call-sheet:hover .bracket{opacity:1}
+
+  .cs-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px}
+  .cs-eyebrow{font-family:var(--font-mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ash);display:flex;align-items:center;gap:8px}
+  .cs-eyebrow .rec-dot{width:7px;height:7px;border-radius:50%;background:var(--rec)}
+  .cs-roll{font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;color:var(--ash)}
+
+  .call-sheet h1{font-family:var(--font-display);font-weight:500;font-size:30px;letter-spacing:-.015em;line-height:1.1}
+  .call-sheet .sub{font-size:14.5px;color:var(--paper-dim);margin-top:8px;max-width:34ch}
+
+  .auth-form{margin-top:28px;display:flex;flex-direction:column;gap:16px}
+  .field label{
+    font-family:var(--font-mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--ash);display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;
+  }
+  .field label .hint{color:var(--line-dark);letter-spacing:.1em;cursor:pointer;transition:color .15s}
+  .field label .hint:hover{color:var(--tungsten)}
+  .in-wrap{position:relative}
+  .in-wrap .eye{
+    position:absolute;right:12px;top:50%;transform:translateY(-50%);
+    background:none;border:none;color:var(--ash);font-family:var(--font-mono);font-size:10px;
+    letter-spacing:.1em;cursor:pointer;padding:4px;transition:color .15s;
+  }
+  .in-wrap .eye:hover{color:var(--paper)}
+  .field input{
+    width:100%;background:var(--ink);border:1px solid var(--line-dark);border-radius:var(--radius);
+    color:var(--paper);font-family:var(--font-body);font-size:15px;padding:13px 14px;outline:none;
+    transition:border-color .2s, box-shadow .2s;
+  }
+  .field input::placeholder{color:#4a443d}
+  .field input:focus{border-color:var(--tungsten);box-shadow:0 0 0 1px var(--tungsten)}
+  .field input[aria-invalid="true"]{border-color:var(--rec);box-shadow:0 0 0 1px var(--rec)}
+
+  .btn{
+    font-family:var(--font-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    border-radius:var(--radius);padding:15px 22px;cursor:pointer;transition:all .18s;
+    border:1px solid transparent;white-space:nowrap;width:100%;margin-top:4px;
+  }
+  .btn-rec{background:var(--rec);color:var(--paper)}
+  .btn-rec:hover{background:#c93d2f;transform:translateY(-1px)}
+  .btn-rec:active{transform:translateY(0)}
+  .btn-rec.loading{opacity:.75;pointer-events:none}
+  .btn .spinner{
+    display:inline-block;width:10px;height:10px;border-radius:50%;
+    border:2px solid rgba(255,255,255,.35);border-top-color:var(--paper);
+    animation:spin .8s linear infinite;margin-right:8px;vertical-align:-1px;
+  }
+
+  .divider{
+    display:flex;align-items:center;gap:14px;margin:22px 0 4px;
+    font-family:var(--font-mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--line-dark);
+  }
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line-dark)}
+
+  .providers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .provider{
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    background:var(--ink);border:1px solid var(--line-dark);color:var(--ash);border-radius:var(--radius);
+    padding:10px 6px;cursor:pointer;transition:all .15s;
+  }
+  .provider:hover{color:var(--paper);border-color:var(--ash);transform:translateY(-1px)}
+  .provider svg{width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:6px}
+
+  .switch{
+    margin-top:24px;padding-top:18px;border-top:1px solid var(--line-dark);
+    text-align:center;font-size:13.5px;color:var(--ash);
+  }
+  .switch button{
+    background:none;border:none;color:var(--tungsten);font-family:var(--font-mono);
+    font-size:10px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;
+    padding:2px 4px;transition:color .15s;
+  }
+  .switch button:hover{color:var(--paper);text-decoration:underline;text-underline-offset:3px}
+
+  /* error strip */
+  .retake{
+    border:1px dashed var(--rec);color:var(--rec);border-radius:var(--radius);
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;
+    padding:10px 14px;margin-top:18px;display:none;align-items:flex-start;gap:10px;line-height:1.5;
+  }
+  .retake.show{display:flex;animation:fadeUp .25s ease}
+  .retake .rec-dot{width:6px;height:6px;border-radius:50%;background:var(--rec);margin-top:4px;flex:none}
+
+  .cs-foot{
+    margin-top:30px;padding-top:16px;border-top:1px solid var(--line-dark);
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;color:var(--ash);
+  }
+  .cs-foot .tc b{color:var(--paper);font-weight:500}
+  .cs-foot .rec-live{display:flex;align-items:center;gap:6px;color:var(--rec)}
+  .cs-foot .rec-live .rec-dot{width:6px;height:6px;border-radius:50%;background:var(--rec);animation:recPulse 1.6s ease-in-out infinite}
+
+  /* loading state skeleton */
+  .sk{background:rgba(255,255,255,.04);border-radius:var(--radius);position:relative;overflow:hidden}
+  .sk::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:shine 1.4s infinite}
+  .sk.l1{height:14px;width:38%}
+  .sk.l2{height:48px;width:100%}
+  .sk.l3{height:48px;width:100%}
+  .sk.l4{height:52px;width:100%}
+
+  .cs-verify{display:none;flex-direction:column;gap:14px;margin-top:30px}
+  .cs-verify.show{display:flex}
+  .cs-verify .v-label{font-family:var(--font-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ash)}
+  .cs-verify .v-row{display:flex;align-items:center;gap:12px}
+  .cs-verify .rec-dot{width:8px;height:8px;border-radius:50%;background:var(--rec);animation:recPulse 1.6s ease-in-out infinite}
+  .cs-verify .v-text{font-size:14px;color:var(--paper-dim)}
+
+  .toast{
+    position:fixed;top:72px;right:24px;z-index:80;background:var(--ink);border:1px solid var(--line-dark);
+    border-left:2px solid var(--rec);border-radius:var(--radius);padding:12px 16px;
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;color:var(--paper);
+    transform:translateX(120%);transition:transform .3s cubic-bezier(.2,.8,.2,1);max-width:320px;
+  }
+  .toast.show{transform:translateX(0)}
+
+  @keyframes recPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(224,75,58,.5)}50%{opacity:.65;box-shadow:0 0 0 5px rgba(224,75,58,0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes shine{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+  @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+  @media (max-width:520px){
+    .call-sheet{padding:34px 24px 30px}
+    .stage{padding:48px 16px 80px}
+    .providers{grid-template-columns:1fr 1fr}
+    .nav-meta{display:none}
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="brand"><span class="rec-dot"></span> videogen</div>
+  <span class="nav-meta">IDENTITY GATE · CUTTING ROOM v1 · 2026-08-04</span>
+</nav>
+
+<div class="demo-bar">
+  <span class="lbl">Auth</span>
+  <div class="grp">
+    <button class="demo-btn active" data-view="signin" onclick="showView('signin')">Sign in</button>
+    <button class="demo-btn" data-view="signup" onclick="showView('signup')">Sign up</button>
+  </div>
+  <span class="lbl">State</span>
+  <div class="grp">
+    <button class="demo-btn active" data-state="normal" onclick="showState('normal')">Normal</button>
+    <button class="demo-btn" data-state="loading" onclick="showState('loading')">Loading</button>
+    <button class="demo-btn" data-state="error" onclick="showState('error')">Error</button>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="watermark">TC 00:00</div>
+
+  <!-- ============ SIGN IN ============ -->
+  <div class="call-sheet" id="sheetSignin">
+    <span class="bracket tl"></span><span class="bracket tr"></span><span class="bracket bl"></span><span class="bracket br"></span>
+    <div class="cs-top">
+      <div class="cs-eyebrow"><span class="rec-dot"></span> Gate · Sign in</div>
+      <div class="cs-roll">ROLL 07</div>
+    </div>
+    <h1>Enter the cutting room</h1>
+    <div class="sub">Pick up where your last take left off. Every project, scene, and score is waiting on your slate.</div>
+
+    <form class="auth-form" id="signinForm" onsubmit="return submitSignin(event)">
+      <div class="field">
+        <label for="email-si">Email</label>
+        <div class="in-wrap">
+          <input type="email" id="email-si" placeholder="you@studio.dev" autocomplete="email" aria-label="Email">
+        </div>
+      </div>
+      <div class="field">
+        <label for="pw-si">Password <span class="hint" onclick="toast('Reset link queued — check your inbox.')">Forgot?</span></label>
+        <div class="in-wrap">
+          <input type="password" id="pw-si" placeholder="••••••••••••" autocomplete="current-password" aria-label="Password">
+          <button type="button" class="eye" onclick="togglePw('pw-si',this)" aria-label="Show password">SHOW</button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-rec" id="signinBtn">Sign in →</button>
+    </form>
+
+    <div class="retake" id="retakeSi">
+      <span class="rec-dot"></span>
+      <span>RETAKE — <b>Sign-in failed.</b> The email or password didn't match. Two attempts remain before the gate holds for 60s.</span>
+    </div>
+
+    <div class="cs-verify" id="verifySi">
+      <div class="v-label">Session check</div>
+      <div class="sk l1"></div>
+      <div class="sk l2"></div>
+      <div class="sk l3"></div>
+      <div class="sk l4"></div>
+      <div class="v-row" style="margin-top:6px"><span class="rec-dot"></span><span class="v-text">Verifying session with Clerk…</span></div>
+    </div>
+
+    <div class="divider">or continue with</div>
+    <div class="providers">
+      <button class="provider" onclick="toast('Google OAuth — link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v3.6h5.4c-.6 2.5-2.6 4-5.4 4a6 6 0 1 1 4.1-10.4l2.7-2.7A10 10 0 1 0 12 22c5.5 0 9.4-3.9 9.4-9.4 0-.5 0-1-.1-1.5z"/></svg>Google</button>
+      <button class="provider" onclick="toast('GitHub OAuth — link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.9 10.9c.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0C17.3 4.9 18.3 5.2 18.3 5.2c.6 1.6.2 2.8.1 3.1.7.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5z"/></svg>GitHub</button>
+      <button class="provider" onclick="toast('Apple — link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.3 2.6 1.3 0 1.8-.8 3.4-.8s2  .8 3.4.8c1.4 0 2.3-1.3 3.2-2.5 1-1.5 1.4-2.9 1.5-3-.1 0-2.9-1.1-2.9-4.2zM13.9 5.1c.7-.9 1.2-2.1 1.1-3.3-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2.1-1.1 3.3 1.2.1 2.5-.6 3.2-1.6z"/></svg>Apple</button>
+    </div>
+
+    <div class="switch">First time on this set? <button onclick="showView('signup')">Create an account</button></div>
+
+    <div class="cs-foot">
+      <span class="tc">SESSION <b>—</b> · GATE 01</span>
+      <span class="rec-live"><span class="rec-dot"></span> REC</span>
+    </div>
+  </div>
+
+  <!-- ============ SIGN UP ============ -->
+  <div class="call-sheet" id="sheetSignup" style="display:none">
+    <span class="bracket tl"></span><span class="bracket tr"></span><span class="bracket bl"></span><span class="bracket br"></span>
+    <div class="cs-top">
+      <div class="cs-eyebrow"><span class="rec-dot"></span> Gate · New account</div>
+      <div class="cs-roll">ROLL 00</div>
+    </div>
+    <h1>First take, today</h1>
+    <div class="sub">Give the studio a name and a door key. Your reel starts the moment you approve your first brief.</div>
+
+    <form class="auth-form" id="signupForm" onsubmit="return submitSignup(event)">
+      <div class="field">
+        <label for="name-su">Name</label>
+        <div class="in-wrap">
+          <input type="text" id="name-su" placeholder="Alex Rivera" autocomplete="name" aria-label="Name">
+        </div>
+      </div>
+      <div class="field">
+        <label for="email-su">Email</label>
+        <div class="in-wrap">
+          <input type="email" id="email-su" placeholder="you@studio.dev" autocomplete="email" aria-label="Email">
+        </div>
+      </div>
+      <div class="field">
+        <label for="pw-su">Password</label>
+        <div class="in-wrap">
+          <input type="password" id="pw-su" placeholder="Min 8 characters" autocomplete="new-password" aria-label="Password">
+          <button type="button" class="eye" onclick="togglePw('pw-su',this)" aria-label="Show password">SHOW</button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-rec" id="signupBtn">Create account →</button>
+    </form>
+
+    <div class="retake" id="retakeSu">
+      <span class="rec-dot"></span>
+      <span>RETAKE — <b>Sign-up incomplete.</b> That email is already rolling on this set. Try signing in instead.</span>
+    </div>
+
+    <div class="cs-verify" id="verifySu">
+      <div class="v-label">Creating account</div>
+      <div class="sk l1"></div>
+      <div class="sk l2"></div>
+      <div class="sk l3"></div>
+      <div class="sk l4"></div>
+      <div class="v-row" style="margin-top:6px"><span class="rec-dot"></span><span class="v-text">Spinning up your slate with Clerk…</span></div>
+    </div>
+
+    <div class="divider">or continue with</div>
+    <div class="providers">
+      <button class="provider" onclick="toast('Google OAuth — link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v3.6h5.4c-.6 2.5-2.6 4-5.4 4a6 6 0 1 1 4.1-10.4l2.7-2.7A10 10 0 1 0 12 22c5.5 0 9.4-3.9 9.4-9.4 0-.5 0-1-.1-1.5z"/></svg>Google</button>
+      <button class="provider" onclick="toast('GitHub OAuth — link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.9 10.9c.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0C17.3 4.9 18.3 5.2 18.3 5.2c.6 1.6.2 2.8.1 3.1.7.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5z"/></svg>GitHub</button>
+      <button class="provider" onclick="toast('Apple — link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.3 2.6 1.3 0 1.8-.8 3.4-.8s2  .8 3.4.8c1.4 0 2.3-1.3 3.2-2.5 1-1.5 1.4-2.9 1.5-3-.1 0-2.9-1.1-2.9-4.2zM13.9 5.1c.7-.9 1.2-2.1 1.1-3.3-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2.1-1.1 3.3 1.2.1 2.5-.6 3.2-1.6z"/></svg>Apple</button>
+    </div>
+
+    <div class="switch">Already rolling? <button onclick="showView('signin')">Sign in</button></div>
+
+    <div class="cs-foot">
+      <span class="tc">SESSION <b>—</b> · GATE 00</span>
+      <span class="rec-live"><span class="rec-dot"></span> REC</span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= STATE ================= */
+var currentView = "signin";   // signin | signup
+var currentState = "normal";  // normal | loading | error
+
+function $(id){ return document.getElementById(id); }
+function active(el){ el.classList.add("active"); }
+function inactive(el){ el.classList.remove("active"); }
+
+function showView(v){
+  currentView = v;
+  $("sheetSignin").style.display = v === "signin" ? "block" : "none";
+  $("sheetSignup").style.display = v === "signup" ? "block" : "none";
+  document.querySelectorAll(".demo-btn[data-view]").forEach(function(b){
+    b.dataset.view === v ? active(b) : inactive(b);
+  });
+  // keep the state bar's current state applied to the freshly shown sheet
+  showState(currentState, true);
+}
+
+function showState(s, keepView){
+  currentState = s;
+  document.querySelectorAll(".demo-btn[data-state]").forEach(function(b){
+    b.dataset.state === s ? active(b) : inactive(b);
+  });
+  var sheets = ["signin","signup"];
+  sheets.forEach(function(k){
+    var retake = $("retake" + (k === "signin" ? "Si" : "Su"));
+    var verify = $("verify" + (k === "signin" ? "Si" : "Su"));
+    var form   = $((k === "signin" ? "signinForm" : "signupForm"));
+    var btn    = $((k === "signin" ? "signinBtn" : "signupBtn"));
+    var sheet  = $("sheet" + (k === "signin" ? "Signin" : "Signup"));
+    if (sheet.style.display === "none") return; // skip hidden sheet
+    retake.classList.toggle("show", s === "error");
+    verify.classList.toggle("show", s === "loading");
+    form.style.display = s === "loading" ? "none" : "flex";
+    if (s === "loading"){
+      btn.classList.add("loading");
+      btn.innerHTML = '<span class="spinner"></span>Signing in…';
+    } else {
+      btn.classList.remove("loading");
+      btn.innerHTML = k === "signin" ? "Sign in →" : "Create account →";
+    }
+    if (s === "error"){
+      // flag the email/password fields for the invalid state
+      $((k === "signin" ? "email-si" : "email-su")).setAttribute("aria-invalid","true");
+      $((k === "signin" ? "pw-si" : "pw-su")).setAttribute("aria-invalid","true");
+    } else {
+      $((k === "signin" ? "email-si" : "email-su")).removeAttribute("aria-invalid");
+      $((k === "signin" ? "pw-si" : "pw-su")).removeAttribute("aria-invalid");
+    }
+  });
+  // error text differs slightly per view; keep the generic message
+}
+
+/* ================= INTERACTIONS ================= */
+function togglePw(id, btn){
+  var el = $(id);
+  el.type = el.type === "password" ? "text" : "password";
+  btn.textContent = el.type === "password" ? "SHOW" : "HIDE";
+}
+
+function submitSignin(e){
+  e.preventDefault();
+  toast("Sign-in queued — verifying session with Clerk…");
+  showState("loading");
+  return false;
+}
+function submitSignup(e){
+  e.preventDefault();
+  toast("Account queued — spinning up your slate…");
+  showState("loading");
+  return false;
+}
+
+var toastTimer = null;
+function toast(msg){
+  var t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 2600);
+}
+</script>
+</body>
+</html>
