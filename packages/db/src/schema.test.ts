@@ -10,6 +10,10 @@ describe("db schema", () => {
   beforeAll(() => {
     conn = new Database(":memory:");
     db = drizzle(conn);
+    // FK enforcement is off by default per SQLite connection — enable it so the
+    // orphan test below proves the constraint actually rejects, not that the
+    // connection silently tolerated it.
+    conn.pragma("foreign_keys = ON");
     conn.exec(`
       CREATE TABLE projects (
         id text PRIMARY KEY,
@@ -62,5 +66,20 @@ describe("db schema", () => {
     await expect(
       db.insert(scripts).values({ id: crypto.randomUUID(), projectId, version: 1, content }),
     ).rejects.toThrow(); // UNIQUE(project_id, version)
+  });
+
+  it("rejects a script whose project_id references a nonexistent project (FK)", async () => {
+    const content = { title: "T", hook: "H", introduction: "I", body: ["B1"], conclusion: "C", cta: null };
+    // No matching row in projects — the FK must refuse the insert.
+    await expect(
+      db.insert(scripts).values({ id: crypto.randomUUID(), projectId: crypto.randomUUID(), version: 1, content }),
+    ).rejects.toThrow(); // FOREIGN KEY constraint failed
+
+    // Sanity: the same insert with a real project still succeeds.
+    const projectId = crypto.randomUUID();
+    await db.insert(projects).values({ id: projectId, idea: "x" });
+    await expect(
+      db.insert(scripts).values({ id: crypto.randomUUID(), projectId, version: 1, content }),
+    ).resolves.not.toThrow();
   });
 });
