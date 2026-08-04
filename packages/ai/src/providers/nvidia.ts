@@ -32,14 +32,20 @@ export class NvidiaProvider implements Provider {
         continue;
       }
       if (!res.ok) throw new ProviderError("PROVIDER_FAILURE", `provider returned ${res.status}`);
-      const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-      const raw = data.choices?.[0]?.message?.content ?? "";
-      const parsed = input.schema.safeParse(JSON.parse(raw));
-      if (!parsed.success) {
-        if (attempt >= maxRetries) throw new ProviderError("INVALID_OUTPUT", "output failed zod: " + parsed.error.message);
+      let raw = "";
+      try {
+        const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+        raw = data.choices?.[0]?.message?.content ?? "";
+        const parsed = input.schema.safeParse(JSON.parse(raw));
+        if (!parsed.success) throw new ProviderError("INVALID_OUTPUT", "output failed zod: " + parsed.error.message);
+        return { output: parsed.data, raw, route: `${model}@nvidia` };
+      } catch (e) {
+        // Garbage 200 body (bad JSON / missing choices) must surface as a typed INVALID_OUTPUT
+        // (spec: "garbage output → typed failure"), so fallbacks can key off the code.
+        if (e instanceof ProviderError) throw e;
+        if (attempt >= maxRetries) throw new ProviderError("INVALID_OUTPUT", "unparseable provider output: " + String(e));
         attempt++; continue;
       }
-      return { output: parsed.data, raw, route: `${model}@nvidia` };
     }
   }
 }
