@@ -15,6 +15,8 @@ const fakeDeps = (): WorkflowDeps => ({
   }),
   saveProject: async (_id, patch) => { expect(patch).toBeDefined(); },
   saveScript: async (_projectId, content) => { expect(content).toBeDefined(); },
+  saveStoryboard: async (_projectId, scenes) => { expect(scenes.length).toBeGreaterThan(0); },
+  savePromptPacks: async (_projectId, packs) => { expect(packs.length).toBeGreaterThan(0); },
 });
 
 describe("interrupt persistence", () => {
@@ -43,9 +45,22 @@ describe("interrupt persistence", () => {
     const paused = await g1.getState({ configurable: { thread_id: "p1" } });
     const pending = (paused.tasks ?? []).flatMap((t) => (t as { interrupts?: { value?: unknown }[] }).interrupts ?? []);
     expect(pending.map((i) => i.value)).toContain("script_review");
-    // graph instance 2: resume with the SAME checkpointer (new process = new graph object)
-    const g2 = buildWorkflow(new FakeProvider([]), fakeDeps(), checkpointer);
-    await resumeWorkflow(g2, "p1", { approved: true }); // script approved → done
+    // graph instance 2: resume with the SAME checkpointer (new process = new graph object).
+    // The queue is minimal — brief/script/scores were consumed by g1's queue and
+    // their state (script content) must survive in the checkpoint for the
+    // storyboard pass to produce scenes; an empty queue here would throw loudly.
+    const g2 = buildWorkflow(new FakeProvider([
+      { content: JSON.stringify([{ title: "The Bang", narration: "n", visualDescription: "v", cameraDirection: "c", durationSeconds: 8, transition: "CUT", musicCue: "m" }]) }, // storyboardAgent
+      { content: JSON.stringify([{ title: "The Bang", narration: "n", visualDescription: "v", cameraDirection: "c", durationSeconds: 8, transition: "CUT", musicCue: "m" }]) }, // editorAgent
+      { content: JSON.stringify({ imagePrompt: "i", videoPrompt: "v", narrationPrompt: "n", musicPrompt: "m", sfxPrompt: "s" }) }, // promptAgent
+    ]), fakeDeps(), checkpointer);
+    await resumeWorkflow(g2, "p1", { approved: true }); // script approved → storyboard gate
+    const atStoryboard = await g2.getState({ configurable: { thread_id: "p1" } });
+    const sbInterrupts = (atStoryboard.tasks ?? []).flatMap((t: { interrupts?: { value?: unknown }[] }) =>
+      (t.interrupts ?? []).map((i) => i.value),
+    );
+    expect(sbInterrupts).toContain("storyboard_review");
+    await resumeWorkflow(g2, "p1", { approved: true }); // storyboard approved → done
     const state = await g2.getState({ configurable: { thread_id: "p1" } });
     expect(state.values.stage).toBe("done");
   });

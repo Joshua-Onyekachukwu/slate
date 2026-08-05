@@ -1,8 +1,8 @@
 import { StateGraph, START, END, interrupt, BaseCheckpointSaver } from "@langchain/langgraph";
 import { WorkflowState } from "./state";
-import { planningAgent, scriptAgent, reviewerAgent } from "../agents";
+import { planningAgent, scriptAgent, reviewerAgent, storyboardAgent, editorAgent, promptAgent } from "../agents";
 import type { Provider, ChatMessage } from "../providers/types";
-import type { Brief, ScriptContent } from "@slate/shared";
+import type { Brief, ScriptContent, SceneContent, PromptPack } from "@slate/shared";
 
 export interface WorkflowDeps {
   getProject(id: string): Promise<{
@@ -15,6 +15,8 @@ export interface WorkflowDeps {
   }>;
   saveProject(id: string, patch: Record<string, unknown>): Promise<void>;
   saveScript(projectId: string, content: ScriptContent): Promise<void>;
+  saveStoryboard(projectId: string, scenes: SceneContent[]): Promise<void>;
+  savePromptPacks(projectId: string, packs: PromptPack[]): Promise<void>;
 }
 
 export function buildWorkflow(provider: Provider, deps: WorkflowDeps, checkpointer?: BaseCheckpointSaver) {
@@ -54,13 +56,45 @@ export function buildWorkflow(provider: Provider, deps: WorkflowDeps, checkpoint
       if (!decision?.approved) {
         return { feedback: decision?.feedback ?? "revise", stage: "script" };
       }
+      // Approving the script moves into the storyboard stage — NOT straight to
+      // done. The scriptApproved channel is the routing signal (a crash between
+      // here and write_storyboard must NOT leave a premature "done" checkpoint);
+      // write_storyboard overwrites stage with "storyboard" immediately after.
+      return { scriptApproved: true };
+    })
+    // Node name can't be "storyboard" — it collides with the storyboard state
+    // channel (same reason the script node is "write_script").
+    .addNode("write_storyboard", async (state) => {
+      // Storyboard → Editor (per-scene transition/music) run back-to-back as one
+      // production pass; the edited scenes are what get saved and reviewed.
+      const scenes = await storyboardAgent(provider, state.script as ScriptContent, [], [], state.feedback);
+      const edited = await editorAgent(provider, scenes);
+      await deps.saveStoryboard(state.projectId, edited);
+      return { stage: "storyboard", storyboard: edited, feedback: undefined };
+    })
+    .addNode("prompt_gen", async (state) => {
+      const packs: PromptPack[] = [];
+      for (const scene of state.storyboard ?? []) {
+        packs.push(await promptAgent(provider, scene, [], []));
+      }
+      await deps.savePromptPacks(state.projectId, packs);
+      return { promptPacks: packs };
+    })
+    .addNode("storyboard_gate", async (state) => {
+      const decision = interrupt<string, { approved: boolean; feedback?: string }>("storyboard_review");
+      if (!decision?.approved) {
+        return { feedback: decision?.feedback ?? "revise", stage: "storyboard" };
+      }
       return { stage: "done" };
     })
     .addEdge(START, "discovery")
     .addConditionalEdges("discovery", (s) => (s.brief ? "write_script" : "discovery"))
     .addEdge("write_script", "review")
     .addEdge("review", "script_gate")
-    .addConditionalEdges("script_gate", (s) => (s.stage === "done" ? END : "write_script"))
+    .addConditionalEdges("script_gate", (s) => (s.scriptApproved ? "write_storyboard" : "write_script"))
+    .addEdge("write_storyboard", "prompt_gen")
+    .addEdge("prompt_gen", "storyboard_gate")
+    .addConditionalEdges("storyboard_gate", (s) => (s.stage === "done" ? END : "write_storyboard"))
     .compile({ checkpointer });
 }
 

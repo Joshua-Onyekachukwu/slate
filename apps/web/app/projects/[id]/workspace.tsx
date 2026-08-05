@@ -1,30 +1,43 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, API_URL, type ProjectRow, type StageDetail } from "../../lib/api";
+import { api, API_URL, type ProjectRow, type StageDetail, type StoryboardView, type PromptPack } from "../../lib/api";
+import { SceneCard } from "../../components/scene-card";
 
-// Slice stages — mirrors the workflow's checkpoint journey (idea → approved script).
+// Slice stages — mirrors the workflow's checkpoint journey (idea → approved storyboard).
 const SLICE_STAGES = [
   { key: "discovery", name: "Idea" },
   { key: "brief", name: "Brief" },
   { key: "script", name: "Script" },
+  { key: "storyboard", name: "Storyboard" },
   { key: "done", name: "Ready" },
 ];
 
 const stageIndex = (checkpointStage: string | undefined): number => {
-  if (checkpointStage === "done") return 3;
-  if (checkpointStage === "script_review") return 2; // script gate (awaiting review)
+  if (checkpointStage === "done") return 4;
+  if (checkpointStage === "storyboard") return 3; // storyboard gate (awaiting review)
+  if (checkpointStage === "script_review" || checkpointStage === "script") return 2;
   if (checkpointStage === "brief") return 1;
   return 0;
 };
 
+const PACK_TABS: { key: keyof PromptPack; label: string }[] = [
+  { key: "imagePrompt", label: "Image" },
+  { key: "videoPrompt", label: "Video" },
+  { key: "narrationPrompt", label: "Narration" },
+  { key: "musicPrompt", label: "Music" },
+  { key: "sfxPrompt", label: "SFX" },
+];
+
 export function Workspace({ projectId, initialIdea }: { projectId: string; initialIdea?: string }) {
   const [project, setProject] = useState<ProjectRow | null>(null);
   const [detail, setDetail] = useState<StageDetail | null>(null);
+  const [sb, setSb] = useState<StoryboardView | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
+  const [showPacks, setShowPacks] = useState(false);
   const esRef = useRef<EventSource | null>(null);
 
   const refresh = useCallback(async () => {
@@ -35,6 +48,9 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
       ]);
       setProject(project);
       setDetail(detail);
+      // The storyboard 404s until the script is approved — that's expected.
+      const st = await api.getStoryboard(projectId).catch(() => null);
+      setSb(st?.storyboard ?? null);
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -69,14 +85,18 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
     };
   }, [projectId, refresh]);
 
-  const awaiting = detail?.stage?.status === "awaiting_review" && detail?.stage?.gate?.value === "script_review";
-  const approved = detail?.stage?.status === "approved";
+  const stage = project?.stage; // checkpoint-derived (never the stale projects column)
+  const atScriptGate = stage === "script_review";
+  const atStoryboardGate = stage === "storyboard";
+  const done = stage === "done";
+  const awaiting = atScriptGate || atStoryboardGate;
+  const approved = done;
 
-  const doApprove = async () => {
+  const doApprove = async (which: "script" | "storyboard") => {
     if (busy) return;
     setBusy(true);
     try {
-      const res = await api.approve(projectId, "script", true);
+      const res = await api.approve(projectId, which, true);
       setProject((p) => (p ? { ...p, stage: res.project.stage ?? p.stage } : p));
       await refresh();
     } catch (e) {
@@ -86,11 +106,11 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
     }
   };
 
-  const doRegenerate = async () => {
+  const doRegenerate = async (which: "script" | "storyboard") => {
     if (busy) return;
     setBusy(true);
     try {
-      await api.regenerate(projectId, "script", feedback.trim() || undefined);
+      await api.regenerate(projectId, which, feedback.trim() || undefined);
       setFeedback("");
       await refresh();
     } catch (e) {
@@ -100,9 +120,31 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
     }
   };
 
+  // Drag-to-reorder: optimistic local move, persisted via the atomic reorder API.
+  // The response MUST replace local state — the server creates NEW version rows
+  // with new scene ids, so keeping the optimistic ids would fail the next
+  // reorder's permutation check (stale-id bug caught in review).
+  const moveScene = async (from: number, to: number) => {
+    if (!sb || busy) return;
+    const next = [...sb.scenes];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setSb({ ...sb, scenes: next }); // optimistic
+    setBusy(true);
+    try {
+      const res = await api.reorderStoryboard(projectId, next.map((s) => s.id));
+      setSb(res.storyboard); // canonical: new ids + order from the server
+    } catch (e) {
+      setError((e as Error).message);
+      await refresh(); // revert to server truth
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const scores = detail?.content.scores ?? null;
   const script = detail?.content.script ?? null;
-  const current = stageIndex(project?.stage);
+  const current = stageIndex(stage);
 
   return (
     <main>
@@ -134,7 +176,9 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                     {i === current && <span className="rec-dot"></span>}
                     {s.name}
                   </div>
-                  <div className="st">{i < current ? "Approved" : i === current ? (approved ? "Approved" : "Awaiting review") : "—"}</div>
+                  <div className="st">
+                    {i < current ? "Approved" : i === current ? (approved ? "Approved" : "Awaiting review") : "—"}
+                  </div>
                 </div>
               );
             })}
@@ -156,53 +200,138 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                 </div>
                 <div className="cs-row">
                   <span className="cs-nm">Stage</span>
-                  <span className="cs-vl">{detail?.stage?.status ?? "—"}</span>
+                  <span className="cs-vl">{stage ?? "—"}</span>
                 </div>
                 <div className="cs-row">
                   <span className="cs-nm">Version</span>
-                  <span className="cs-vl">v{detail?.stage?.version ?? "—"}</span>
+                  <span className="cs-vl">
+                    {atStoryboardGate ? `sb v${sb?.version ?? "—"}` : `v${detail?.stage?.version ?? "—"}`}
+                  </span>
                 </div>
                 <div className="cs-row">
                   <span className="cs-nm">Gate</span>
-                  <span className="cs-vl">{detail?.stage?.gate?.value ?? "none"}</span>
+                  <span className="cs-vl">{atScriptGate ? "script_review" : atStoryboardGate ? "storyboard_review" : "none"}</span>
                 </div>
               </aside>
 
-              {/* main panel — the script on paper */}
+              {/* main panel */}
               <div className="panel stage-fade">
-                <div className="p-eyebrow">
-                  {approved ? "Script · Approved" : awaiting ? "Script · Awaiting review" : "Script"}
-                  {scores && (
-                    <span className="score-chip">
-                      OVERALL <b>{scores.overall}/5</b>
-                      <span className="bar"><i style={{ width: `${scores.overall * 20}%` }}></i></span>
-                    </span>
-                  )}
-                </div>
-
-                {script ? (
-                  <div className="script-edit">
-                    <div className="script-title">{script.title}</div>
-                    <div className="script-para lead" data-p="p0">
-                      <em>{script.hook}</em>
+                {atScriptGate && (
+                  <>
+                    <div className="p-eyebrow">
+                      Script · Awaiting review
+                      {scores && (
+                        <span className="score-chip">
+                          OVERALL <b>{scores.overall}/5</b>
+                          <span className="bar"><i style={{ width: `${scores.overall * 20}%` }}></i></span>
+                        </span>
+                      )}
                     </div>
-                    <div className="script-para" data-p="p1">{script.introduction}</div>
-                    {script.body.map((para, i) => (
-                      <div key={i} className="script-para" data-p={`b${i}`}>
-                        {para}
+                    {script ? (
+                      <div className="script-edit">
+                        <div className="script-title">{script.title}</div>
+                        <div className="script-para lead" data-p="p0">
+                          <em>{script.hook}</em>
+                        </div>
+                        <div className="script-para" data-p="p1">{script.introduction}</div>
+                        {script.body.map((para, i) => (
+                          <div key={i} className="script-para" data-p={`b${i}`}>
+                            {para}
+                          </div>
+                        ))}
+                        <div className="script-para" data-p="pc">{script.conclusion}</div>
+                        {script.cta && <div className="script-para" data-p="pcta">▶ {script.cta}</div>}
                       </div>
-                    ))}
-                    <div className="script-para" data-p="pc">{script.conclusion}</div>
-                    {script.cta && <div className="script-para" data-p="pcta">▶ {script.cta}</div>}
-                  </div>
-                ) : (
-                  <p className="lead" style={{ color: "#7a7265" }}>
-                    {approved
-                      ? "The script was approved. The production plan builds on this in the next phase."
-                      : awaiting
-                        ? "The script is written and scored — review it, then approve or ask for a retake."
-                        : "The workflow is still running. This panel fills in as stages complete."}
-                  </p>
+                    ) : (
+                      <p className="lead" style={{ color: "#7a7265" }}>The script is written and scored — review it, then approve or ask for a retake.</p>
+                    )}
+                  </>
+                )}
+
+                {(atStoryboardGate || done) && (
+                  <>
+                    <div className="p-eyebrow">
+                      {done ? "Production plan" : "Storyboard · Awaiting review"}
+                      {sb && (
+                        <span className="score-chip" style={{ borderColor: "var(--line-paper)", color: "#5c554a" }}>
+                          <b>{sb.scenes.length}</b> scenes · sb v{sb.version}
+                        </span>
+                      )}
+                    </div>
+
+                    {sb && (
+                      <>
+                        <div className="scene-list" style={{ marginBottom: 14 }}>
+                          {sb.scenes.map((sc, i) => (
+                            <SceneCard
+                              key={sc.id}
+                              index={i}
+                              order={sc.order}
+                              title={sc.content.title}
+                              durationSeconds={sc.content.durationSeconds}
+                              transition={sc.content.transition}
+                              status={done ? "Approved" : "Scene"}
+                              tone={done ? "default" : "rec"}
+                              meta={`${sc.content.cameraDirection} · music: ${sc.content.musicCue}`}
+                              onReorder={moveScene}
+                            />
+                          ))}
+                        </div>
+
+                        {/* prompt packs behind the advanced toggle */}
+                        <button
+                          className="mini-btn adv-toggle"
+                          aria-expanded={showPacks}
+                          onClick={() => setShowPacks((v) => !v)}
+                        >
+                          {showPacks ? "▾ Advanced — hide prompt packs" : "▸ Advanced — prompt packs"}
+                        </button>
+                        {showPacks && (
+                          <div className="plan-section">
+                            {sb.scenes.map((sc, i) => (
+                              <div className="crew-card" key={sc.id} style={{ marginBottom: 10 }}>
+                                <div className="k">SC {String(sc.order).padStart(2, "0")} · {sc.content.title}</div>
+                                {sc.promptPack ? (
+                                  <div className="v">
+                                    {PACK_TABS.map((t) => (
+                                      <div key={t.key} style={{ marginBottom: 6 }}>
+                                        <b style={{ color: "var(--paper)" }}>{t.label}</b>
+                                        <div style={{ color: "var(--ash)", fontSize: 12 }}>{sc.promptPack![t.key]}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="v">Prompt pack queued.</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {done && (
+                          <div className="plan-section">
+                            <h3>Scenes in order</h3>
+                            {sb.scenes.map((sc, i) => (
+                              <div className="plan-row" key={sc.id}>
+                                <span className="idx">SC {String(i + 1).padStart(2, "0")}</span>
+                                <span className="nm">{sc.content.title}</span>
+                                <span className="ds">{sc.content.transition} · {sc.content.musicCue}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+
+                {!atScriptGate && !atStoryboardGate && !done && (
+                  <>
+                    <div className="p-eyebrow">{approved ? "Script · Approved" : "Script"}</div>
+                    <p className="lead" style={{ color: "#7a7265" }}>
+                      The workflow is still running. This panel fills in as stages complete.
+                    </p>
+                  </>
                 )}
               </div>
 
@@ -238,8 +367,13 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                     <span>Versions</span>
                   </div>
                   <p style={{ color: "var(--ash)", fontSize: 12, marginTop: 10 }}>
-                    Latest: <b style={{ color: "var(--paper)" }}>v{detail?.stage?.version ?? "—"}</b>
-                    {detail?.stage?.updatedAt ? ` · ${new Date(detail.stage.updatedAt).toLocaleTimeString()}` : ""}
+                    Script: <b style={{ color: "var(--paper)" }}>v{detail?.stage?.version ?? "—"}</b>
+                    {sb && (
+                      <>
+                        <br />
+                        Storyboard: <b style={{ color: "var(--paper)" }}>sb v{sb.version}</b>
+                      </>
+                    )}
                   </p>
                 </div>
               </aside>
@@ -254,7 +388,9 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                   <>
                     <div className="gate-note">
                       <span className="rec-dot"></span>
-                      Script ready for review — approve to lock it, or send it back for a retake.
+                      {atScriptGate
+                        ? "Script ready for review — approve to lock it and storyboard, or send it back for a retake."
+                        : "Scenes storyboarded — drag to reorder, then approve to lock the production plan."}
                     </div>
                     <div className="gate-actions">
                       <input
@@ -265,10 +401,10 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                         placeholder="Feedback for a retake (optional)"
                         aria-label="Retake feedback"
                       />
-                      <button className="btn btn-ghost" onClick={doRegenerate} disabled={busy}>
+                      <button className="btn btn-ghost" onClick={() => doRegenerate(atScriptGate ? "script" : "storyboard")} disabled={busy}>
                         Regenerate
                       </button>
-                      <button className="btn btn-rec" onClick={doApprove} disabled={busy}>
+                      <button className="btn btn-rec" onClick={() => doApprove(atScriptGate ? "script" : "storyboard")} disabled={busy}>
                         {busy ? "Working…" : "Approve & continue"}
                       </button>
                     </div>
@@ -276,7 +412,7 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                 ) : approved ? (
                   <div className="gate-note">
                     <span className="chip ok">Approved</span>
-                    Script v{detail?.stage?.version} locked — ready for the production plan.
+                    Production plan locked — {sb?.scenes.length ?? 0} scenes, prompt packs set.
                   </div>
                 ) : (
                   <div className="gate-note">

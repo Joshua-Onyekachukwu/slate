@@ -8,7 +8,7 @@ export async function storyboardAgent(provider: Provider, script: ScriptContent,
       system("You are the Storyboard Agent. Convert the script into an ordered array of scenes. Each scene: title, narration, visualDescription, cameraDirection (cinematography), durationSeconds, transition, musicCue. Keep characters and locations consistent."),
       { role: "user", content: `Script: ${JSON.stringify(script)}\nCharacters: ${JSON.stringify(characters)}\nLocations: ${JSON.stringify(locations)}${feedback ? `\nRevision feedback: ${feedback}` : ""}` },
     ],
-    schema: SceneContentSchema.array(),
+    schema: SceneContentSchema.array().min(1), // an empty storyboard must never reach the gate
   });
   return res.output;
 }

@@ -1,5 +1,6 @@
-// Typed client for the vertical-slice API (api-design.md). The slice exposes:
-// projects CRUD, the script approve/regenerate gate, script versions, SSE.
+// Typed client for the slice API (api-design.md). The slice exposes:
+// projects CRUD, script + storyboard approve/regenerate gates, script versions,
+// the storyboard (scenes + prompt packs) with atomic reorder, SSE.
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -36,7 +37,39 @@ export interface StageDetail {
     conversation?: { role: string; content: string; at: string }[];
     script?: { title: string; hook: string; introduction: string; body: string[]; conclusion: string; cta: string | null } | null;
     scores?: { clarity: number; pacing: number; engagement: number; retention: number; redundancy: number; overall: number; notes: string[] } | null;
+    storyboard?: { version: number; scenes: StoryboardScene[] } | null;
   };
+}
+
+export interface SceneContent {
+  title: string;
+  narration: string;
+  visualDescription: string;
+  cameraDirection: string;
+  durationSeconds: number;
+  transition: string;
+  musicCue: string;
+}
+
+export interface PromptPack {
+  imagePrompt: string;
+  videoPrompt: string;
+  narrationPrompt: string;
+  musicPrompt: string;
+  sfxPrompt: string;
+}
+
+export interface StoryboardScene {
+  id: string;
+  order: number;
+  content: SceneContent;
+  promptPack: PromptPack | null;
+}
+
+export interface StoryboardView {
+  version: number;
+  status: "draft" | "approved";
+  scenes: StoryboardScene[];
 }
 
 interface ApiErrorBody {
@@ -82,5 +115,15 @@ export const api = {
       `/api/v1/projects/${id}/stages/${stage}/regenerate`,
       { method: "POST", body: JSON.stringify({ feedback }) },
     );
+  },
+  getStoryboard(id: string) {
+    // null until the script is approved — the workspace handles it.
+    return request<{ storyboard: StoryboardView | null }>(`/api/v1/projects/${id}/storyboard`);
+  },
+  reorderStoryboard(id: string, sceneIds: string[]) {
+    return request<{ storyboard: StoryboardView }>(`/api/v1/projects/${id}/storyboard/order`, {
+      method: "PUT",
+      body: JSON.stringify({ scene_ids: sceneIds }),
+    });
   },
 };

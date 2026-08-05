@@ -1,17 +1,56 @@
 import { NvidiaProvider, FakeProvider, type Provider } from "@slate/ai";
 
+const SCENE = (n: number) => ({
+  title: `Scene ${n}`,
+  narration: "13.8 billion years in one breath — and you are here.",
+  visualDescription: "A single point of light blooming into expanding space.",
+  cameraDirection: "Slow push-in from deep space",
+  durationSeconds: 30 + n,
+  transition: n % 2 ? "CUT" : "DISSOLVE",
+  musicCue: n % 2 ? "Low drone" : "Strings enter",
+});
+const PACK = (n: number) => ({
+  imagePrompt: `Still frame ${n}: point of light in pure black, photoreal, no text`,
+  videoPrompt: `Camera push-in over ${30 + n}s at 24fps, no shake`,
+  narrationPrompt: "Warm documentary register, hushed wonder, 140 wpm",
+  musicPrompt: "Low drone, sub-bass swell, sparse",
+  sfxPrompt: "Distant rumble, near-silence otherwise",
+});
+const SCENES = [SCENE(1), SCENE(2), SCENE(3)];
+const REV_SCENES = SCENES.map((s) => ({ ...s, title: `${s.title} (rev)` }));
+const RAW_PACKS = [PACK(1), PACK(2), PACK(3)];
+// promptAgent is called ONCE PER SCENE — each queue entry is a single pack object.
+const PACKS = RAW_PACKS.map((p) => ({ content: JSON.stringify(p) }));
+const REV_PACKS = RAW_PACKS.map((p) => ({ content: JSON.stringify({ ...p, imagePrompt: `${p.imagePrompt} — tighter framing` }) }));
+
+const BRIEF = '{"kind":"brief","brief":{"topic":"History of the universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}';
+const SCRIPT = '{"title":"The First Three Minutes","hook":"13.8 billion years in one breath.","introduction":"Every atom in you was forged in a star.","body":["The bang.","The stars.","Us."],"conclusion":"We are the universe experiencing itself.","cta":null}';
+const SCORES_LOW = '{"clarity":2,"pacing":2,"engagement":2,"retention":2,"redundancy":2,"notes":["needs a stronger hook"],"overall":2}';
+
+// A script-gate block: one project's journey to the script review gate.
+const GATE_BLOCK = [
+  { content: BRIEF }, { content: SCRIPT }, { content: SCORES_LOW },
+];
+// A storyboard block: approving that project's script consumes storyboardAgent,
+// editorAgent, then promptAgent ×3 (one pack object per scene).
+const STORY_BLOCK = (scenes: unknown[], packs: { content: string }[]) => [
+  { content: JSON.stringify(scenes) }, // storyboardAgent
+  { content: JSON.stringify(scenes) }, // editorAgent
+  ...packs,                            // promptAgent ×3
+];
+
 export function createProvider(): Provider {
   if (process.env.FAKE_PROVIDER === "1") {
-    // Scripted sequence matching the E2E flow: brief → script → high scores.
-    // Scripted sequence: pass 1 (brief → script → low scores), pass 2 after a
-    // regenerate (script → high scores) — so both the approve and regenerate
-    // paths are smoke-testable. The happy path (approve) consumes only 3.
+    // Two (script-gate + storyboard) blocks: the E2E suite runs two projects —
+    // the responsive viewport spec (stops at the storyboard gate) and the
+    // vertical-slice spec (approves through to done). The queue is FIFO and
+    // shared by every booted API, so Playwright must run with workers: 1 to
+    // keep consumption deterministic (see tests/playwright.config.ts).
     return new FakeProvider([
-      { content: '{"kind":"brief","brief":{"topic":"History of the universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}' },
-      { content: '{"title":"The First Three Minutes","hook":"13.8 billion years in one breath.","introduction":"Every atom in you was forged in a star.","body":["The bang.","The stars.","Us."],"conclusion":"We are the universe experiencing itself.","cta":null}' },
-      { content: '{"clarity":2,"pacing":2,"engagement":2,"retention":2,"redundancy":2,"notes":["needs a stronger hook"],"overall":2}' },
-      { content: '{"title":"The First Three Minutes (rev)","hook":"13.8 billion years in one breath — and you are here.","introduction":"Every atom in you was forged in a star.","body":["The bang.","The stars.","Us."],"conclusion":"We are the universe experiencing itself.","cta":null}' },
-      { content: '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redundancy":4,"notes":[],"overall":4}' },
+      ...GATE_BLOCK,                    // project 1 → script gate
+      ...STORY_BLOCK(SCENES, PACKS),    // project 1 script approved → storyboard gate
+      ...GATE_BLOCK,                    // project 2 → script gate
+      ...STORY_BLOCK(REV_SCENES, REV_PACKS), // project 2 script approved → storyboard gate
     ]);
   }
   const apiKey = process.env.NVIDIA_API_KEY;

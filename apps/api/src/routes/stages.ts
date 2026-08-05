@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { eq, desc } from "drizzle-orm";
-import { db, projects, scripts } from "@slate/db";
+import { db, projects, scripts, storyboards, scenes } from "@slate/db";
 import { buildApiWorkflow, readCheckpoint, resumeWorkflow, GATE_VALUE_BY_STAGE } from "../workflow";
 import { sendError, ApiError, ERROR_CODES } from "../error";
 import type { AppDeps } from "../app";
@@ -24,9 +24,15 @@ export async function stageRoutes(app: FastifyInstance, deps: AppDeps) {
     const cp = await readCheckpoint(graph, id);
     const [row] = await db.select().from(projects).where(eq(projects.id, id));
     const [latest] = await db.select().from(scripts).where(eq(scripts.projectId, id)).orderBy(desc(scripts.version)).limit(1);
+    const [sbLatest] = await db.select().from(storyboards).where(eq(storyboards.projectId, id)).orderBy(desc(storyboards.version)).limit(1);
     const gateValue = GATE_VALUE_BY_STAGE[key];
     const pausedHere = gateValue !== undefined && cp.pendingGates.includes(gateValue);
-    const hasContent = row ? (key === "brief" ? row.brief !== null : latest !== undefined) : false;
+    const isStoryboard = key === "storyboard";
+    const hasContent = row
+      ? key === "brief" ? row.brief !== null
+      : isStoryboard ? sbLatest !== undefined
+      : latest !== undefined
+      : false;
     const status: StageView["status"] =
       pausedHere ? "awaiting_review"
       : cp.stage === "done" ? "approved"
@@ -37,8 +43,8 @@ export async function stageRoutes(app: FastifyInstance, deps: AppDeps) {
       stage: {
         key,
         status,
-        version: latest?.version ?? null,
-        updatedAt: latest?.createdAt.toISOString() ?? null,
+        version: isStoryboard ? sbLatest?.version ?? null : latest?.version ?? null,
+        updatedAt: isStoryboard ? sbLatest?.createdAt.toISOString() ?? null : latest?.createdAt.toISOString() ?? null,
         gate: pausedHere ? { value: gateValue } : null,
       },
     };
@@ -88,11 +94,19 @@ export async function stageRoutes(app: FastifyInstance, deps: AppDeps) {
     const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
     const cp = await readCheckpoint(graph, id);
     const [latest] = await db.select().from(scripts).where(eq(scripts.projectId, id)).orderBy(desc(scripts.version)).limit(1);
+    const [sbLatest] = await db.select().from(storyboards).where(eq(storyboards.projectId, id)).orderBy(desc(storyboards.version)).limit(1);
+    let storyboard = null;
+    if (sbLatest) {
+      const sbScenes = await db.select().from(scenes).where(eq(scenes.storyboardId, sbLatest.id)).orderBy(scenes.order);
+      storyboard = { version: sbLatest.version, scenes: sbScenes.map((s) => ({ id: s.id, order: s.order, content: s.content, promptPack: s.promptPack ?? null })) };
+    }
     return {
       ...view,
       content: stage === "script"
         ? { script: latest?.content ?? null, scores: cp.scores ?? null }
-        : stage === "brief" ? { brief: row.brief } : { conversation: row.conversation },
+        : stage === "brief" ? { brief: row.brief }
+        : stage === "storyboard" ? { storyboard }
+        : { conversation: row.conversation },
     };
   });
 

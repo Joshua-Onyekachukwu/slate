@@ -1,15 +1,16 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { buildWorkflow, resumeWorkflow, type WorkflowDeps, type WorkflowGraph } from "@slate/ai";
 import type { BaseCheckpointSaver } from "@langchain/langgraph";
-import { db, projects, scripts } from "@slate/db";
+import { db, projects, scripts, storyboards, scenes } from "@slate/db";
 import type { Provider } from "@slate/ai";
 
-// The slice's single review gate. The route param is the PRODUCING stage
-// ("script"); gate.value is the interrupt payload ("script_review") — see
-// api-design.md "Stage approve / regenerate — exact contract".
+// The review gates. The route param is the PRODUCING stage ("script" /
+// "storyboard"); gate.value is the interrupt payload ("script_review" /
+// "storyboard_review") — see api-design.md "Stage approve / regenerate — exact contract".
 export const GATE_VALUE_BY_STAGE: Record<string, string> = {
   script: "script_review",
+  storyboard: "storyboard_review",
 };
 
 const workflowDeps: WorkflowDeps = {
@@ -38,6 +39,33 @@ const workflowDeps: WorkflowDeps = {
       content,
       createdBy: "ai",
     });
+  },
+  saveStoryboard: async (projectId, content) => {
+    const [latest] = await db.select({ version: storyboards.version }).from(storyboards)
+      .where(eq(storyboards.projectId, projectId)).orderBy(desc(storyboards.version)).limit(1);
+    const version = (latest?.version ?? 0) + 1;
+    const storyboardId = randomUUID();
+    await db.insert(storyboards).values({ id: storyboardId, projectId, version });
+    await db.insert(scenes).values(
+      content.map((scene, i) => ({
+        id: randomUUID(),
+        storyboardId,
+        order: i + 1,
+        version,
+        content: scene,
+      })),
+    );
+  },
+  savePromptPacks: async (projectId, packs) => {
+    const [latest] = await db.select().from(storyboards)
+      .where(eq(storyboards.projectId, projectId)).orderBy(desc(storyboards.version)).limit(1);
+    if (!latest) throw new Error("no storyboard to attach prompt packs");
+    // packs[i] belongs to the scene at order i+1 in the latest storyboard.
+    for (let i = 0; i < packs.length; i++) {
+      await db.update(scenes)
+        .set({ promptPack: packs[i] })
+        .where(and(eq(scenes.storyboardId, latest.id), eq(scenes.order, i + 1)));
+    }
   },
 };
 

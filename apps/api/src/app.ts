@@ -5,6 +5,7 @@ import type { Provider } from "@slate/ai";
 import { projectRoutes } from "./routes/projects";
 import { stageRoutes } from "./routes/stages";
 import { scriptRoutes } from "./routes/scripts";
+import { storyboardRoutes } from "./routes/storyboard";
 import { streamRoute } from "./routes/stream";
 import { ApiError } from "./error";
 
@@ -23,6 +24,7 @@ export function buildApp(deps: AppDeps) {
   app.register(projectRoutes, deps);
   app.register(stageRoutes, deps);
   app.register(scriptRoutes, deps);
+  app.register(storyboardRoutes, deps);
   app.register(streamRoute, deps);
 
   app.get("/api/v1/health", async () => ({ status: "ok", service: "slate-api" }));
