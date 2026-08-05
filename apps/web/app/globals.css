@@ -46,6 +46,13 @@ button {
   outline-offset: 2px;
 }
 
+/* content wrapper — shared max-width + gutters (dashboard + workspace) */
+.wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
 /* ============ NAV ============ */
 .nav {
   position: sticky;
@@ -290,10 +297,9 @@ button {
   height: 1px;
   background: var(--line-dark);
 }
-
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: 16px;
   padding-bottom: 96px;
 }
@@ -1894,7 +1900,7 @@ button {
 /* recent takes */
 .takes-row {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
   gap: 12px;
   padding-bottom: 96px;
 }
@@ -2123,4 +2129,107 @@ button {
   color: var(--paper-dim);
   font-family: var(--font-mono);
   font-size: 11px;
+}
+
+/* ============ RESPONSIVE: mobile (≤640px) ============ */
+@media (max-width: 640px) {
+  .nav {
+    padding: 0 14px;
+  }
+  .nav-links {
+    gap: 14px;
+  }
+  /* expand tap targets to ~44px (WCAG 2.5.8) without changing the visual line */
+  .nav-link {
+    padding: 12px 4px;
+    margin: -12px -4px;
+  }
+  .mode-chip {
+    padding: 10px 14px;
+  }
+  /* decorative status pill + avatar — hidden on small screens; brand + nav links remain */
+  .nav-right {
+    display: none;
+  }
+  .wrap {
+    padding: 0 16px;
+  }
+  .hero {
+    padding: 44px 0 26px;
+  }
+  .hero h1 {
+    font-size: clamp(30px, 9vw, 40px);
+  }
+  /* stack the idea input + CTA full-width on mobile (thumb-friendly) */
+  .idea-box {
+    flex-wrap: wrap;
+  }
+  .idea-box .idea-input {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .idea-box .btn {
+    flex: 1 1 100%;
+    padding: 14px 22px;
+  }
+  .section-label {
+    margin: 36px 0 14px;
+  }
+  .ws-head {
+    padding-top: 22px;
+  }
+  .ws-title {
+    font-size: clamp(22px, 6.5vw, 30px);
+  }
+  .panel {
+    padding: 22px 16px;
+  }
+  .script-title {
+    font-size: 26px;
+  }
+  .gate-in {
+    padding: 12px 16px;
+    gap: 12px;
+  }
+  .gate-note {
+    flex-wrap: wrap;
+  }
+  .gate-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    width: 100%;
+  }
+  .gate-feedback {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+  .gate-actions .btn {
+    flex: 1 1 auto;
+  }
+  .mode-row {
+    gap: 6px;
+  }
+  .grid,
+  .takes-row {
+    padding-bottom: 56px;
+  }
+}
+
+/* Advanced prompt-pack toggle on the storyboard view */
+.adv-toggle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ash);
+  background: transparent;
+  border: 1px dashed var(--line-dark);
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.adv-toggle:hover {
+  color: var(--tungsten);
+  border-color: var(--tungsten);
 }
