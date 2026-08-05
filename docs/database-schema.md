@@ -1,6 +1,6 @@
 # Database Schema
 
-> Status: **Current — Phase 1+2 build** · Last updated: 2026-08-05 · Postgres · ORM: **Drizzle (ADR-013)**.
+> Status: **Current — Phase 1+2 build** · Last updated: 2026-08-06 · Postgres · ORM: **Drizzle (ADR-013)**.
 > Table/column names below are the contract; the Drizzle schema lives in `packages/db`
 > (`phase-1-2-production-plan.md`, Task 4).
 >
@@ -66,7 +66,8 @@ Clerk (external) 1─* Projects 1─* Scripts      (version rows on scripts itse
 
 ### scripts
 - `id` uuid PK (default random) · `project_id` uuid NOT NULL FK → projects
-- **Version rows live on this table** (no separate `script_versions` table):
+- **Version rows live on this table** (no separate `script_versions` table — see "Superseded
+  table shapes"):
   `version` integer NOT NULL · `content` jsonb NOT NULL (title, hook, introduction, body[],
   conclusion, cta) · `review_scores` jsonb (clarity, pacing, engagement, retention, redundancy,
   notes, overall) · `review_notes` text · `created_by` text NOT NULL DEFAULT `'ai'` (`ai | user`)
@@ -100,9 +101,17 @@ Reserved shapes from the original full-build draft; they arrive with the phases 
   defaults (duration_seconds, aspect_ratio, quality_threshold, watermark, voice_id, music_style,
   model_preferences).
 - `scene_assets` (Phase 3) — R2 keys/URLs per scene (image | video | voice | sfx | music | captions).
-- `research_packets`, `script_versions`, `conversations`/`messages` — **not** used: research, script
-  versions, and the interview conversation live on the `projects`/`scripts` rows above. Graduate
-  only if scale demands pagination or cross-project reuse.
+
+## Superseded table shapes (built as columns / version rows instead)
+
+The original full-build draft modeled these as separate tables; the Phase 1+2 plans (and the built
+slice) deliberately fold them onto the rows above — **no such tables exist**:
+- `conversations` + `messages` → **`projects.conversation` jsonb** (discovery interview messages).
+- `research_packets` → **`projects.research_packet` jsonb** (research agent output).
+- `script_versions` → **version rows on `scripts`** (unique `(project_id, version)`; latest row is
+  the active script, rollback = restore an older content as a new row).
+They graduate to dedicated tables only if long-form scale demands pagination or cross-project reuse
+(decisions.md item 3, ADR-014/024).
 
 ## Versioning & history
 
