@@ -17,6 +17,7 @@ packages/sqlite-spike/
 .DS_Store
 .turbo/
 .freebuff/
+.husky/_/
 *.db
 *.db-shm
 *.db-wal

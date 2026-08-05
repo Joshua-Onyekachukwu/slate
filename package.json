@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "packageManager": "pnpm@9.15.9",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
@@ -12,9 +14,15 @@
     "test:e2e": "pnpm --filter e2e test",
     "dev:slice": "bash scripts/boot-slice.sh",
     "lint": "turbo run lint",
-    "check:docs": "bash scripts/check-docs.sh"
+    "check:docs": "bash scripts/check-docs.sh",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "docs/**/*.md": "pnpm check:docs"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.3.0",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"
   },
