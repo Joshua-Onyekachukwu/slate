@@ -1978,15 +1978,41 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
     return { project: { id, idea: body.idea.trim() } };
   });
 
+  // Stage ALWAYS comes from the checkpoint, never the projects.stage column (saveProject
+  // only patches it lazily during discovery) — api-design.md "exact contract". Same trap the
+  // slice hit in Task 8; the column is stale the moment the workflow advances past discovery.
+  const checkpointStage = async (graph: ReturnType<typeof buildApiWorkflow>, id: string) => {
+    const snapshot = await graph.getState({ configurable: { thread_id: id } });
+    return snapshot.values.stage as string;
+  };
+  // Stage payload returned by approve/regenerate (and GET .../stages/:stage) — api-design.md.
+  const stageView = async (graph: ReturnType<typeof buildApiWorkflow>, id: string, key: string) => {
+    const snapshot = await graph.getState({ configurable: { thread_id: id } });
+    const pending = (snapshot.tasks ?? [])
+      .flatMap((t: { interrupts?: { value?: unknown }[] }) => t.interrupts ?? [])
+      .map((i) => i.value);
+    return {
+      key,
+      status: snapshot.values.stage === "done" ? "approved" : pending.length ? "awaiting_review" : "idle",
+      version: 1, // latest script/storyboard version — read from the versioned tables in the real impl
+      updatedAt: new Date().toISOString(),
+      gate: pending.length ? { value: pending[0] } : null,
+    };
+  };
+
   app.get("/api/v1/projects", async (req) => {
     const rows = await db.select().from(projects).where(sql`owner_id = ${req.userId}`).orderBy(desc(projects.updatedAt));
-    return { projects: rows }; // only my projects
+    // checkpoint-derived stage per project (N+1 getState is fine at this scale — see the slice fix)
+    const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
+    const projectRows = await Promise.all(rows.map(async (row) => ({ ...row, stage: await checkpointStage(graph, row.id) })));
+    return { projects: projectRows }; // only my projects
   });
 
   app.get("/api/v1/projects/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
     const row = await getOwnedProject(req.userId, id); // 404 if not mine
-    return { project: row };
+    const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
+    return { project: { ...row, stage: await checkpointStage(graph, id) } };
   });
 
   app.post("/api/v1/projects/:id/messages", async (req, reply) => {
@@ -2016,20 +2042,21 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
     };
     app.post(`/api/v1/projects/:id/stages/${stage}/approve`, async (req, reply) => {
       const { id } = req.params as { id: string };
-      await getOwnedProject(req.userId, id);
+      const row = await getOwnedProject(req.userId, id);
       const body = (req.body ?? {}) as { approved?: boolean; feedback?: string };
       const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
       if (await assertGate(graph, id, reply)) return;
       await resumeWorkflow(graph, id, { approved: body.approved ?? true, feedback: body.feedback });
-      return { ok: true };
+      // both routes return { project, stage } per api-design.md's exact contract
+      return { project: { ...row, stage: await checkpointStage(graph, id) }, stage: await stageView(graph, id, stage) };
     });
     app.post(`/api/v1/projects/:id/stages/${stage}/regenerate`, async (req, reply) => {
       const { id } = req.params as { id: string };
-      await getOwnedProject(req.userId, id);
+      const row = await getOwnedProject(req.userId, id);
       const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
       if (await assertGate(graph, id, reply)) return;
       await resumeWorkflow(graph, id, { approved: false, feedback: "regenerate" });
-      return { ok: true };
+      return { project: { ...row, stage: await checkpointStage(graph, id) }, stage: await stageView(graph, id, stage) };
     });
   };
   await stageApprove("research");
@@ -2039,6 +2066,7 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
   app.get("/api/v1/projects/:id/production-plan", async (req, reply) => {
     const { id } = req.params as { id: string };
     const row = await getOwnedProject(req.userId, id);
+    const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
     const [sb] = await db.select().from(storyboards).where(sql`project_id = ${id}`).orderBy(desc(storyboards.version)).limit(1);
     const sceneRows = sb ? await db.select().from(scenes).where(sql`storyboard_id = ${sb.id}`).orderBy(scenes.order, desc(scenes.version)) : [];
     const latest = new Map<number, typeof sceneRows[number]>();
@@ -2047,7 +2075,7 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
     const [script] = await db.select().from(scripts).where(sql`project_id = ${id}`).orderBy(desc(scripts.version)).limit(1);
     return {
       plan: {
-        stage: row.stage, productionPlanStatus: row.productionPlanStatus,
+        stage: await checkpointStage(graph, id), productionPlanStatus: row.productionPlanStatus,
         script: script?.content ?? null, scenes: ordered,
         characters: row.characters, locations: row.locations,
       },

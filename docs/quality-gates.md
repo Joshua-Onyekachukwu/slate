@@ -57,7 +57,8 @@ reviewer marks the claim `unverified` and the script can't score above 4.0 on th
 
 ## Recording & measurement
 
-- Scores persist in the versioned artifact: `script_versions.review_scores`,
-  `scenes.quality_scores`.
+- Scores persist in the versioned artifacts: `scripts.review_scores` (script gate, Phase 1+2 —
+  version rows live on `scripts` itself; there is no `script_versions` table). Per-scene quality
+  scoring lands on `scenes` with Phase 5's quality evaluator (development-roadmap.md).
 - Every run logs: model route used, latency, token counts, score vector — for provider comparison
   and drift detection later (a quiet Phase 5+ win).

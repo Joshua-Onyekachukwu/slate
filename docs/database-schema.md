@@ -1,129 +1,127 @@
 # Database Schema
 
-> Status: **Draft** · Last updated: 2026-08-03 · Postgres · ORM: **Drizzle (ADR-013)**. Table/column
-> names below are the contract; Drizzle schema lives in `packages/db`.
+> Status: **Current — Phase 1+2 build** · Last updated: 2026-08-05 · Postgres · ORM: **Drizzle (ADR-013)**.
+> Table/column names below are the contract; the Drizzle schema lives in `packages/db`
+> (`phase-1-2-production-plan.md`, Task 4).
 >
-> **Vertical slice (ADR-014):** the slice runs on **SQLite** (zero containers) with a deliberately
-> collapsed 2-table model — `projects` + `scripts` — per `specs/phase-1a-vertical-slice-design.md`
-> §6. The shapes below are the full-build target; the slice uses the same data shapes as jsonb/text
-> columns so the later migration into these tables is mechanical.
+> **Vertical slice (ADR-014):** the slice ran on SQLite (zero containers) with the same shapes as
+> `text`/json columns — `projects` + `scripts` only. This doc is the Phase 1+2 Postgres target the
+> slice's columns map onto mechanically.
 
 ## Principles
 
-- **Postgres is the source of truth** for project structure, state, versions, and job metadata.
-- Generated **bytes live in R2**; the DB stores keys/URLs and metadata only.
-- **Everything reviewable is versioned.** Scripts, storyboards, and prompt revisions get version rows
-  so users can compare and roll back (vision: versioning is "secret sauce").
-- Stage state is derived, not duplicated: the workflow engine writes stage status; the DB is
-  queried by the UI via materialized `ProjectStages` rows for fast status rendering.
+- **Postgres is the source of truth** for project structure, state, and versions.
+- Generated **bytes live in R2** (Phase 3+); the DB stores keys/URLs and metadata only.
+- **Everything reviewable is versioned.** Scripts, storyboards, and scenes keep version rows so
+  users can compare and roll back (vision: versioning is "secret sauce").
+- Stage state lives in the **LangGraph checkpoint**, not a DB table: the API derives stage/status
+  from `getState(thread).values.stage` (+ `tasks[].interrupts` for gate state) — never from a
+  materialized table. `projects.stage` is a **lazily-patched convenience column** (written only
+  during discovery); it is deliberately stale and must not be read for UI state (api-design.md
+  "exact contract"; the slice hit this in Task 8).
+- Conversation, brief, and research content live **on the `projects` row** (jsonb) in Phase 1+2;
+  they graduate to dedicated tables only if long-form scale demands pagination or reuse.
 
 ## ER overview
 
 ```
-Users 1─* Projects 1─* Conversations 1─* Messages
-                │
-                ├─ 1─* ResearchPackets
-                ├─ 1─* Scripts 1─* ScriptVersions
-                ├─ 1─* Storyboards 1─* Scenes
-                ├─ 1─* Jobs
-                ├─ 1─* Exports
-                └─ 1─1  Settings
-Scenes 1─* SceneAssets   (R2 keys, kind: image|video|voice|sfx|music|captions)
+Clerk (external) 1─* Projects 1─* Scripts      (version rows on scripts itself)
+                            ├─ 1─* Storyboards 1─* Scenes   (version rows on scenes itself)
+                            └─ conversation · brief · brief_history · research_packet
+                               (jsonb columns on the projects row)
 ```
 
 ## Tables
 
 ### users
-- **Deferred / no local table (ADR-023)** — Clerk is a managed provider and owns identity. There are
-  **no local `users`/`account`/`session` tables** in this build; `projects.owner_id` stores Clerk's
-  user id (`user_...`, text).
+- **Deferred / no local table (ADR-023)** — Clerk is a managed provider and owns identity. There
+  are **no local `users`/`account`/`session` tables** in this build; `projects.owner_id` stores
+  Clerk's user id (`user_...`, text). If self-hosted auth ever replaces Clerk, Better Auth's
+  Drizzle adapter (ADR-012) adds these tables — a migration, not surgery.
 
 ### projects
-- `id` uuid PK · **`owner_id` text NOT NULL — Clerk user id (`user_...`), indexed (ADR-023)** · `title` text ·
-  `status` enum (draft | briefing | researching | scripting | review | storyboarding | generating |
-  rendering | exporting | done | failed)
-- `stage` enum (idea | brief | research | script | storyboard | scenes | generation | review |
-  render | export) — the current workflow stage
-- `brief` jsonb (creative brief object, versioned via history below) · `settings_id` uuid FK
-- `created_at`, `updated_at`
-
-### conversations
-- `id` uuid PK · `project_id` uuid FK →projects · `messages` jsonb[] **or** separate `messages`
-  table — decision: use a `messages` table for durability and pagination.
-- `created_at`, `updated_at`
-
-### messages
-- `id` uuid PK · `conversation_id` uuid FK · `role` enum (user | assistant | system) ·
-  `content` text · `metadata` jsonb · `created_at`
-- Index: `(conversation_id, created_at)`
-
-### research_packets
-- `id` uuid PK · `project_id` uuid FK · `version` int · `content` jsonb (timeline, concepts,
-  terminology, references, key_events) · `source` enum (web | synthesized) · `status` enum
-  (draft | approved | rejected) · `created_at`
-- Index: `(project_id, version)`
+- `id` uuid PK (default random)
+- **`owner_id` text NOT NULL — Clerk user id (`user_...`), indexed (ADR-023)** — every query is
+  scoped by it; cross-user access returns `404` (api-design.md, ADR-022).
+- `idea` text NOT NULL — the user's one-line idea
+- `title` text
+- `stage` text NOT NULL DEFAULT `'discovery'` — mirrors the workflow's stage channel
+  (`discovery | brief | research | script | script_review | storyboard | done`); later phases extend
+  it (generation | review | render | export). **Read it from the checkpoint** — the column is a lazy patch.
+- `status` text NOT NULL DEFAULT `'active'` — richer lifecycle values (draft | briefing | … | failed)
+  arrive with later phases
+- `conversation` jsonb NOT NULL DEFAULT `'[]'` — discovery interview messages
+  (`{ role: user|assistant, content, at }[]`), written by the planning agent
+- `brief` jsonb — creative brief (topic, audience, platform, style, durationSeconds, tone,
+  narration, aspectRatio)
+- `brief_history` jsonb NOT NULL DEFAULT `'[]'` — append-only brief revisions (newest last)
+- `research_packet` jsonb — research agent output (timeline, concepts, terminology, references,
+  key_events)
+- `research_status` text NOT NULL DEFAULT `'pending'` — `pending | draft | approved | rejected`
+- `characters` jsonb NOT NULL DEFAULT `'[]'` · `locations` jsonb NOT NULL DEFAULT `'[]'` —
+  consistency agent outputs
+- `storyboard_version` integer NOT NULL DEFAULT `0`
+- `production_plan_status` text NOT NULL DEFAULT `'draft'` — `draft | ready`
+- `created_at`, `updated_at` timestamptz NOT NULL DEFAULT now()
 
 ### scripts
-- `id` uuid PK · `project_id` uuid FK · `status` enum (draft | in_review | approved | rejected) ·
-  `title` text · `created_at`, `updated_at`
-- Active content lives in the latest `script_versions` row.
-
-### script_versions
-- `id` uuid PK · `script_id` uuid FK · `version` int · `content` jsonb (title, hook, introduction,
-  body, conclusion, cta) · `review_scores` jsonb · `review_notes` text · `created_by` enum
-  (ai | user) · `created_at`
-- Unique: `(script_id, version)` · Index: `(script_id, version DESC)`
+- `id` uuid PK (default random) · `project_id` uuid NOT NULL FK → projects
+- **Version rows live on this table** (no separate `script_versions` table):
+  `version` integer NOT NULL · `content` jsonb NOT NULL (title, hook, introduction, body[],
+  conclusion, cta) · `review_scores` jsonb (clarity, pacing, engagement, retention, redundancy,
+  notes, overall) · `review_notes` text · `created_by` text NOT NULL DEFAULT `'ai'` (`ai | user`)
+- `created_at` timestamptz NOT NULL DEFAULT now() · **Unique: `(project_id, version)`**
+- The latest version is the active script; regenerate/reject round-trips and user edits each add a
+  row (rollback = restore an older version → new row).
 
 ### storyboards
-- `id` uuid PK · `project_id` uuid FK · `version` int · `status` enum · `created_at`
-- Children: `scenes`.
+- `id` uuid PK (default random) · `project_id` uuid NOT NULL FK → projects · `version` integer NOT
+  NULL · `status` text NOT NULL DEFAULT `'draft'` · `created_at` timestamptz NOT NULL DEFAULT now()
+- **Unique: `(project_id, version)`** — latest version is the active storyboard.
 
 ### scenes
-- `id` uuid PK · `storyboard_id` uuid FK · `order` int · `title` text · `content` jsonb
-  (narration, visual_description, camera_direction, duration_seconds, transition, music_cue) ·
-  `prompt_pack` jsonb (image_prompt, video_prompt, narration_prompt, music_prompt, sfx_prompt) ·
-  `status` enum (pending | queued | generating | review | approved | rejected) ·
-  `quality_scores` jsonb · `created_at`, `updated_at`
-- Unique: `(storyboard_id, order)`
+- `id` uuid PK (default random) · `storyboard_id` uuid NOT NULL FK → storyboards · `"order"` integer
+  NOT NULL · `version` integer NOT NULL · `title` text NOT NULL
+- `content` jsonb NOT NULL — (narration, visual_description, camera_direction, duration_seconds,
+  transition, music_cue)
+- `prompt_pack` jsonb — (image_prompt, video_prompt, narration_prompt, music_prompt, sfx_prompt),
+  per scene, from the Prompt Agent
+- `status` text NOT NULL DEFAULT `'pending'` — generation statuses (queued | generating | review)
+  arrive with Phase 3
+- `created_at`, `updated_at` timestamptz NOT NULL DEFAULT now()
+- **Unique: `(storyboard_id, "order", version)`** — reorders bump `order`, edits/prompt
+  regenerations bump `version` (latest per `(storyboard_id, order)` is the current scene).
 
-### scene_assets
-- `id` uuid PK · `scene_id` uuid FK · `kind` enum (image | video | voice | sfx | music | captions) ·
-  `r2_key` text · `url` text · `duration_ms` int · `status` enum · `created_at`
+## Later phases (not built yet)
 
-### jobs
-- `id` uuid PK · `project_id` uuid FK · `type` enum (research | script | storyboard | image | video |
-  voice | render | export) · `status` enum (queued | running | succeeded | failed | cancelled) ·
-  `attempts` int · `payload` jsonb · `result` jsonb · `error` text · `created_at`, `started_at`,
-  `finished_at`
-- Index: `(status)`, `(project_id, created_at DESC)`
-
-### exports
-- `id` uuid PK · `project_id` uuid FK · `format` enum (mp4) · `r2_key` text · `url` text ·
-  `thumbnail_key` text · `captions_key` text · `package_key` text · `status` enum ·
-  `size_bytes` bigint · `created_at`
-
-### settings
-- `id` uuid PK · `project_id` uuid FK · `duration_seconds` int · `aspect_ratio` text ·
-  `quality_threshold` numeric · `watermark` boolean · `voice_id` text · `music_style` text ·
-  `model_preferences` jsonb · `created_at`, `updated_at`
+Reserved shapes from the original full-build draft; they arrive with the phases that need them
+(development-roadmap.md):
+- `jobs` + `exports` + `settings` (Phases 3–4) — queue metadata, export artifacts, per-project
+  defaults (duration_seconds, aspect_ratio, quality_threshold, watermark, voice_id, music_style,
+  model_preferences).
+- `scene_assets` (Phase 3) — R2 keys/URLs per scene (image | video | voice | sfx | music | captions).
+- `research_packets`, `script_versions`, `conversations`/`messages` — **not** used: research, script
+  versions, and the interview conversation live on the `projects`/`scripts` rows above. Graduate
+  only if scale demands pagination or cross-project reuse.
 
 ## Versioning & history
 
-- `scripts`/`script_versions`, `storyboards` + `scenes.version`, `research_packets.version` cover
-  the versionable artifacts.
-- The **brief** lives as a jsonb column on `projects`; brief revisions are recorded as
-  `projects.brief_history` jsonb[] (append-only, newest last) to avoid a fifth table in Phase 1.
+- Scripts, storyboards, and scenes keep **version rows on their own tables** (unique keys above).
+- The brief keeps `projects.brief_history` jsonb[] (append-only, newest last).
+- Rollback = restore an older version → new version row (API: `PUT .../versions`).
 
 ## Enums (single source)
 
-Enums are defined once in `packages/shared` (zod + TS union) and mirrored in Postgres via
-migration. The frontend and API import from `packages/shared` — no stringly-typed statuses.
+Workflow/API statuses are defined once in `packages/shared` (zod + TS unions) and mirrored in the
+DB as `text` columns with defaults (see tables): `ProjectStage`, `StageStatus`, `ScriptStatus`,
+`CreatedBy`. The frontend and API import from `packages/shared` — no stringly-typed statuses.
 
 ## Indexing & notes
 
 - All FK columns indexed. `projects(owner_id, updated_at DESC)` powers the authenticated dashboard
   list (`WHERE owner_id = $user`) from day one (ADR-022).
-- `jobs(status)` for the worker queue visibility; `jobs(project_id)` for history.
+- `scripts(project_id, version DESC)`, `storyboards(project_id, version DESC)`,
+  `scenes(storyboard_id, "order", version DESC)` serve latest-version lookups.
 - Timestamps: `timestamptz`, UTC everywhere.
 - Migrations: one migration per change, committed with the code (ADR in decisions.md).
 
@@ -131,7 +129,8 @@ migration. The frontend and API import from `packages/shared` — no stringly-ty
 
 1. ~~ORM~~ → **Decided: Drizzle (ADR-013).** Migrations via `drizzle-kit` (dev `push`; prod
    `generate` + `migrate`).
-2. ~~Auth tables~~ → **Decided: Clerk (ADR-012/023)** — managed provider; no local auth tables. Clerk
-   owns identity; `owner_id` stores Clerk user ids (`text`). Email/password initially, OAuth later.
-3. `messages` as a table (recommended) vs jsonb array — table chosen for durability/pagination.
+2. ~~Auth tables~~ → **Decided: Clerk (ADR-012/023)** — managed provider; no local auth tables.
+   Clerk owns identity; `owner_id` stores Clerk user ids (`text`). Email/password initially, OAuth later.
+3. Conversation storage: **jsonb on `projects`** (chosen for Phase 1+2); a `messages` table returns
+   only if pagination/scale demands it.
 4. Decided: product name is **Slate** (ADR-025).

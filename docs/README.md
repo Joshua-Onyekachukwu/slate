@@ -36,8 +36,8 @@ fall back to these docs.
 | [project-setup.md](./project-setup.md) | Dev environment, env vars, run commands | Draft |
 | [glossary.md](./glossary.md) | Consistent vocabulary used across all docs | Draft |
 | [specs/](./specs/README.md) | Spec workflow + per-phase design specs | Draft |
-| [specs/phase-1a-vertical-slice-design.md](./specs/phase-1a-vertical-slice-design.md) | Vertical slice — idea → approved script (**skipped, ADR-018**; design history only) | **Approved** |
-| [specs/phase-1-foundation-design.md](./specs/phase-1-foundation-design.md) | First build: Phase 1+2 — idea → editable production plan (auth in scope — Clerk, ADR-022/023; slice skipped, ADR-018) | **Approved** |
+| [specs/phase-1a-vertical-slice-design.md](./specs/phase-1a-vertical-slice-design.md) | Vertical slice — idea → approved script (**implemented + E2E-verified, ADR-024**) | **Done** |
+| [specs/phase-1-foundation-design.md](./specs/phase-1-foundation-design.md) | Next build: Phase 1+2 — idea → editable production plan (auth in scope — Clerk, ADR-022/023; slice was built first as the foundation, ADR-024) | **Approved** |
 
 > **Note:** The originally requested "Kiwaski Design" was researched and found to be undefined; the
 > user requested a mature, non-template direction instead. UI now follows **"The Cutting Room"**

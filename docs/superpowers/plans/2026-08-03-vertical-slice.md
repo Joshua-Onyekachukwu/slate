@@ -1342,7 +1342,7 @@ await app.listen({ port: 4000, host: "0.0.0.0" });
 ```
 
 `apps/api/src/routes/stages.ts`, `scripts.ts`, `stream.ts`:
-- `stages.ts`: `GET /api/v1/projects/:id/stages` (derived from project row + latest script), `GET /api/v1/projects/:id/stages/:stage`, `POST /api/v1/projects/:id/stages/:stage/approve` (resume workflow via `resumeWorkflow`), `POST /api/v1/projects/:id/stages/:stage/regenerate`.
+- `stages.ts`: `GET /api/v1/projects/:id/stages` (stage cards derived from the **checkpoint** via `loadStageView` — gate/status/scores from `getState().tasks[].interrupts` + `values.scores`, never the project row), `GET /api/v1/projects/:id/stages/:stage`, `POST /api/v1/projects/:id/stages/:stage/approve` (resume workflow via `resumeWorkflow`), `POST /api/v1/projects/:id/stages/:stage/regenerate`.
 
   **Request/response contract:** exact shapes for both routes (bodies, 200/400/404/409 semantics,
   the `stage` payload the UI renders) live in **api-design.md → "Stage approve / regenerate — exact
@@ -1357,7 +1357,7 @@ await app.listen({ port: 4000, host: "0.0.0.0" });
   still mid-run (not paused at a gate) returns `409` (matching the `CONFLICT` error code in api-design.md).
   This matches the Phase 1+2 plan's model (`research/regenerate → resume reject (retry)`).
 - `scripts.ts`: `PUT /api/v1/projects/:id/scripts/:scriptId/versions` (user edit → new row, `created_by: "user"`, `version = max+1`), `GET /api/v1/projects/:id/scripts/:scriptId/versions` (ordered desc).
-- `stream.ts`: SSE route — hold a connection, emit `stage:started | stage:awaiting_review | stage:done | stage:failed` based on project status changes (poll the project row every 500ms for the slice; replace with push later). Keep it simple and correct: send a heartbeat comment every 15s to prevent idle disconnect.
+- `stream.ts`: SSE route — hold a connection, emit `stage:started | stage:awaiting_review | stage:done | stage:failed` based on checkpoint state changes (poll `getState()` every 500ms for the slice; replace with push later — the project row is deliberately stale, so never poll it). Keep it simple and correct: send a heartbeat comment every 15s to prevent idle disconnect.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
@@ -1368,8 +1368,11 @@ Expected: PASS. (Tests use an isolated sqlite file via `DATABASE_PATH` set in `a
 
 Run: `pnpm --filter db migrate && pnpm --filter api dev`
 Then: `curl -s -X POST localhost:4000/api/v1/projects -H 'content-type: application/json' -d '{"idea":"doc about the universe"}'`
-Expected: JSON project with stage `script` (the workflow pauses at the script gate). Run with
-`FAKE_PROVIDER=1` for a deterministic scripted run, or a real `NVIDIA_API_KEY` for a live one.
+Expected: JSON project with stage `script_review` — read from the **checkpoint**
+(`getState().values.stage`), per the create-route note above and api-design.md's exact contract.
+The raw `projects.stage` column is NOT the source of truth (it stays `brief`/stale after
+creation). Run with `FAKE_PROVIDER=1` for a deterministic scripted run, or a real
+`NVIDIA_API_KEY` for a live one.
 
 - [ ] **Step 6: Commit**
 
