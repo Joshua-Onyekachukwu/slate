@@ -10,7 +10,9 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:e2e": "pnpm --filter e2e test",
-    "lint": "turbo run lint"
+    "dev:slice": "bash scripts/boot-slice.sh",
+    "lint": "turbo run lint",
+    "check:docs": "bash scripts/check-docs.sh"
   },
   "devDependencies": {
     "turbo": "^2.3.3",
