@@ -44,28 +44,33 @@ const STORY_BLOCK = (scenes: unknown[], packs: { content: string }[]) => [
 export function createProvider(): Provider {
   if (process.env.FAKE_PROVIDER === "1") {
     if (process.env.DEMO_QUEUE === "1") {
-      // DEMO QUEUE (FAKE_PROVIDER=1 DEMO_QUEUE=1): adds a scripted retake so a
-      // human can drive idea → script gate (2/5) → reject with feedback → v2
-      // (4/5) → approve → storyboard gate → approve, without a 500. The reject
-      // path loops write_script → review, consuming a script + scores pair.
+      // DEMO QUEUE (FAKE_PROVIDER=1 DEMO_QUEUE=1): scripted retakes for BOTH
+      // gates so a human can drive idea → script gate (2/5) → reject → v2 (4/5)
+      // → approve → storyboard gate → REJECT with feedback → storyboard v2
+      // ((rev) titles) → approve, without a 500. The script reject loops
+      // write_script → review (script + scores); the storyboard reject loops
+      // write_storyboard → prompt_gen (another full STORY_BLOCK).
       return new FakeProvider([
         ...GATE_BLOCK,                         // project 1 → script gate (reject here)
-        { content: SCRIPT_V2 }, { content: SCORES_HIGH }, // retake: script v2 + 4/5 scores
-        ...STORY_BLOCK(SCENES, PACKS),         // project 1 approved → storyboard gate
+        { content: SCRIPT_V2 }, { content: SCORES_HIGH }, // script retake: v2 + 4/5 scores
+        ...STORY_BLOCK(SCENES, PACKS),         // script approved → storyboard gate (v1, plain titles)
+        ...STORY_BLOCK(REV_SCENES, REV_PACKS), // storyboard REJECT → gate v2 ("(rev)" titles)
         ...GATE_BLOCK,                         // project 2 → script gate
-        ...STORY_BLOCK(REV_SCENES, REV_PACKS), // project 2 approved → storyboard gate
+        ...STORY_BLOCK(SCENES, PACKS),         // project 2 approved → storyboard gate
       ]);
     }
-    // E2E QUEUE (default): two (script-gate + storyboard) blocks — the E2E suite
-    // runs two projects: the responsive viewport spec (stops at the storyboard
-    // gate) and the vertical-slice spec (approves through to done). The queue is
+    // E2E QUEUE (default): two projects — the responsive viewport spec (stops at
+    // the storyboard gate) and the vertical-slice spec (now ALSO drives a
+    // storyboard regenerate: approve script → storyboard gate v1 → reject with
+    // feedback → gate v2 → approve → done, plus a per-scene edit). The queue is
     // FIFO and shared by every booted API, so Playwright must run with
     // workers: 1 to keep consumption deterministic (see tests/playwright.config.ts).
     return new FakeProvider([
       ...GATE_BLOCK,                    // project 1 → script gate
       ...STORY_BLOCK(SCENES, PACKS),    // project 1 script approved → storyboard gate
       ...GATE_BLOCK,                    // project 2 → script gate
-      ...STORY_BLOCK(REV_SCENES, REV_PACKS), // project 2 script approved → storyboard gate
+      ...STORY_BLOCK(SCENES, PACKS),    // project 2 script approved → storyboard gate v1
+      ...STORY_BLOCK(REV_SCENES, REV_PACKS), // project 2 storyboard REJECT → gate v2
     ]);
   }
   const apiKey = process.env.NVIDIA_API_KEY;

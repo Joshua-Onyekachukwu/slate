@@ -3,6 +3,8 @@ import { test, expect, type Page } from "@playwright/test";
 // Task 8 Step 1 — executed in Task 10 (E2E + full verification).
 // Playwright boots the API (:4000, FAKE_PROVIDER=1, fresh data/e2e.db) and web (:3000)
 // via the webServer array in tests/playwright.config.ts.
+// Full journey: idea → script gate → approve → storyboard gate v1 → REGENERATE
+// with feedback → gate v2 ("(rev)" titles) → per-scene edit (→ v3) → approve → done.
 async function trackErrors(page: Page) {
   const errors: string[] = [];
   page.on("console", (msg) => {
@@ -25,7 +27,7 @@ async function trackErrors(page: Page) {
   return errors;
 }
 
-test("idea → script gate → storyboard gate → approve (no console errors)", async ({ page }) => {
+test("idea → script gate → storyboard gate (regenerate + edit) → approve (no console errors)", async ({ page }) => {
   const errors = await trackErrors(page);
 
   await page.goto("/");
@@ -39,10 +41,37 @@ test("idea → script gate → storyboard gate → approve (no console errors)",
   await expect(page.getByRole("button", { name: /approve & continue/i })).toBeVisible();
 
   // Approve the script → the storyboard stage generates (scenes + prompt packs)
-  // and pauses at the storyboard gate. The scene list renders as slate lines.
+  // and pauses at the storyboard gate v1 (plain titles). The scene list renders
+  // as slate lines.
   await page.getByRole("button", { name: /approve & continue/i }).click();
   await expect(page.getByTestId("scene-card-1")).toBeVisible();
   await expect(page.getByText(/scenes storyboarded/i)).toBeVisible();
+
+  // Storyboard REGENERATE through the real UI: type retake feedback, hit
+  // Regenerate → write_storyboard runs again (queue: REV_SCENES) → the gate
+  // reopens at v2 with "(rev)" titles. This proves the reject path round-trips
+  // a new storyboard version, not just a new script.
+  await page.getByLabel("Retake feedback").fill("Make the scenes more evocative");
+  await page.getByRole("button", { name: /^regenerate$/i }).click();
+  // v2 lands at the gate: rev titles + the version chip (rail/call sheet also
+  // show "sb v2", but the rev title is the unique content proof).
+  await expect(page.getByTestId("scene-card-1")).toContainText("Scene 1 (rev)");
+  await expect(page.getByText(/scenes · sb v2/i)).toBeVisible();
+
+  // Per-scene edit through the real UI: edit scene 1's narration and save. This
+  // is ALSO the regression guard for the @fastify/cors@11 PUT-preflight fix —
+  // before it, the browser save would fail with "Method PUT is not allowed" and
+  // the strict error gate below would catch the console error. The edit bumps
+  // the storyboard version (direct-DB write, no provider queue consumed).
+  await page.getByRole("button", { name: /edit scene 1/i }).click();
+  const narration = page.getByLabel("Narration");
+  await expect(narration).toBeVisible();
+  await narration.fill("USER EDIT: the afterglow remembers");
+  await page.getByRole("button", { name: /save scene/i }).click();
+  // The score-chip "3 scenes · sb v3" is the unique version marker (the rail and
+  // call sheet also show "sb v3"; the edit bumped v2 → v3 on top of the
+  // regenerate's v1 → v2).
+  await expect(page.getByText(/scenes · sb v3/i)).toBeVisible();
 
   // Approve the storyboard → production plan locked (done).
   await page.getByRole("button", { name: /approve & continue/i }).click();
