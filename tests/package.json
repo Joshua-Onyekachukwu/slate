@@ -3,5 +3,6 @@
   "version": "0.0.0",
   "private": true,
   "scripts": { "test": "playwright test" },
+  "dependencies": { "@slate/db": "workspace:*" },
   "devDependencies": { "@playwright/test": "^1.62.0" }
 }

@@ -9,7 +9,7 @@
 # loop and approve both work out of the box.
 #
 # Overrides: API_PORT, WEB_PORT, API_DB
-#   API_PORT=4200 WEB_PORT=3100 API_DB=./data/scratch.db bash scripts/boot-slice.sh
+#   API_PORT=4200 WEB_PORT=3100 API_DB=slate_demo bash scripts/boot-slice.sh
 #
 # Stop: re-run the script — it frees stale listeners (the printed pids are
 # subshell pids and may not kill the real servers on Windows).
@@ -18,7 +18,7 @@ set -euo pipefail
 
 API_PORT="${API_PORT:-4100}"
 WEB_PORT="${WEB_PORT:-3000}"
-API_DB="${API_DB:-./data/live-demo.db}"
+API_DB="${API_DB:-slate_demo}"
 API_URL="http://localhost:${API_PORT}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -42,7 +42,9 @@ free_port "$WEB_PORT"
 echo "booting API on :${API_PORT} (FAKE_PROVIDER=1, db ${API_DB})"
 (
   cd "$ROOT/apps/api"
-  FAKE_PROVIDER=1 DATABASE_PATH="$API_DB" PORT="$API_PORT" pnpm start
+  # Task 10: the API boots PostgresSaver on DATABASE_URL. The demo DB is a
+  # named database on the compose Postgres (created on demand by index.ts).
+  FAKE_PROVIDER=1 DATABASE_URL="postgres://slate:slate@localhost:5432/${API_DB}" PORT="$API_PORT" pnpm start
 ) > /tmp/slate-api.log 2>&1 &
 API_PID=$!
 

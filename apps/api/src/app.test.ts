@@ -1,13 +1,13 @@
-// MUST precede the @slate/db import: pins this file's SQLite db (the client
-// opens it from process.env.DATABASE_PATH at module load).
+// MUST precede the @slate/db import: pins this file's Postgres TEST database
+// (the client validates DATABASE_URL at module load).
 import "./test/api-db";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { buildApp } from "./app";
 import { FakeProvider } from "@slate/ai";
-import { runMigrations } from "@slate/db";
-import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
+import { ensureDatabase, runMigrations } from "@slate/db";
+import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 
-const TEST_PATH = "./data/test-api.db";
+const TEST_URL = process.env.DATABASE_URL ?? "postgres://slate:slate@localhost:5432/slate_test_api";
 
 const BRIEF = '{"kind":"brief","brief":{"topic":"universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}';
 const RESEARCH = '{"timeline":["13.8 bya: Big Bang"],"concepts":["cosmic inflation"],"terminology":{},"references":["NASA"],"keyEvents":["First stars ignite"]}';
@@ -37,12 +37,14 @@ const STORY_PASS = (n = 2) => [
 // @slate/db opens it at module scope, and on Windows an open better-sqlite3
 // handle makes rmSync throw EPERM (we hit this in the Task 6 tests).
 describe("api", () => {
-  let checkpointer: SqliteSaver;
+  let checkpointer: PostgresSaver;
   beforeAll(async () => {
+    await ensureDatabase(TEST_URL); // hermetic per-suite DB (slate_test_api)
     await runMigrations(); // idempotent (drizzle journal tracks applied runs)
-    checkpointer = SqliteSaver.fromConnString(TEST_PATH);
+    checkpointer = PostgresSaver.fromConnString(TEST_URL);
+    await checkpointer.setup();
   });
-  afterAll(() => { checkpointer.db.close(); });
+  afterAll(async () => { await checkpointer.end(); });
 
   it("creates a project → pauses at the research gate → approve → script gate", async () => {
     const app = buildApp({ provider: new FakeProvider([

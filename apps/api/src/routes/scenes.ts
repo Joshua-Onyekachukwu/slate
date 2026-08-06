@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
 import { eq, desc } from "drizzle-orm";
-import { db, sqlite, storyboards, scenes } from "@slate/db";
+import { db, storyboards, scenes } from "@slate/db";
 import { SceneContentSchema } from "@slate/shared";
 import { loadStoryboard } from "./storyboard";
 import { getOwnedProject } from "../hooks";
@@ -34,22 +34,23 @@ export async function sceneRoutes(app: FastifyInstance, _deps: AppDeps) {
 
     const version = sb.version + 1;
     const newSbId = randomUUID();
-    sqlite.transaction(() => {
-      db.insert(storyboards).values({ id: newSbId, projectId: id, version }).run();
-      db.insert(scenes).values(
+    await db.transaction(async (tx) => {
+      await tx.insert(storyboards).values({ id: newSbId, projectId: id, version });
+      await tx.insert(scenes).values(
         current.map((s) => ({
           id: randomUUID(),
           storyboardId: newSbId,
           order: s.order,
           version,
+          title: (s.id === sceneId ? parsed.data : s.content).title,
           content: s.id === sceneId ? parsed.data : s.content,
           // The edited scene's pack no longer matches its content — null it so
           // the UI shows "Prompt pack queued." instead of stale prompts (the
           // prompts/regenerate endpoint re-creates it; spec §12.9).
           promptPack: s.id === sceneId ? null : s.promptPack,
         })),
-      ).run();
-    })();
+      );
+    });
 
     const storyboard = await loadStoryboard(id);
     return { storyboard };

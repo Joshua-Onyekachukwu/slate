@@ -1,7 +1,7 @@
-// Side-effect import: pins the SQLite file for THIS test file BEFORE @slate/db
-// loads — its client opens the db from process.env.DATABASE_PATH at module
-// load (packages/db/src/client.ts). Must be the FIRST import in the test file.
+// Side-effect import: pins the Postgres TEST database for THIS test file BEFORE
+// @slate/db loads — its client validates DATABASE_URL at module load
+// (packages/db/src/client.ts). Must be the FIRST import in the test file.
 //
-// Keeps auth.test.ts on its own file (test-auth.db) so parallel vitest workers
-// never contend with app.test.ts's test-api.db (SQLITE_BUSY on CI).
-process.env.DATABASE_PATH = "./data/test-auth.db";
+// auth.test.ts gets its own DB (slate_test_auth) so it never contends with
+// app.test.ts (slate_test_api) or the db schema suite (which DROPs tables).
+process.env.DATABASE_URL = "postgres://slate:slate@localhost:5432/slate_test_auth";

@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
 import { eq, desc } from "drizzle-orm";
-import { db, sqlite, storyboards, scenes } from "@slate/db";
+import { db, storyboards, scenes } from "@slate/db";
 import { promptAgent } from "@slate/ai";
 import type { Character, Location } from "@slate/shared";
 import { loadStoryboard } from "./storyboard";
@@ -42,21 +42,22 @@ export async function promptRoutes(app: FastifyInstance, deps: AppDeps) {
 
     const version = sb.version + 1;
     const newSbId = randomUUID();
-    sqlite.transaction(() => {
-      db.insert(storyboards).values({ id: newSbId, projectId: id, version }).run();
-      db.insert(scenes).values(
+    await db.transaction(async (tx) => {
+      await tx.insert(storyboards).values({ id: newSbId, projectId: id, version });
+      await tx.insert(scenes).values(
         current.map((s) => ({
           id: randomUUID(),
           storyboardId: newSbId,
           order: s.order,
           version,
+          title: s.content.title,
           content: s.content,
           // Only the target scene gets the regenerated pack; everything else
           // (content, order, other packs) carries into the new version rows.
           promptPack: s.id === sceneId ? pack : s.promptPack,
         })),
-      ).run();
-    })();
+      );
+    });
 
     const storyboard = await loadStoryboard(id);
     return { storyboard };

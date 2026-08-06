@@ -8,6 +8,28 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    # Task 10 (Drizzle Postgres): every test suite boots against its own
+    # Postgres DB — db schema tests (slate_test_schema), api tests
+    # (slate_test_api / slate_test_auth), and the E2E (slate_test_e2e). The
+    # service below is the single Postgres the tests all create their DBs in.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: slate
+          POSTGRES_PASSWORD: slate
+          POSTGRES_DB: slate
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U slate"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Main DB (compose parity); the hermetic test DBs are created on demand
+      # by ensureDatabase() in the suites' own setup.
+      DATABASE_URL: postgres://slate:slate@localhost:5432/slate
     steps:
       # checkout@v5 + pnpm/action-setup@v6: GitHub runners now force Node 24,
       # which breaks the Node-20 runtime of the v4 actions.

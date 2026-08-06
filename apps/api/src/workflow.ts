@@ -53,6 +53,7 @@ const workflowDeps: WorkflowDeps = {
         storyboardId,
         order: i + 1,
         version,
+        title: scene.title,
         content: scene,
       })),
     );

@@ -2,6 +2,10 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  // Creates the hermetic E2E database (slate_test_e2e) before the webServer
+  // array boots the API — Postgres boot requires the DB to exist. Also swaps
+  // the old SQLite boot (DATABASE_PATH) for the Task 10 DATABASE_URL contract.
+  globalSetup: "./global-setup.ts",
   // The booted API runs ONE FakeProvider queue shared by every spec file
   // (webServer is config-level). Specs consume deterministic contiguous blocks
   // (see apps/api/src/provider.ts), which requires sequential execution.
@@ -26,7 +30,13 @@ export default defineConfig({
       timeout: 120_000,
       // PORT must be pinned: the ambient shell exports a PORT that the API would
       // otherwise inherit (process.env.PORT ?? 4000), breaking the health check.
-      env: { FAKE_PROVIDER: "1", DATABASE_PATH: "./data/e2e.db", PORT: "4000" },
+      // DATABASE_URL: Task 10 — the API boots PostgresSaver on its own hermetic
+      // DB, created by globalSetup above (NOT the shared slate / slate_test_*).
+      env: {
+        FAKE_PROVIDER: "1",
+        DATABASE_URL: "postgres://slate:slate@localhost:5432/slate_test_e2e",
+        PORT: "4000",
+      },
     },
     {
       command: "pnpm --filter web dev",

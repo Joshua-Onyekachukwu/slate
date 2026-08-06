@@ -1,13 +1,13 @@
-// MUST precede the @slate/db import: pins this file's SQLite db (the client
-// opens it from process.env.DATABASE_PATH at module load).
+// MUST precede the @slate/db import: pins this file's Postgres TEST database
+// (the client validates DATABASE_URL at module load).
 import "./test/auth-db";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { buildApp } from "./app";
 import { FakeProvider } from "@slate/ai";
-import { runMigrations } from "@slate/db";
-import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
+import { ensureDatabase, runMigrations } from "@slate/db";
+import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 
-const TEST_PATH = "./data/test-auth.db";
+const TEST_URL = process.env.DATABASE_URL ?? "postgres://slate:slate@localhost:5432/slate_test_auth";
 
 const BRIEF = '{"kind":"brief","brief":{"topic":"universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}';
 const SCRIPT = '{"title":"T","hook":"H","introduction":"I","body":["B1"],"conclusion":"C","cta":null}';
@@ -22,12 +22,14 @@ const fakeVerify = (map: Record<string, string>) => async (token: string) => {
 };
 
 describe("auth — Clerk-style multi-user isolation (ADR-022/023)", () => {
-  let checkpointer: SqliteSaver;
+  let checkpointer: PostgresSaver;
   beforeAll(async () => {
+    await ensureDatabase(TEST_URL); // hermetic per-suite DB (slate_test_auth)
     await runMigrations(); // idempotent (drizzle journal tracks applied runs)
-    checkpointer = SqliteSaver.fromConnString(TEST_PATH);
+    checkpointer = PostgresSaver.fromConnString(TEST_URL);
+    await checkpointer.setup();
   });
-  afterAll(() => { checkpointer.db.close(); });
+  afterAll(async () => { await checkpointer.end(); });
 
   const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
   const appFor = (map: Record<string, string>) =>

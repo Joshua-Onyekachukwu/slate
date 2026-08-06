@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
 import { eq, desc } from "drizzle-orm";
-import { db, sqlite, projects, storyboards, scenes } from "@slate/db";
+import { db, projects, storyboards, scenes } from "@slate/db";
 import { buildApiWorkflow, readCheckpoint } from "../workflow";
 import { sendError, ERROR_CODES } from "../error";
 import { getOwnedProject } from "../hooks";
@@ -81,13 +81,11 @@ export async function storyboardRoutes(app: FastifyInstance, deps: AppDeps) {
     const byId = new Map(current.map((s) => [s.id, s]));
     const version = sb.version + 1;
     const newSbId = randomUUID();
-    // Atomic reorder (plan Task 12). better-sqlite3 transactions are synchronous
-    // (drizzle's async db.transaction() rejects async callbacks), so use the
-    // driver's own transaction wrapper with the drizzle SYNC APIs (.run()) —
-    // nested-transaction-safe and auto-rollback on throw.
-    sqlite.transaction(() => {
-      db.insert(storyboards).values({ id: newSbId, projectId: id, version }).run();
-      db.insert(scenes).values(
+    // Atomic reorder (plan Task 12): drizzle's async db.transaction() with the
+    // node-postgres driver — auto-rollback on throw, nested-transaction-safe.
+    await db.transaction(async (tx) => {
+      await tx.insert(storyboards).values({ id: newSbId, projectId: id, version });
+      await tx.insert(scenes).values(
         ids.map((sceneId, i) => {
           const src = byId.get(sceneId)!;
           return {
@@ -95,12 +93,13 @@ export async function storyboardRoutes(app: FastifyInstance, deps: AppDeps) {
             storyboardId: newSbId,
             order: i + 1,
             version,
+            title: src.content.title,
             content: src.content,
             promptPack: src.promptPack,
           };
         }),
-      ).run();
-    })();
+      );
+    });
 
     const after = await loadStoryboard(id);
     return { storyboard: after };

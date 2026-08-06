@@ -14,12 +14,10 @@
   },
   "dependencies": {
     "@slate/shared": "workspace:*",
-    "better-sqlite3": "^12.10.0",
     "drizzle-orm": "^0.38.3",
     "pg": "^8.22.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.20.4",
     "drizzle-kit": "^0.30.1",

@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { eq, desc } from "drizzle-orm";
 import { db, projects, scripts } from "@slate/db";
 import { sendError, ERROR_CODES } from "../error";
-import { getOwnedProject } from "../hooks";
+import { getOwnedProject, UUID_RE } from "../hooks";
 import type { AppDeps } from "../app";
 
 export async function scriptRoutes(app: FastifyInstance, _deps: AppDeps) {
@@ -25,7 +25,9 @@ export async function scriptRoutes(app: FastifyInstance, _deps: AppDeps) {
     const row = await getOwnedProject(req.userId, id);
     if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
     // The edited script row must exist and belong to this project — a made-up
-    // scriptId should 404, not silently create a version under it.
+    // scriptId should 404, not silently create a version under it. Postgres uuid
+    // PK: garbage scriptId would be a cast error → 500 (same fix as getOwnedProject).
+    if (!UUID_RE.test(scriptId)) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "script not found");
     const [target] = await db.select().from(scripts).where(eq(scripts.id, scriptId));
     if (!target || target.projectId !== id) {
       return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "script not found");

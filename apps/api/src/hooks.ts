@@ -39,7 +39,13 @@ export function requireUser(verifyToken: TokenVerifier) {
 // Load a project IF the caller may see it. userId "" (local mode) skips the
 // owner check; otherwise cross-user access returns null → callers 404 (never
 // 403 — avoids leaking existence, per api-design.md).
+//
+// Postgres uuid PK: a non-uuid id ("nope") would be a type-cast error → 500,
+// not a miss. Validate the shape first so garbage ids 404 like any other
+// missing project (matches the slice contract the tests assert).
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function getOwnedProject(userId: string, id: string) {
+  if (!UUID_RE.test(id)) return null;
   const [row] = await db.select().from(projects).where(eq(projects.id, id));
   if (!row) return null;
   if (userId !== "" && row.ownerId !== userId) return null;

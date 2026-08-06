@@ -1,40 +1,12 @@
 {
   "version": "7",
-  "dialect": "sqlite",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "6",
-      "when": 1785850296151,
-      "tag": "0000_parallel_zaran",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1785968312811,
-      "tag": "0001_tranquil_nightshade",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1785974189737,
-      "tag": "0002_serious_the_executioner",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1785978134867,
-      "tag": "0003_public_stellaris",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1786120000000,
-      "tag": "0004_research_stage",
+      "version": "7",
+      "when": 1786012448343,
+      "tag": "0000_foamy_franklin_storm",
       "breakpoints": true
     }
   ]
