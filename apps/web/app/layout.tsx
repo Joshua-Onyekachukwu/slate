@@ -1,6 +1,16 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Nav } from "./components/nav";
+import { ClerkProvider } from "@clerk/nextjs";
+import { AuthBridge } from "./components/auth-bridge";
+import { authEnabled } from "./lib/auth-enabled";
+
+// Auth (Task 2, ADR-022/023) is ENV-GATED to preserve the local-first slice:
+// with no Clerk keys the app renders exactly as before (E2E + zero-key demo);
+// with BOTH keys present, Clerk owns identity, the middleware protects routes,
+// and the API runs in enforced mode. The gate lives in lib/auth-enabled.ts
+// (single source of truth) and is passed down — client components can't read
+// CLERK_SECRET_KEY.
 
 export const metadata: Metadata = {
   title: "Slate — The Cutting Room",
@@ -25,8 +35,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <Nav />
-        {children}
+        {authEnabled ? (
+          <ClerkProvider>
+            <Nav authEnabled />
+            <AuthBridge />
+            {children}
+          </ClerkProvider>
+        ) : (
+          <>
+            <Nav authEnabled={false} />
+            {children}
+          </>
+        )}
       </body>
     </html>
   );

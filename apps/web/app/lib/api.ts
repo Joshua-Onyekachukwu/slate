@@ -4,6 +4,49 @@
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
+// --- Auth (Task 2, ADR-022/023) — Clerk session JWT attached when present ---
+// Local/slice mode (no Clerk keys): bearerToken stays null and requests go out
+// bare, exactly as before (the E2E and zero-key demo run that way). Enforced
+// mode: AuthBridge installs a token gate and every /api/v1 request first awaits
+// it, then carries `Authorization: Bearer <jwt>`, which the API's requireUser
+// hook verifies and scopes by owner_id.
+//
+// CLIENT-ONLY: this module's state is per-browser-tab. Do NOT import it from a
+// server component — module-level bearerToken would then persist across users
+// in the server process and could leak one user's token into another's SSR.
+let bearerToken: string | null = null;
+
+// The gate: once installed, request() awaits it so the first dashboard fetch
+// never fires before the Clerk session token is available (which would 401 in
+// enforced mode and leave a permanent error banner). null = local mode, no
+// gate, requests fire immediately.
+let tokenGate: Promise<string | null> | null = null;
+let tokenGateInstalled = false;
+
+// Installed by AuthBridge during its first render — before ANY component's
+// effect runs (renders complete before effects flush), so every request from
+// a page effect is guaranteed to wait for the token. Idempotent: StrictMode
+// double-renders call it twice with the same getToken.
+export function installTokenGate(getToken: () => Promise<string | null>) {
+  if (tokenGateInstalled) return;
+  tokenGateInstalled = true;
+  tokenGate = getToken().then((token) => {
+    bearerToken = token;
+    return token;
+  });
+  // A failed load must not hang every future request — drop the gate and go
+  // bare rather than leave an unhandled rejection or a stuck promise.
+  tokenGate.catch(() => {
+    bearerToken = null;
+  });
+}
+
+// Keeps the token in sync on sign-in/sign-out (getToken identity changes when
+// the session changes) and clears it when the session ends.
+export function setAuthToken(token: string | null) {
+  bearerToken = token;
+}
+
 // --- Contract shapes (api-design.md "Stage approve / regenerate") ---
 
 export interface ProjectRow {
@@ -95,8 +138,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   // Only send content-type when there's a body: Fastify rejects an empty body
   // with content-type set ("Body cannot be empty") — e.g. the body-less
   // POST .../prompts/regenerate. GETs don't send it either.
+  // Enforced mode only: wait for the Clerk session token before firing.
+  if (tokenGate) await tokenGate.catch(() => null);
+
   const hasBody = init?.body !== undefined && init.body !== null;
-  const headers = hasBody ? { "content-type": "application/json", ...(init?.headers ?? {}) } : init?.headers;
+  // Flatten to a plain record first: init?.headers may be a Headers object or
+  // string[][], which can't be annotated Record<string, string> directly.
+  const headers: Record<string, string> = {
+    ...((init?.headers as Record<string, string> | undefined) ?? {}),
+  };
+  if (hasBody) headers["content-type"] = "application/json";
+  if (bearerToken) headers.authorization = `Bearer ${bearerToken}`;
   const res = await fetch(`${API_URL}${path}`, { ...init, headers });
   const body = (await res.json().catch(() => ({}))) as T & ApiErrorBody;
   if (!res.ok) {

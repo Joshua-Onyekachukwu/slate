@@ -2324,3 +2324,110 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============ AUTH (Task 2 — Clerk sign-in/up in the Cutting Room style) ============ */
+.auth-page {
+  min-height: calc(100vh - 112px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+}
+.auth-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius);
+  padding: 34px 34px 26px;
+}
+.auth-card .bracket {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--rec);
+}
+.auth-card .bracket.tl {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+.auth-card .bracket.tr {
+  top: -1px;
+  right: -1px;
+  border-left: none;
+  border-bottom: none;
+}
+.auth-card .bracket.bl {
+  bottom: -1px;
+  left: -1px;
+  border-right: none;
+  border-top: none;
+}
+.auth-card .bracket.br {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+}
+.auth-brand {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--paper);
+  margin-bottom: 4px;
+}
+.auth-brand .rec-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--rec);
+  margin-right: 6px;
+  vertical-align: 1px;
+  animation: recPulse 1.6s ease-in-out infinite;
+}
+.auth-lbl {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ash);
+  margin-bottom: 24px;
+}
+.auth-note {
+  color: var(--ash);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.auth-note code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--tungsten);
+  background: var(--ink);
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius);
+  padding: 1px 5px;
+}
+
+/* sign-out ghost button in the nav (auth enabled only) */
+.signout {
+  background: none;
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius);
+  color: var(--ash);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.signout:hover {
+  color: var(--paper);
+  border-color: var(--ash);
+}
