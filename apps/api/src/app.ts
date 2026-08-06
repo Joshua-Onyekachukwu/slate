@@ -8,6 +8,7 @@ import { scriptRoutes } from "./routes/scripts";
 import { storyboardRoutes } from "./routes/storyboard";
 import { sceneRoutes } from "./routes/scenes";
 import { promptRoutes } from "./routes/prompts";
+import { productionPlanRoutes } from "./routes/production-plan";
 import { streamRoute } from "./routes/stream";
 import { ApiError } from "./error";
 import { requireUser } from "./hooks";
@@ -53,6 +54,7 @@ export function buildApp(deps: AppDeps) {
   app.register(storyboardRoutes, deps);
   app.register(sceneRoutes, deps);
   app.register(promptRoutes, deps);
+  app.register(productionPlanRoutes, deps);
   app.register(streamRoute, deps);
 
   app.get("/api/v1/health", async () => ({ status: "ok", service: "slate-api" }));

@@ -120,6 +120,29 @@ describe("api", () => {
     expect(done.json().project.stage).toBe("done");
   });
 
+  it("returns the consolidated production plan after the storyboard gate approves", async () => {
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/storyboard/approve`, payload: { approved: true } });
+
+    const res = await app.inject({ method: "GET", url: `/api/v1/projects/${id}/production-plan` });
+    expect(res.statusCode).toBe(200);
+    const plan = res.json().plan;
+    // Consolidated view per the Task 10 contract: stage + status + script +
+    // scenes + the consistency records (characters/locations) in one payload.
+    expect(plan.stage).toBe("done");
+    expect(plan.productionPlanStatus).toBe("ready");
+    expect(plan.script.title).toBe("T");
+    expect(plan.scenes).toHaveLength(2);
+    expect(plan.characters[0].name).toBe("The Narrator");
+    expect(plan.locations[0].name).toBe("The Universe");
+  });
+
   it("returns 409 CONFLICT when approving a stage with no pending interrupt", async () => {
     const app = buildApp({ provider: new FakeProvider([
       { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),

@@ -38,7 +38,7 @@ export function buildWorkflow(provider: Provider, deps: WorkflowDeps, checkpoint
         });
         return { stage: "discovery" };
       }
-      await deps.saveProject(state.projectId, { brief: result.brief, stage: "brief" });
+      await deps.saveProject(state.projectId, { brief: result.brief });
       return { stage: "brief", brief: result.brief };
     })
     // Research (Block 2): after the brief, produce the factual packet and pause
@@ -114,7 +114,14 @@ export function buildWorkflow(provider: Provider, deps: WorkflowDeps, checkpoint
       if (!decision?.approved) {
         return { feedback: decision?.feedback ?? "revise", stage: "storyboard" };
       }
-      return { stage: "done" };
+      // Approving the storyboard locks the production plan: persist "ready" on
+      // the project row (the consolidated production-plan endpoint reads it
+      // there, per Task 9/10) and carry it on the state. Note: stage stays in
+      // the CHECKPOINT only (the projects.stage column is deliberately stale —
+      // "engine writes stage status" is a banned phrase in check-docs.sh). The
+      // state return below is what routes the conditional edge to END.
+      await deps.saveProject(state.projectId, { productionPlanStatus: "ready" });
+      return { productionPlanStatus: "ready", stage: "done" };
     })
     .addEdge(START, "discovery")
     .addConditionalEdges("discovery", (s) => (s.brief ? "research" : "discovery"))

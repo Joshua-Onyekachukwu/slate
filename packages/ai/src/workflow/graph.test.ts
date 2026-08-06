@@ -108,10 +108,13 @@ describe("workflow happy path", () => {
       (t.interrupts ?? []).map((i) => i.value),
     );
     expect(sbInterrupts).toContain("storyboard_review");
-    // Approve storyboard → done.
+    // Approve storyboard → done, and the production plan flips to ready.
     await resumeWorkflow(graph, "p1", { approved: true });
     const state = await graph.getState({ configurable: { thread_id: "p1" } });
     expect(state.values.stage).toBe("done");
+    // Task 9: approving the storyboard gate marks the production plan ready
+    // (persisted on the project row by the gate's saveProject patch).
+    expect(state.values.productionPlanStatus).toBe("ready");
   });
 
   it("runs the consistency node on script approve: characters + locations land in state and reach the prompt agent", async () => {

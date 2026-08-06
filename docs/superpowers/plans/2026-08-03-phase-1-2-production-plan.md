@@ -326,7 +326,7 @@ export const config = { matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*
 
 `apps/web/app/sign-in/[[...sign-in]]/page.tsx` + `sign-up/[[...sign-up]]/page.tsx` — Clerk-hosted catch-all routes (or embed `<SignIn />` / `<SignUp />`).
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm --filter api test`
 Expected: PASS — token/owned-project, 401 without token, 404 cross-user (all against the fake verifier).
@@ -388,7 +388,7 @@ describe("PromptPackSchema", () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pnpm --filter shared test`
 Expected: FAIL — modules not found.
@@ -1753,7 +1753,7 @@ git commit -m "feat(ai): workflow with research, script, and storyboard gates to
   - **All `/api/v1` routes are session-required (Task 2 `requireUser`) and owner-scoped via
     `getOwnedProject(userId, id)` — cross-user access returns `404` (ADR-023).**
 
-- [ ] **Step 1: Write the failing integration tests**
+- [x] **Step 1: Write the failing integration tests**
 
 `apps/api/src/app.test.ts` (Postgres setup per Task 4; the FakeProvider scripted queue covers brief→research→script→review→characters→locations→storyboard→editor→prompts = 10 calls):
 ```ts
@@ -1886,7 +1886,7 @@ describe("production plan API", () => {
 Run: `pnpm --filter api test`
 Expected: FAIL — app module missing, routes 404.
 
-- [ ] **Step 3: Write the app, provider, workflow deps, and routes**
+- [x] **Step 3: Write the app, provider, workflow deps, and routes**
 
 `apps/api/src/provider.ts`:
 ```ts

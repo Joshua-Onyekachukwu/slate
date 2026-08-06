@@ -1264,6 +1264,38 @@ button {
   padding: 14px 16px;
   background: #f5efe3;
 }
+
+/* brief cards — ported from the approved prototype's briefPanel() (Stage 02) */
+.brief-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+.b-card {
+  border: 1px solid var(--line-paper);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  background: #f5efe3;
+  transition: border-color 0.15s, background 0.15s;
+}
+.b-card:hover {
+  border-color: #a89d8a;
+  background: #f2eadb;
+}
+.b-card .k {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #8a8173;
+}
+.b-card .v {
+  font-size: 15px;
+  color: #241f1b;
+  margin-top: 4px;
+  font-weight: 500;
+}
 .crew-card .k {
   font-family: var(--font-mono);
   font-size: 9px;
@@ -2320,7 +2352,8 @@ button {
   border-top: none;
 }
 @media (max-width: 640px) {
-  .crew-grid {
+  .crew-grid,
+  .brief-grid {
     grid-template-columns: 1fr;
   }
 }

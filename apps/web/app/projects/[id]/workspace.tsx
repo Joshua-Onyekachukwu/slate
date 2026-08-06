@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, API_URL, type ProjectRow, type StageDetail, type StoryboardView, type PromptPack, type SceneContent, type ResearchPacket } from "../../lib/api";
+import { api, API_URL, type ProjectRow, type StageDetail, type StoryboardView, type PromptPack, type SceneContent, type ResearchPacket, type Brief } from "../../lib/api";
 import { SceneCard } from "../../components/scene-card";
 
 // Slice stages — mirrors the workflow's checkpoint journey (idea → approved
@@ -37,10 +37,17 @@ const PACK_TABS: { key: keyof PromptPack; label: string }[] = [
   { key: "sfxPrompt", label: "SFX" },
 ];
 
+// HH:MM:SS — the approved prototype's briefPanel() shows "00:04:30" for 270s.
+const formatDuration = (seconds: number): string =>
+  [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60]
+    .map((n) => String(n).padStart(2, "0"))
+    .join(":");
+
 export function Workspace({ projectId, initialIdea }: { projectId: string; initialIdea?: string }) {
   const [project, setProject] = useState<ProjectRow | null>(null);
   const [detail, setDetail] = useState<StageDetail | null>(null);
   const [research, setResearch] = useState<ResearchPacket | null>(null);
+  const [brief, setBrief] = useState<Brief | null>(null);
   const [sb, setSb] = useState<StoryboardView | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -61,6 +68,10 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
       // Research packet for the research gate view (null until research runs).
       const researchDetail = await api.getStageDetail(projectId, "research").catch(() => null);
       setResearch(researchDetail?.content?.research ?? null);
+      // The approved creative brief (produced by discovery, persisted on the
+      // project row) — rendered above the packet at the research gate.
+      const briefDetail = await api.getStageDetail(projectId, "brief").catch(() => null);
+      setBrief(briefDetail?.content?.brief ?? null);
       // The storyboard 404s until the script is approved — that's expected.
       const st = await api.getStoryboard(projectId).catch(() => null);
       setSb(st?.storyboard ?? null);
@@ -266,6 +277,48 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                 {atResearchGate && (
                   <>
                     <div className="p-eyebrow">Research · Awaiting review</div>
+                    {/* The approved creative brief this research stands on —
+                        brief cards per the prototype's briefPanel() (Stage 02). */}
+                    {brief && (
+                      <div className="plan-section">
+                        <div className="k">CREATIVE BRIEF</div>
+                        <div className="brief-grid">
+                          <div className="b-card">
+                            <div className="k">Topic</div>
+                            <div className="v">{brief.topic}</div>
+                          </div>
+                          <div className="b-card">
+                            <div className="k">Audience</div>
+                            <div className="v">{brief.audience}</div>
+                          </div>
+                          <div className="b-card">
+                            <div className="k">Platform</div>
+                            <div className="v">{brief.platform}</div>
+                          </div>
+                          <div className="b-card">
+                            <div className="k">Style</div>
+                            <div className="v">{brief.style}</div>
+                          </div>
+                          <div className="b-card">
+                            <div className="k">Duration</div>
+                            {/* HH:MM:SS — matches the approved prototype's briefPanel() */}
+                            <div className="v">{formatDuration(brief.durationSeconds)}</div>
+                          </div>
+                          <div className="b-card">
+                            <div className="k">Tone</div>
+                            <div className="v">{brief.tone}</div>
+                          </div>
+                          <div className="b-card">
+                            <div className="k">Narration</div>
+                            <div className="v">{brief.narration}</div>
+                          </div>
+                          <div className="b-card">
+                            <div className="k">Aspect ratio</div>
+                            <div className="v">{brief.aspectRatio}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     {research ? (
                       <div className="plan-section">
                         <div className="k">TIMELINE</div>
@@ -515,6 +568,36 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                     )}
                   </p>
                 </div>
+                {/* Consistency records — crew sheet in the coverage rail during
+                storyboard review (prototype's Consistency-records card), not
+                just at the locked plan. Characters/locations persist on the
+                project row once the script is approved (consistency node). */}
+                {atStoryboardGate && (
+                  <div className="cov-card">
+                    <div className="c-t">Consistency records</div>
+                    <div className="cov-item">
+                      <p>
+                        <b>Characters:</b>{" "}
+                        {project?.characters?.length
+                          ? project.characters.map((c) => `${c.name} — ${c.description}`).join(" · ")
+                          : "not extracted yet — locked after script approval."}
+                      </p>
+                    </div>
+                    <div className="cov-item">
+                      <p>
+                        <b>Locations:</b>{" "}
+                        {project?.locations?.length
+                          ? project.locations.map((l) => `${l.name} — ${l.description}`).join(" · ")
+                          : "not extracted yet — locked after script approval."}
+                      </p>
+                    </div>
+                    <div className="cov-item">
+                      <p>
+                        <b>Editor:</b> per-scene transitions + music cues set on each scene's content.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </aside>
             </div>
           )}

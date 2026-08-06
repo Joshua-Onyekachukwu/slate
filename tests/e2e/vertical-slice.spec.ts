@@ -5,7 +5,8 @@ import { test, expect, type Page } from "@playwright/test";
 // via the webServer array in tests/playwright.config.ts.
 // Full journey: idea → research gate → approve → script gate → approve →
 // storyboard gate v1 → REGENERATE with feedback → gate v2 ("(rev)" titles) →
-// per-scene edit (→ v3) → approve → done.
+// per-scene edit (→ v3) → prompt regen (→ v4) → DRAG-REORDER scene 1 below
+// scene 3 (→ v5, survives reload) → approve → done.
 async function trackErrors(page: Page) {
   const errors: string[] = [];
   page.on("console", (msg) => {
@@ -18,7 +19,13 @@ async function trackErrors(page: Page) {
   // first EventSource on cleanup, and navigation cancels in-flight fetches.
   page.on("requestfailed", (req) => {
     const errText = req.failure()?.errorText ?? "";
-    if (!errText.includes("ERR_ABORTED")) errors.push(`requestfailed: ${req.url()} ${errText}`);
+    // ERR_ABORTED is benign (StrictMode/navigation); ERR_BLOCKED_BY_ORB on the
+    // external font CDNs is also benign — Chromium blocks the cross-origin font
+    // CSS when the CDN serves invalid CORS headers (a third-party response the
+    // app can't control), and the app falls back to system fonts.
+    if (errText.includes("ERR_ABORTED")) return;
+    if (errText.includes("ERR_BLOCKED_BY_ORB") && /fontshare|fonts\.googleapis/.test(req.url())) return;
+    errors.push(`requestfailed: ${req.url()} ${errText}`);
   });
   page.on("response", (res) => {
     if (res.status() >= 400 && !res.url().includes("/favicon")) {
@@ -28,7 +35,7 @@ async function trackErrors(page: Page) {
   return errors;
 }
 
-test("idea → script gate → storyboard gate (regenerate + edit) → approve (no console errors)", async ({ page }) => {
+test("idea → script gate → storyboard gate (regenerate + edit + drag-reorder) → approve (no console errors)", async ({ page }) => {
   const errors = await trackErrors(page);
 
   await page.goto("/");
@@ -55,6 +62,14 @@ test("idea → script gate → storyboard gate (regenerate + edit) → approve (
   await page.getByRole("button", { name: /approve & continue/i }).click();
   await expect(page.getByTestId("scene-card-1")).toBeVisible();
   await expect(page.getByText(/scenes storyboarded/i)).toBeVisible();
+
+  // The crew sheet ALSO renders in the coverage rail during storyboard review
+  // (prototype's Consistency-records card) — not just at the locked plan. The
+  // characters/locations persist on the project row when the script is
+  // approved (queue: CHARACTERS/LOCATIONS), so they show at the gate.
+  await expect(page.getByText(/consistency records/i)).toBeVisible();
+  await expect(page.getByText(/the narrator/i)).toBeVisible();
+  await expect(page.getByText(/the observable universe/i)).toBeVisible();
 
   // Storyboard REGENERATE through the real UI: type retake feedback, hit
   // Regenerate → write_storyboard runs again (queue: REV_SCENES) → the gate
@@ -94,15 +109,70 @@ test("idea → script gate → storyboard gate (regenerate + edit) → approve (
   await expect(page.getByText(/regenerated pack for scene 1/i)).toBeVisible();
   await expect(page.getByText(/scenes · sb v4/i)).toBeVisible();
 
+  // DRAG-TO-REORDER through the real UI — closes the drag-only-verified-via-curl
+  // gap (the reorder endpoint had E2E coverage only through the API inject/curl
+  // tests, never through the browser gesture). Scene 1 (index 0) is dragged
+  // BELOW scene 3 (drop in scene 3's bottom half → moveScene(0, 2) →
+  // [S2, S3, S1]). Like the edit, this is a direct-DB write, so it consumes NO
+  // provider queue — the 28-entry exhaustion contract is untouched. It bumps the
+  // whole storyboard version v4 → v5 (new version rows, per spec §12.9).
+  //
+  // HTML5 DnD: SceneCard is `draggable` and reads dataTransfer.getData in its
+  // onDrop. Playwright's locator.dragTo does not reliably round-trip the
+  // dataTransfer through React's synthetic events, so dispatch the native drag
+  // sequence with a REAL DataTransfer — the exact handlers a user drag fires.
+  const dragScene1BelowScene3 = () =>
+    page.evaluate(() => {
+      const source = document.querySelector("[data-testid=\"scene-card-1\"]");
+      const target = document.querySelector("[data-testid=\"scene-card-3\"]");
+      if (!source || !target) throw new Error("scene cards not found for drag");
+      const rect = target.getBoundingClientRect();
+      const clientX = rect.left + rect.width / 2;
+      const clientY = rect.top + rect.height * 0.85; // bottom half → below = true
+      const dt = new DataTransfer();
+      source.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: dt }));
+      target.dispatchEvent(new DragEvent("dragenter", { bubbles: true, cancelable: true, dataTransfer: dt, clientX, clientY }));
+      target.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dt, clientX, clientY }));
+      target.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dt, clientX, clientY }));
+    });
+
+  // Sanity: the gate holds the storyboard at v4 with (rev) titles in order.
+  await expect(page.getByTestId("scene-card-1")).toContainText("Scene 1 (rev)");
+  await expect(page.getByTestId("scene-card-3")).toContainText("Scene 3 (rev)");
+  await dragScene1BelowScene3();
+  // Optimistic move + PUT round-trip → new version rows; card ORDER follows the
+  // scene order prop, so scene-card-1 now holds the former Scene 2.
+  await expect(page.getByText(/scenes · sb v5/i)).toBeVisible();
+  await expect(page.getByTestId("scene-card-1")).toContainText("Scene 2 (rev)");
+  await expect(page.getByTestId("scene-card-3")).toContainText("Scene 1 (rev)");
+
+  // RELOAD: the reorder must come back from the DB (new version rows), not from
+  // client state — the whole point of the version-rows persistence contract.
+  await page.reload();
+  await expect(page.getByText(/scenes · sb v5/i)).toBeVisible();
+  await expect(page.getByTestId("scene-card-1")).toContainText("Scene 2 (rev)");
+  await expect(page.getByTestId("scene-card-3")).toContainText("Scene 1 (rev)");
+
   // Approve the storyboard → production plan locked (done).
   await page.getByRole("button", { name: /approve & continue/i }).click();
   await expect(page.getByText(/production plan locked/i)).toBeVisible();
 
+  // Third persistence proof: the approved production plan's "Scenes in order"
+  // section reflects the DRAGGED sequence (SC 01 = the former Scene 2) — the
+  // reorder survives all the way into the locked plan, not just the storyboard
+  // view and the reload.
+  await expect(page.locator(".plan-section .plan-row").first()).toContainText("Scene 2 (rev)");
+  await expect(page.locator(".plan-section .plan-row").nth(2)).toContainText("Scene 1 (rev)");
+
   // The crew sheet renders the consistency records extracted after script
   // approval (queue: CHARACTERS/LOCATIONS) — the done view's source of truth.
-  await expect(page.getByText(/crew sheet — consistency/i)).toBeVisible();
-  await expect(page.getByText(/the narrator/i)).toBeVisible();
-  await expect(page.getByText(/the observable universe/i)).toBeVisible();
+  // Scoped to the crew-sheet section: the coverage rail now ALSO shows the
+  // Consistency records card (same names), so an unscoped getByText would hit
+  // two elements (strict-mode violation).
+  const crewSheet = page.locator(".plan-section", { hasText: /crew sheet — consistency/i });
+  await expect(crewSheet).toBeVisible();
+  await expect(crewSheet.getByText(/the narrator/i)).toBeVisible();
+  await expect(crewSheet.getByText(/the observable universe/i)).toBeVisible();
 
   // Definition of done: no console/page errors anywhere in the flow.
   expect(errors).toEqual([]);

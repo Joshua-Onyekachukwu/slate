@@ -23,5 +23,9 @@ export const WorkflowState = Annotation.Root({
   // and prompt agents so every scene draws from the same cast/locations.
   characters: Annotation<Character[]>({ reducer: (_, b) => b, default: () => [] }),
   locations: Annotation<Location[]>({ reducer: (_, b) => b, default: () => [] }),
+  // Production plan lifecycle (Task 9): flips to "ready" when the storyboard
+  // gate approves — the consolidated production-plan endpoint reads it from
+  // the project row (persisted by the gate's saveProject patch).
+  productionPlanStatus: Annotation<string>({ reducer: (_, b) => b, default: () => "draft" }),
 });
 export type WorkflowState = typeof WorkflowState.State;

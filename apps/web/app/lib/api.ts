@@ -49,13 +49,24 @@ export function setAuthToken(token: string | null) {
 
 // --- Contract shapes (api-design.md "Stage approve / regenerate") ---
 
+export interface Brief {
+  topic: string;
+  audience: string;
+  platform: string;
+  style: string;
+  durationSeconds: number;
+  tone: string;
+  narration: string;
+  aspectRatio: string;
+}
+
 export interface ProjectRow {
   id: string;
   idea: string;
   title: string | null;
   stage: string; // checkpoint stage: "script_review" at the gate, "done" after approval
   status: string;
-  brief: unknown;
+  brief: Brief | null;
   conversation: { role: "user" | "assistant"; content: string; at: string }[];
   // Consistency records (crew sheet) — persisted after script approval.
   characters: CharacterRecord[];
@@ -79,7 +90,7 @@ export interface StageDetail {
   project: { id: string; stage: string | undefined };
   stage: StageView;
   content: {
-    brief?: unknown;
+    brief?: Brief | null;
     conversation?: { role: string; content: string; at: string }[];
     research?: ResearchPacket | null;
     script?: { title: string; hook: string; introduction: string; body: string[]; conclusion: string; cta: string | null } | null;
