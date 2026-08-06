@@ -1,10 +1,13 @@
+// MUST precede the @slate/db import: pins this file's SQLite db (the client
+// opens it from process.env.DATABASE_PATH at module load).
+import "./test/api-db";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { buildApp } from "./app";
 import { FakeProvider } from "@slate/ai";
 import { runMigrations } from "@slate/db";
 import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
 
-const TEST_PATH = process.env.DATABASE_PATH ?? "./data/test-api.db";
+const TEST_PATH = "./data/test-api.db";
 
 const BRIEF = '{"kind":"brief","brief":{"topic":"universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}';
 const SCRIPT = '{"title":"T","hook":"H","introduction":"I","body":["B1"],"conclusion":"C","cta":null}';
