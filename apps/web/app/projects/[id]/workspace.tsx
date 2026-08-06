@@ -1,22 +1,30 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, API_URL, type ProjectRow, type StageDetail, type StoryboardView, type PromptPack, type SceneContent } from "../../lib/api";
+import { api, API_URL, type ProjectRow, type StageDetail, type StoryboardView, type PromptPack, type SceneContent, type ResearchPacket } from "../../lib/api";
 import { SceneCard } from "../../components/scene-card";
 
-// Slice stages — mirrors the workflow's checkpoint journey (idea → approved storyboard).
+// Slice stages — mirrors the workflow's checkpoint journey (idea → approved
+// storyboard). Research (Block 2) sits between the brief and the script as its
+// own reviewable gate.
 const SLICE_STAGES = [
   { key: "discovery", name: "Idea" },
   { key: "brief", name: "Brief" },
+  { key: "research", name: "Research" },
   { key: "script", name: "Script" },
   { key: "storyboard", name: "Storyboard" },
   { key: "done", name: "Ready" },
 ];
 
+// Checkpoint stage values are intentionally asymmetric: the research gate's
+// checkpoint value is "research" (its gate value), while the script gate's is
+// "script_review" (named after the review node). Don't "normalize" this —
+// GATE_VALUE_BY_STAGE in apps/api pins both shapes.
 const stageIndex = (checkpointStage: string | undefined): number => {
-  if (checkpointStage === "done") return 4;
-  if (checkpointStage === "storyboard") return 3; // storyboard gate (awaiting review)
-  if (checkpointStage === "script_review" || checkpointStage === "script") return 2;
+  if (checkpointStage === "done") return 5;
+  if (checkpointStage === "storyboard") return 4; // storyboard gate (awaiting review)
+  if (checkpointStage === "script_review" || checkpointStage === "script") return 3;
+  if (checkpointStage === "research") return 2; // research gate (awaiting review)
   if (checkpointStage === "brief") return 1;
   return 0;
 };
@@ -32,6 +40,7 @@ const PACK_TABS: { key: keyof PromptPack; label: string }[] = [
 export function Workspace({ projectId, initialIdea }: { projectId: string; initialIdea?: string }) {
   const [project, setProject] = useState<ProjectRow | null>(null);
   const [detail, setDetail] = useState<StageDetail | null>(null);
+  const [research, setResearch] = useState<ResearchPacket | null>(null);
   const [sb, setSb] = useState<StoryboardView | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -49,6 +58,9 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
       ]);
       setProject(project);
       setDetail(detail);
+      // Research packet for the research gate view (null until research runs).
+      const researchDetail = await api.getStageDetail(projectId, "research").catch(() => null);
+      setResearch(researchDetail?.content?.research ?? null);
       // The storyboard 404s until the script is approved — that's expected.
       const st = await api.getStoryboard(projectId).catch(() => null);
       setSb(st?.storyboard ?? null);
@@ -87,13 +99,14 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
   }, [projectId, refresh]);
 
   const stage = project?.stage; // checkpoint-derived (never the stale projects column)
+  const atResearchGate = stage === "research";
   const atScriptGate = stage === "script_review";
   const atStoryboardGate = stage === "storyboard";
   const done = stage === "done";
-  const awaiting = atScriptGate || atStoryboardGate;
+  const awaiting = atResearchGate || atScriptGate || atStoryboardGate;
   const approved = done;
 
-  const doApprove = async (which: "script" | "storyboard") => {
+  const doApprove = async (which: "research" | "script" | "storyboard") => {
     if (busy) return;
     setBusy(true);
     try {
@@ -107,7 +120,7 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
     }
   };
 
-  const doRegenerate = async (which: "script" | "storyboard") => {
+  const doRegenerate = async (which: "research" | "script" | "storyboard") => {
     if (busy) return;
     setBusy(true);
     try {
@@ -244,12 +257,55 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                 </div>
                 <div className="cs-row">
                   <span className="cs-nm">Gate</span>
-                  <span className="cs-vl">{atScriptGate ? "script_review" : atStoryboardGate ? "storyboard_review" : "none"}</span>
+                  <span className="cs-vl">{atResearchGate ? "research_review" : atScriptGate ? "script_review" : atStoryboardGate ? "storyboard_review" : "none"}</span>
                 </div>
               </aside>
 
               {/* main panel */}
               <div className="panel stage-fade">
+                {atResearchGate && (
+                  <>
+                    <div className="p-eyebrow">Research · Awaiting review</div>
+                    {research ? (
+                      <div className="plan-section">
+                        <div className="k">TIMELINE</div>
+                        {research.timeline.map((t, i) => (
+                          <div className="plan-row" key={i}>
+                            <span className="idx">{String(i + 1).padStart(2, "0")}</span>
+                            <span className="nm">{t}</span>
+                          </div>
+                        ))}
+                        <div className="k" style={{ marginTop: 16 }}>CONCEPTS</div>
+                        <div className="v">{research.concepts.join(" · ") || "—"}</div>
+                        <div className="k" style={{ marginTop: 16 }}>TERMINOLOGY</div>
+                        {Object.entries(research.terminology ?? {}).length ? (
+                          Object.entries(research.terminology).map(([term, def]) => (
+                            <div className="plan-row" key={term}>
+                              <span className="idx">{term}</span>
+                              <span className="nm">{def}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="v">—</div>
+                        )}
+                        <div className="k" style={{ marginTop: 16 }}>REFERENCES</div>
+                        <div className="v">{research.references.join(" · ") || "—"}</div>
+                        <div className="k" style={{ marginTop: 16 }}>KEY EVENTS</div>
+                        {research.keyEvents.map((e, i) => (
+                          <div className="plan-row" key={i}>
+                            <span className="idx">{String(i + 1).padStart(2, "0")}</span>
+                            <span className="nm">{e}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="lead" style={{ color: "#7a7265" }}>
+                        The research packet is being assembled — review it, then approve or ask for a retake.
+                      </p>
+                    )}
+                  </>
+                )}
+
                 {atScriptGate && (
                   <>
                     <div className="p-eyebrow">
@@ -408,7 +464,7 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                   </>
                 )}
 
-                {!atScriptGate && !atStoryboardGate && !done && (
+                {!atResearchGate && !atScriptGate && !atStoryboardGate && !done && (
                   <>
                     <div className="p-eyebrow">{approved ? "Script · Approved" : "Script"}</div>
                     <p className="lead" style={{ color: "#7a7265" }}>
@@ -471,9 +527,11 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                   <>
                     <div className="gate-note">
                       <span className="rec-dot"></span>
-                      {atScriptGate
-                        ? "Script ready for review — approve to lock it and storyboard, or send it back for a retake."
-                        : "Scenes storyboarded — drag to reorder, then approve to lock the production plan."}
+                      {atResearchGate
+                        ? "Research ready for review — approve it and the script is written, or send it back for a retake."
+                        : atScriptGate
+                          ? "Script ready for review — approve to lock it and storyboard, or send it back for a retake."
+                          : "Scenes storyboarded — drag to reorder, then approve to lock the production plan."}
                     </div>
                     <div className="gate-actions">
                       <input
@@ -484,10 +542,10 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                         placeholder="Feedback for a retake (optional)"
                         aria-label="Retake feedback"
                       />
-                      <button className="btn btn-ghost" onClick={() => doRegenerate(atScriptGate ? "script" : "storyboard")} disabled={busy}>
+                      <button className="btn btn-ghost" onClick={() => doRegenerate(atResearchGate ? "research" : atScriptGate ? "script" : "storyboard")} disabled={busy}>
                         Regenerate
                       </button>
-                      <button className="btn btn-rec" onClick={() => doApprove(atScriptGate ? "script" : "storyboard")} disabled={busy}>
+                      <button className="btn btn-rec" onClick={() => doApprove(atResearchGate ? "research" : atScriptGate ? "script" : "storyboard")} disabled={busy}>
                         {busy ? "Working…" : "Approve & continue"}
                       </button>
                     </div>

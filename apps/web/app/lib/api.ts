@@ -81,6 +81,7 @@ export interface StageDetail {
   content: {
     brief?: unknown;
     conversation?: { role: string; content: string; at: string }[];
+    research?: ResearchPacket | null;
     script?: { title: string; hook: string; introduction: string; body: string[]; conclusion: string; cta: string | null } | null;
     scores?: { clarity: number; pacing: number; engagement: number; retention: number; redundancy: number; overall: number; notes: string[] } | null;
     storyboard?: { version: number; scenes: StoryboardScene[] } | null;
@@ -103,6 +104,14 @@ export interface PromptPack {
   narrationPrompt: string;
   musicPrompt: string;
   sfxPrompt: string;
+}
+
+export interface ResearchPacket {
+  timeline: string[];
+  concepts: string[];
+  terminology: Record<string, string>;
+  references: string[];
+  keyEvents: string[];
 }
 
 export interface StoryboardScene {
