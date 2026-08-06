@@ -126,4 +126,12 @@ export const api = {
       body: JSON.stringify({ scene_ids: sceneIds }),
     });
   },
+  // Per-scene edit → the API returns the new storyboard version; the response
+  // MUST replace local state (new version rows = new scene ids, like reorder).
+  saveScene(projectId: string, sceneId: string, content: SceneContent) {
+    return request<{ storyboard: StoryboardView }>(`/api/v1/projects/${projectId}/scenes/${sceneId}`, {
+      method: "PUT",
+      body: JSON.stringify({ content }),
+    });
+  },
 };

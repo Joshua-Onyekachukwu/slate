@@ -6,6 +6,7 @@ import { projectRoutes } from "./routes/projects";
 import { stageRoutes } from "./routes/stages";
 import { scriptRoutes } from "./routes/scripts";
 import { storyboardRoutes } from "./routes/storyboard";
+import { sceneRoutes } from "./routes/scenes";
 import { streamRoute } from "./routes/stream";
 import { ApiError } from "./error";
 import { requireUser } from "./hooks";
@@ -31,7 +32,10 @@ export function buildApp(deps: AppDeps) {
   // BEFORE the auth hook: Fastify runs onRequest hooks in registration order,
   // so preflight (OPTIONS, no Authorization header) must hit CORS first or it
   // would be 401'd by auth and cross-origin calls would break in enforced mode.
-  app.register(cors, { origin: true });
+  // methods EXPLICIT: @fastify/cors@11 defaults to 'GET,HEAD,POST', which would
+  // CORS-block every PUT (reorder, scene edits) — the browser preflight fails
+  // with "Method PUT is not allowed by Access-Control-Allow-Methods".
+  app.register(cors, { origin: true, methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] });
 
   if (deps.verifyToken) {
     const authHook = requireUser(deps.verifyToken);
@@ -46,6 +50,7 @@ export function buildApp(deps: AppDeps) {
   app.register(stageRoutes, deps);
   app.register(scriptRoutes, deps);
   app.register(storyboardRoutes, deps);
+  app.register(sceneRoutes, deps);
   app.register(streamRoute, deps);
 
   app.get("/api/v1/health", async () => ({ status: "ok", service: "slate-api" }));

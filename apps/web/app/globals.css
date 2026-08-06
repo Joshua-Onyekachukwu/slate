@@ -2233,3 +2233,64 @@ button {
   color: var(--tungsten);
   border-color: var(--tungsten);
 }
+
+/* Per-scene editing — inline form over the slate-line frame */
+.sl-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.slate-line .mini-btn {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+}
+.scene-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0 2px;
+}
+.scene-edit label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ash);
+}
+.scene-edit input,
+.scene-edit textarea,
+.scene-edit select {
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--paper);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 6px 8px;
+  outline: none;
+}
+.scene-edit input:focus,
+.scene-edit textarea:focus,
+.scene-edit select:focus {
+  border-color: var(--tungsten);
+}
+.scene-edit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.scene-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+.slate-line.editing {
+  cursor: default;
+}

@@ -135,6 +135,14 @@ describe("api", () => {
       method: "GET", url: "/api/v1/health", headers: { origin: "http://localhost:3000" },
     });
     expect(res.headers["access-control-allow-origin"]).toBe("http://localhost:3000");
+    // Regression guard: @fastify/cors@11 defaults methods to 'GET,HEAD,POST',
+    // which CORS-blocks every PUT (reorder, scene edits) in the browser with
+    // "Method PUT is not allowed by Access-Control-Allow-Methods".
+    const preflight = await app.inject({
+      method: "OPTIONS", url: "/api/v1/projects/x/scenes/y",
+      headers: { origin: "http://localhost:3000", "access-control-request-method": "PUT" },
+    });
+    expect(String(preflight.headers["access-control-allow-methods"] ?? "")).toContain("PUT");
   });
 
   it("reorders scenes atomically → new version rows carry content + prompt packs", async () => {
@@ -198,5 +206,91 @@ describe("api", () => {
     const list = await app.inject({ method: "GET", url: "/api/v1/projects" });
     const row = (list.json().projects as { id: string; stage: string }[]).find((p) => p.id === id);
     expect(row?.stage).toBe("script_review"); // checkpoint, not the column's "brief"
+  });
+
+  it("edits a scene → new storyboard version with the edit, order + other scenes preserved, packs carried", async () => {
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
+
+    const before = (await app.inject({ method: "GET", url: `/api/v1/projects/${id}/storyboard` })).json().storyboard;
+    expect(before.version).toBe(1);
+    expect(before.scenes).toHaveLength(2);
+    const target = before.scenes[0];
+    const other = before.scenes[1];
+
+    const edited = { ...target.content, narration: "user edit: the bang was loud", durationSeconds: 99 };
+    const res = await app.inject({
+      method: "PUT", url: `/api/v1/projects/${id}/scenes/${target.id}`,
+      payload: { content: edited },
+    });
+    expect(res.statusCode).toBe(200);
+    const after = res.json().storyboard;
+    expect(after.version).toBe(2); // edit bumps the storyboard version (version-rows model)
+    expect(after.scenes).toHaveLength(2);
+    // Order preserved; the edited scene (by order) has the new content.
+    expect(after.scenes.map((s: { order: number }) => s.order)).toEqual([1, 2]);
+    const editedRow = after.scenes.find((s: { order: number }) => s.order === target.order);
+    expect(editedRow.content.narration).toBe("user edit: the bang was loud");
+    expect(editedRow.content.durationSeconds).toBe(99);
+    // Other scenes untouched; packs carried EXCEPT the edited scene's — its
+    // content changed, so the pack is nulled ("Prompt pack queued." in the UI)
+    // until the prompts/regenerate endpoint re-creates it.
+    const otherRow = after.scenes.find((s: { order: number }) => s.order === other.order);
+    expect(otherRow.content.title).toBe(other.content.title);
+    expect(otherRow.content.narration).toBe(other.content.narration);
+    expect(otherRow.promptPack).not.toBeNull();
+    expect(editedRow.promptPack).toBeNull();
+
+    // Persists on re-read, and the OLD scene id is gone (new version rows = new ids).
+    const reRead = (await app.inject({ method: "GET", url: `/api/v1/projects/${id}/storyboard` })).json().storyboard;
+    expect(reRead.version).toBe(2);
+    const stale = await app.inject({
+      method: "PUT", url: `/api/v1/projects/${id}/scenes/${target.id}`,
+      payload: { content: target.content },
+    });
+    expect(stale.statusCode).toBe(404); // a scene from an old storyboard version
+  });
+
+  it("rejects an invalid scene edit with 400 VALIDATION_ERROR", async () => {
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
+    const sb = (await app.inject({ method: "GET", url: `/api/v1/projects/${id}/storyboard` })).json().storyboard;
+
+    const res = await app.inject({
+      method: "PUT", url: `/api/v1/projects/${id}/scenes/${sb.scenes[0].id}`,
+      payload: { content: { title: "no narration" } },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("409s a scene edit before the storyboard exists; 404s a made-up scene", async () => {
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+    // Still at the script gate — no storyboard yet.
+    const early = await app.inject({
+      method: "PUT", url: `/api/v1/projects/${id}/scenes/nope`,
+      payload: { content: { title: "x" } },
+    });
+    expect(early.statusCode).toBe(409);
+
+    // With a storyboard, a scene id that doesn't exist → 404.
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
+    const madeUp = await app.inject({
+      method: "PUT", url: `/api/v1/projects/${id}/scenes/not-a-real-scene`,
+      payload: { content: { title: "x" } },
+    });
+    expect(madeUp.statusCode).toBe(404);
   });
 });

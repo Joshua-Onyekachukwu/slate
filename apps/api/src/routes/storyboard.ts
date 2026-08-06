@@ -22,7 +22,7 @@ interface StoryboardView {
 
 // Latest storyboard + its scene rows for a project (version rows model: the
 // latest (storyboard_id, order) is the current scene — spec §12.9).
-async function loadStoryboard(id: string): Promise<StoryboardView | null> {
+export async function loadStoryboard(id: string): Promise<StoryboardView | null> {
   const [sb] = await db.select().from(storyboards)
     .where(eq(storyboards.projectId, id)).orderBy(desc(storyboards.version)).limit(1);
   if (!sb) return null;

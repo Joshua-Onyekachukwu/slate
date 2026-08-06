@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, API_URL, type ProjectRow, type StageDetail, type StoryboardView, type PromptPack } from "../../lib/api";
+import { api, API_URL, type ProjectRow, type StageDetail, type StoryboardView, type PromptPack, type SceneContent } from "../../lib/api";
 import { SceneCard } from "../../components/scene-card";
 
 // Slice stages — mirrors the workflow's checkpoint journey (idea → approved storyboard).
@@ -38,6 +38,7 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState("");
   const [showPacks, setShowPacks] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const esRef = useRef<EventSource | null>(null);
 
   const refresh = useCallback(async () => {
@@ -137,6 +138,23 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
     } catch (e) {
       setError((e as Error).message);
       await refresh(); // revert to server truth
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Per-scene edit: PUT saves the edit as NEW version rows; the response MUST
+  // replace local state (new scene ids, like reorder) or the next action 400s
+  // on stale ids.
+  const saveSceneContent = async (sceneId: string, content: SceneContent) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await api.saveScene(projectId, sceneId, content);
+      setSb(res.storyboard); // canonical version rows from the server
+      setEditingId(null);
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -267,13 +285,18 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                               key={sc.id}
                               index={i}
                               order={sc.order}
-                              title={sc.content.title}
                               durationSeconds={sc.content.durationSeconds}
                               transition={sc.content.transition}
                               status={done ? "Approved" : "Scene"}
                               tone={done ? "default" : "rec"}
                               meta={`${sc.content.cameraDirection} · music: ${sc.content.musicCue}`}
                               onReorder={moveScene}
+                              content={sc.content}
+                              editing={editingId === sc.id}
+                              onEdit={() => setEditingId(sc.id)}
+                              onSave={(c) => saveSceneContent(sc.id, c)}
+                              onCancel={() => setEditingId(null)}
+                              saving={busy}
                             />
                           ))}
                         </div>

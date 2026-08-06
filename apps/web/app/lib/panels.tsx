@@ -284,13 +284,25 @@ function PanelStoryboard({
             key={s.id}
             order={i + 1}
             index={i}
-            title={s.title}
             durationSeconds={s.durationSeconds}
             transition={s.transition}
             status={s.status}
             tone={s.tone}
             meta={s.meta}
             onReorder={onReorder}
+            content={{
+              title: s.title,
+              narration: s.narration,
+              visualDescription: s.visual,
+              cameraDirection: s.camera,
+              durationSeconds: s.durationSeconds,
+              transition: s.transition,
+              musicCue: s.musicCue,
+            }}
+            editing={false}
+            onEdit={() => {}}
+            onSave={() => {}}
+            onCancel={() => {}}
           />
         ))}
       </div>
