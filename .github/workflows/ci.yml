@@ -19,7 +19,9 @@ jobs:
       # The action reads the version from package.json instead.
       - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      # setup-node@v5: v4 targets Node 20, which GitHub now forces onto Node 24
+      # (deprecation annotation on every run) and will eventually break.
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: pnpm
