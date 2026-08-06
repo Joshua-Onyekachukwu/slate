@@ -10,6 +10,8 @@ import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
 const TEST_PATH = "./data/test-api.db";
 
 const BRIEF = '{"kind":"brief","brief":{"topic":"universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}';
+const RESEARCH = '{"timeline":["13.8 bya: Big Bang"],"concepts":["cosmic inflation"],"terminology":{},"references":["NASA"],"keyEvents":["First stars ignite"]}';
+const RESEARCH_V2 = '{"timeline":["13.8 bya: Big Bang","4.5 bya: Earth forms"],"concepts":["cosmic inflation"],"terminology":{},"references":["NASA","ESA"],"keyEvents":["First stars ignite"]}';
 const SCRIPT = '{"title":"T","hook":"H","introduction":"I","body":["B1"],"conclusion":"C","cta":null}';
 const SCORES_HIGH = '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redundancy":4,"notes":[],"overall":4}';
 const SCORES_LOW = '{"clarity":2,"pacing":2,"engagement":2,"retention":2,"redundancy":2,"notes":["weak hook"],"overall":2}';
@@ -42,17 +44,32 @@ describe("api", () => {
   });
   afterAll(() => { checkpointer.db.close(); });
 
-  it("creates a project and runs discovery to the script gate", async () => {
+  it("creates a project → pauses at the research gate → approve → script gate", async () => {
     const app = buildApp({ provider: new FakeProvider([
-      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH },
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH },
     ]), checkpointer });
     const res = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc about the universe" } });
     expect(res.statusCode).toBe(201);
     const body = res.json();
     expect(body.project.id).toBeTruthy();
-    // project.stage comes from the workflow CHECKPOINT (script_review at the
-    // gate), NOT the projects column — per the api-design contract.
-    expect(body.project.stage).toBe("script_review");
+    // project.stage comes from the workflow CHECKPOINT (research at the gate),
+    // NOT the projects column — per the api-design contract.
+    expect(body.project.stage).toBe("research");
+
+    // Research stage view: awaiting review with the packet.
+    const view = await app.inject({ method: "GET", url: `/api/v1/projects/${body.project.id}/stages/research` });
+    expect(view.json().stage.status).toBe("awaiting_review");
+    expect(view.json().stage.gate.value).toBe("research_review");
+    expect(view.json().content.research.timeline[0]).toContain("Big Bang");
+
+    // Approve research → script + review → script gate.
+    const approved = await app.inject({
+      method: "POST", url: `/api/v1/projects/${body.project.id}/stages/research/approve`,
+      payload: { approved: true },
+    });
+    expect(approved.statusCode).toBe(200);
+    expect(approved.json().project.stage).toBe("script_review");
+    expect(approved.json().stage.status).toBe("approved");
   });
 
   it("returns a single error shape on validation failure", async () => {
@@ -64,10 +81,11 @@ describe("api", () => {
 
   it("approves the script → storyboard generated → approve → stage done", async () => {
     const app = buildApp({ provider: new FakeProvider([
-      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
     ]), checkpointer });
     const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
     const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
 
     const res = await app.inject({
       method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`,
@@ -102,10 +120,11 @@ describe("api", () => {
 
   it("returns 409 CONFLICT when approving a stage with no pending interrupt", async () => {
     const app = buildApp({ provider: new FakeProvider([
-      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
     ]), checkpointer });
     const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
     const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
     await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
     await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/storyboard/approve`, payload: { approved: true } });
     // Already done — no pending interrupt for the storyboard gate anymore.
@@ -116,11 +135,12 @@ describe("api", () => {
 
   it("regenerates the script with feedback → new version, pauses again at the gate", async () => {
     const app = buildApp({ provider: new FakeProvider([
-      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_LOW }, // pass 1: low scores
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_LOW }, // pass 1: low scores
       { content: SCRIPT }, { content: SCORES_HIGH },                    // pass 2: regenerated
     ]), checkpointer });
     const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
     const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
 
     const res = await app.inject({
       method: "POST", url: `/api/v1/projects/${id}/stages/script/regenerate`,
@@ -158,10 +178,11 @@ describe("api", () => {
 
   it("reorders scenes atomically → new version rows carry content + prompt packs", async () => {
     const app = buildApp({ provider: new FakeProvider([
-      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
     ]), checkpointer });
     const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
     const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
     await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
 
     const before = (await app.inject({ method: "GET", url: `/api/v1/projects/${id}/storyboard` })).json().storyboard;
@@ -192,7 +213,7 @@ describe("api", () => {
 
   it("reorders only while at the storyboard gate — 409 before it exists, 404 for missing project", async () => {
     const app = buildApp({ provider: new FakeProvider([
-      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
     ]), checkpointer });
     const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
     const id = created.json().project.id as string;
@@ -210,21 +231,22 @@ describe("api", () => {
 
   it("lists projects with checkpoint-derived stage (not the stale column)", async () => {
     const app = buildApp({ provider: new FakeProvider([
-      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH },
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH },
     ]), checkpointer });
     const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
     const id = created.json().project.id as string;
     const list = await app.inject({ method: "GET", url: "/api/v1/projects" });
     const row = (list.json().projects as { id: string; stage: string }[]).find((p) => p.id === id);
-    expect(row?.stage).toBe("script_review"); // checkpoint, not the column's "brief"
+    expect(row?.stage).toBe("research"); // checkpoint (research gate), not the column's "brief"
   });
 
   it("edits a scene → new storyboard version with the edit, order + other scenes preserved, packs carried", async () => {
     const app = buildApp({ provider: new FakeProvider([
-      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
     ]), checkpointer });
     const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
     const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
     await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
 
     const before = (await app.inject({ method: "GET", url: `/api/v1/projects/${id}/storyboard` })).json().storyboard;
@@ -268,10 +290,11 @@ describe("api", () => {
 
   it("rejects an invalid scene edit with 400 VALIDATION_ERROR", async () => {
     const app = buildApp({ provider: new FakeProvider([
-      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
     ]), checkpointer });
     const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
     const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
     await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
     const sb = (await app.inject({ method: "GET", url: `/api/v1/projects/${id}/storyboard` })).json().storyboard;
 
@@ -285,7 +308,7 @@ describe("api", () => {
 
   it("409s a scene edit before the storyboard exists; 404s a made-up scene", async () => {
     const app = buildApp({ provider: new FakeProvider([
-      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
     ]), checkpointer });
     const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
     const id = created.json().project.id as string;
@@ -297,6 +320,7 @@ describe("api", () => {
     expect(early.statusCode).toBe(409);
 
     // With a storyboard, a scene id that doesn't exist → 404.
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
     await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
     const madeUp = await app.inject({
       method: "PUT", url: `/api/v1/projects/${id}/scenes/not-a-real-scene`,
@@ -308,11 +332,12 @@ describe("api", () => {
   it("regenerates a scene's prompt pack → new storyboard version with the fresh pack, others preserved", async () => {
     const REGEN_PACK = { imagePrompt: "regenerated i", videoPrompt: "v", narrationPrompt: "n", musicPrompt: "m", sfxPrompt: "s" };
     const app = buildApp({ provider: new FakeProvider([
-      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
       { content: JSON.stringify(REGEN_PACK) }, // promptAgent for the regenerate call
     ]), checkpointer });
     const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
     const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
     await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
 
     const before = (await app.inject({ method: "GET", url: `/api/v1/projects/${id}/storyboard` })).json().storyboard;
@@ -338,11 +363,12 @@ describe("api", () => {
   it("regenerating a pack fills an edited scene's nulled pack (edit → regenerate round-trip)", async () => {
     const REGEN_PACK = { imagePrompt: "refilled after edit", videoPrompt: "v", narrationPrompt: "n", musicPrompt: "m", sfxPrompt: "s" };
     const app = buildApp({ provider: new FakeProvider([
-      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
       { content: JSON.stringify(REGEN_PACK) }, // promptAgent for the regenerate call
     ]), checkpointer });
     const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
     const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
     await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
 
     // Edit scene 1 → its pack is nulled (content changed).
@@ -377,9 +403,50 @@ describe("api", () => {
     expect(res.json().error.code).toBe("NOT_FOUND");
   });
 
+  it("regenerates the research with feedback → new packet at the gate → approve → script gate", async () => {
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: RESEARCH }, { content: RESEARCH_V2 }, // research v2 after feedback
+      { content: SCRIPT }, { content: SCORES_HIGH },
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+
+    // Reject with feedback → research regenerates → new packet at the gate.
+    const regen = await app.inject({
+      method: "POST", url: `/api/v1/projects/${id}/stages/research/regenerate`,
+      payload: { feedback: "add sources" },
+    });
+    expect(regen.statusCode).toBe(200);
+    expect(regen.json().stage.status).toBe("awaiting_review");
+    expect(regen.json().stage.gate.value).toBe("research_review");
+    const view = await app.inject({ method: "GET", url: `/api/v1/projects/${id}/stages/research` });
+    expect(view.json().content.research.timeline[1]).toContain("Earth forms"); // v2 persisted on the project
+
+    // Approve → script + review → script gate.
+    const approved = await app.inject({
+      method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`,
+      payload: { approved: true },
+    });
+    expect(approved.statusCode).toBe(200);
+    expect(approved.json().project.stage).toBe("script_review");
+  });
+
+  it("409s research approve once the research gate has already been passed", async () => {
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH },
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
+    // Already past the research gate — no pending interrupt anymore.
+    const res = await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.code).toBe("CONFLICT");
+  });
+
   it("409s prompt regeneration before the storyboard exists; 404s a made-up scene", async () => {
     const app = buildApp({ provider: new FakeProvider([
-      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
     ]), checkpointer });
     const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
     const id = created.json().project.id as string;
@@ -390,6 +457,7 @@ describe("api", () => {
     expect(early.statusCode).toBe(409);
 
     // With a storyboard, a scene id that doesn't exist → 404.
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
     await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
     const madeUp = await app.inject({
       method: "POST", url: `/api/v1/projects/${id}/scenes/not-a-real-scene/prompts/regenerate`,

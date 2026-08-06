@@ -23,6 +23,7 @@ const RAW_PACKS = [PACK(1), PACK(2), PACK(3)];
 const PACKS = RAW_PACKS.map((p) => ({ content: JSON.stringify(p) }));
 const REV_PACKS = RAW_PACKS.map((p) => ({ content: JSON.stringify({ ...p, imagePrompt: `${p.imagePrompt} — tighter framing` }) }));
 
+const RESEARCH = '{"timeline":["13.8 bya: Big Bang","4.5 bya: Earth forms"],"concepts":["cosmic inflation"],"terminology":{"redshift":"light stretched by expansion"},"references":["NASA","ESA"],"keyEvents":["First stars ignite","Galaxies assemble"]}';
 const BRIEF = '{"kind":"brief","brief":{"topic":"History of the universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}';
 const SCRIPT = '{"title":"The First Three Minutes","hook":"13.8 billion years in one breath.","introduction":"Every atom in you was forged in a star.","body":["The bang.","The stars.","Us."],"conclusion":"We are the universe experiencing itself.","cta":null}';
 const SCRIPT_V2 = '{"title":"The First Three Minutes","hook":"Before the first light, there was an idea — and you are its echo.","introduction":"Every atom in you was forged in a star.","body":["The bang.","The stars.","Us."],"conclusion":"We are the universe experiencing itself.","cta":null}';
@@ -31,9 +32,11 @@ const SCORES_HIGH = '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redun
 const CHARACTERS = '[{"id":"char-1","name":"The Narrator","description":"A calm voice guiding the journey"}]';
 const LOCATIONS = '[{"id":"loc-1","name":"The Observable Universe","description":"Vast and dark"}]';
 
-// A script-gate block: one project's journey to the script review gate.
+// A script-gate block: one project's journey to the SCRIPT review gate. Since
+// Block 2 the journey passes the research gate first: brief → researchAgent
+// (packet) → research gate (approved) → script → scores.
 const GATE_BLOCK = [
-  { content: BRIEF }, { content: SCRIPT }, { content: SCORES_LOW },
+  { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_LOW },
 ];
 // A script APPROVE consumes consistency (characterAgent + environmentAgent)
 // THEN the storyboard pass — so a full approve = CONSISTENCY + STORY_BLOCK.
@@ -54,16 +57,19 @@ const APPROVE_BLOCK = (scenes: unknown[], packs: { content: string }[]) => [...C
 export function createProvider(): Provider {
   if (process.env.FAKE_PROVIDER === "1") {
     if (process.env.DEMO_QUEUE === "1") {
-      // DEMO QUEUE (FAKE_PROVIDER=1 DEMO_QUEUE=1): scripted retakes for BOTH
-      // gates so a human can drive idea → script gate (2/5) → reject → v2 (4/5)
-      // → approve → storyboard gate → REJECT with feedback → storyboard v2
-      // ((rev) titles) → approve, without a 500. The script reject loops
+      // DEMO QUEUE (FAKE_PROVIDER=1 DEMO_QUEUE=1): scripted retakes for all
+      // three gates (research, script, storyboard) so a human can drive idea →
+      // research gate → approve → script gate (2/5) → reject → v2 (4/5) →
+      // approve → storyboard gate → REJECT with feedback → storyboard v2
+      // ((rev) titles) → approve, without a 500. GATE_BLOCK now includes the
+      // RESEARCH entry (brief → researchAgent → research gate), so each project
+      // journey pauses at the research gate first. The script reject loops
       // write_script → review (script + scores); the storyboard reject loops
       // write_storyboard → prompt_gen (another full STORY_BLOCK). The trailing
       // pack entry lets a human drive the per-scene prompt regeneration once
       // (POST .../prompts/regenerate consumes one promptAgent call).
       return new FakeProvider([
-        ...GATE_BLOCK,                         // project 1 → script gate (reject here)
+        ...GATE_BLOCK,                         // project 1 → research gate (approve) → script gate (reject here)
         { content: SCRIPT_V2 }, { content: SCORES_HIGH }, // script retake: v2 + 4/5 scores
         ...APPROVE_BLOCK(SCENES, PACKS),       // script approved → consistency + storyboard gate (v1, plain titles)
         ...STORY_BLOCK(REV_SCENES, REV_PACKS), // storyboard REJECT → gate v2 ("(rev)" titles)
@@ -73,11 +79,13 @@ export function createProvider(): Provider {
       ]);
     }
     // E2E QUEUE (default): two projects — the responsive viewport spec (stops at
-    // the storyboard gate) and the vertical-slice spec (drives script gate →
-    // approve → storyboard v1 → reject → v2 → per-scene EDIT → per-scene
-    // PROMPT REGENERATE → approve → done). Consumption: responsive consumes
-    // GATE(3) + APPROVE(7) = 10; vertical-slice consumes GATE(3) + APPROVE(7)
-    // + STORY_REV(5) + prompts/regenerate(1) = 16; total 26 — exact exhaustion.
+    // the storyboard gate) and the vertical-slice spec (drives research gate →
+    // script gate → approve → storyboard v1 → reject → v2 → per-scene EDIT →
+    // per-scene PROMPT REGENERATE → approve → done). Each journey now APPROVES
+    // the research gate (Block 2), which costs one researchAgent call. Consumption:
+    // responsive consumes GATE(4) + APPROVE(7) = 11; vertical-slice consumes
+    // GATE(4) + APPROVE(7) + STORY_REV(5) + prompts/regenerate(1) = 17; total 28
+    // — exact exhaustion.
     // The queue is FIFO and shared by every booted API, so Playwright must run
     // with workers: 1 to keep consumption deterministic (see tests/playwright.config.ts).
     return new FakeProvider([

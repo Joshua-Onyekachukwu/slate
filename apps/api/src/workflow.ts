@@ -9,6 +9,7 @@ import type { Provider } from "@slate/ai";
 // "storyboard"); gate.value is the interrupt payload ("script_review" /
 // "storyboard_review") — see api-design.md "Stage approve / regenerate — exact contract".
 export const GATE_VALUE_BY_STAGE: Record<string, string> = {
+  research: "research_review",
   script: "script_review",
   storyboard: "storyboard_review",
 };

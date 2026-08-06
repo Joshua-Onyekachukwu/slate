@@ -31,6 +31,7 @@ export async function stageRoutes(app: FastifyInstance, deps: AppDeps) {
     const isStoryboard = key === "storyboard";
     const hasContent = row
       ? key === "brief" ? row.brief !== null
+      : key === "research" ? row.researchPacket !== null
       : isStoryboard ? sbLatest !== undefined
       : latest !== undefined
       : false;
@@ -109,6 +110,7 @@ export async function stageRoutes(app: FastifyInstance, deps: AppDeps) {
       content: stage === "script"
         ? { script: latest?.content ?? null, scores: cp.scores ?? null }
         : stage === "brief" ? { brief: row.brief }
+        : stage === "research" ? { research: row.researchPacket }
         : stage === "storyboard" ? { storyboard }
         : { conversation: row.conversation },
     };
