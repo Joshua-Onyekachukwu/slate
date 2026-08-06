@@ -28,18 +28,28 @@ const SCRIPT = '{"title":"The First Three Minutes","hook":"13.8 billion years in
 const SCRIPT_V2 = '{"title":"The First Three Minutes","hook":"Before the first light, there was an idea — and you are its echo.","introduction":"Every atom in you was forged in a star.","body":["The bang.","The stars.","Us."],"conclusion":"We are the universe experiencing itself.","cta":null}';
 const SCORES_LOW = '{"clarity":2,"pacing":2,"engagement":2,"retention":2,"redundancy":2,"notes":["needs a stronger hook"],"overall":2}';
 const SCORES_HIGH = '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redundancy":4,"notes":["stronger hook now"],"overall":4}';
+const CHARACTERS = '[{"id":"char-1","name":"The Narrator","description":"A calm voice guiding the journey"}]';
+const LOCATIONS = '[{"id":"loc-1","name":"The Observable Universe","description":"Vast and dark"}]';
 
 // A script-gate block: one project's journey to the script review gate.
 const GATE_BLOCK = [
   { content: BRIEF }, { content: SCRIPT }, { content: SCORES_LOW },
 ];
-// A storyboard block: approving that project's script consumes storyboardAgent,
-// editorAgent, then promptAgent ×3 (one pack object per scene).
+// A script APPROVE consumes consistency (characterAgent + environmentAgent)
+// THEN the storyboard pass — so a full approve = CONSISTENCY + STORY_BLOCK.
+const CONSISTENCY = [
+  { content: CHARACTERS }, // characterAgent
+  { content: LOCATIONS },  // environmentAgent
+];
+// A storyboard pass: storyboardAgent, editorAgent, then promptAgent ×3 (one
+// pack object per scene). Rejecting a storyboard re-consumes only this block
+// (consistency does NOT re-run on a storyboard retake).
 const STORY_BLOCK = (scenes: unknown[], packs: { content: string }[]) => [
   { content: JSON.stringify(scenes) }, // storyboardAgent
   { content: JSON.stringify(scenes) }, // editorAgent
   ...packs,                            // promptAgent ×3
 ];
+const APPROVE_BLOCK = (scenes: unknown[], packs: { content: string }[]) => [...CONSISTENCY, ...STORY_BLOCK(scenes, packs)];
 
 export function createProvider(): Provider {
   if (process.env.FAKE_PROVIDER === "1") {
@@ -49,28 +59,34 @@ export function createProvider(): Provider {
       // → approve → storyboard gate → REJECT with feedback → storyboard v2
       // ((rev) titles) → approve, without a 500. The script reject loops
       // write_script → review (script + scores); the storyboard reject loops
-      // write_storyboard → prompt_gen (another full STORY_BLOCK).
+      // write_storyboard → prompt_gen (another full STORY_BLOCK). The trailing
+      // pack entry lets a human drive the per-scene prompt regeneration once
+      // (POST .../prompts/regenerate consumes one promptAgent call).
       return new FakeProvider([
         ...GATE_BLOCK,                         // project 1 → script gate (reject here)
         { content: SCRIPT_V2 }, { content: SCORES_HIGH }, // script retake: v2 + 4/5 scores
-        ...STORY_BLOCK(SCENES, PACKS),         // script approved → storyboard gate (v1, plain titles)
+        ...APPROVE_BLOCK(SCENES, PACKS),       // script approved → consistency + storyboard gate (v1, plain titles)
         ...STORY_BLOCK(REV_SCENES, REV_PACKS), // storyboard REJECT → gate v2 ("(rev)" titles)
         ...GATE_BLOCK,                         // project 2 → script gate
-        ...STORY_BLOCK(SCENES, PACKS),         // project 2 approved → storyboard gate
+        ...APPROVE_BLOCK(SCENES, PACKS),       // project 2 approved → consistency + storyboard gate
+        { content: JSON.stringify({ ...PACK(1), imagePrompt: "Demo regenerated pack" }) }, // per-scene prompts/regenerate
       ]);
     }
     // E2E QUEUE (default): two projects — the responsive viewport spec (stops at
-    // the storyboard gate) and the vertical-slice spec (now ALSO drives a
-    // storyboard regenerate: approve script → storyboard gate v1 → reject with
-    // feedback → gate v2 → approve → done, plus a per-scene edit). The queue is
-    // FIFO and shared by every booted API, so Playwright must run with
-    // workers: 1 to keep consumption deterministic (see tests/playwright.config.ts).
+    // the storyboard gate) and the vertical-slice spec (drives script gate →
+    // approve → storyboard v1 → reject → v2 → per-scene EDIT → per-scene
+    // PROMPT REGENERATE → approve → done). Consumption: responsive consumes
+    // GATE(3) + APPROVE(7) = 10; vertical-slice consumes GATE(3) + APPROVE(7)
+    // + STORY_REV(5) + prompts/regenerate(1) = 16; total 26 — exact exhaustion.
+    // The queue is FIFO and shared by every booted API, so Playwright must run
+    // with workers: 1 to keep consumption deterministic (see tests/playwright.config.ts).
     return new FakeProvider([
       ...GATE_BLOCK,                    // project 1 → script gate
-      ...STORY_BLOCK(SCENES, PACKS),    // project 1 script approved → storyboard gate
+      ...APPROVE_BLOCK(SCENES, PACKS),  // project 1 script approved → consistency + storyboard gate
       ...GATE_BLOCK,                    // project 2 → script gate
-      ...STORY_BLOCK(SCENES, PACKS),    // project 2 script approved → storyboard gate v1
+      ...APPROVE_BLOCK(SCENES, PACKS),  // project 2 script approved → consistency + storyboard gate v1
       ...STORY_BLOCK(REV_SCENES, REV_PACKS), // project 2 storyboard REJECT → gate v2
+      { content: JSON.stringify({ ...PACK(1), imagePrompt: "Regenerated pack for scene 1" }) }, // per-scene prompts/regenerate
     ]);
   }
   const apiKey = process.env.NVIDIA_API_KEY;

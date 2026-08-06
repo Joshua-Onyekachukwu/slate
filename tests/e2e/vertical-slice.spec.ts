@@ -73,9 +73,27 @@ test("idea → script gate → storyboard gate (regenerate + edit) → approve (
   // regenerate's v1 → v2).
   await expect(page.getByText(/scenes · sb v3/i)).toBeVisible();
 
+  // Per-scene PROMPT regeneration through the real UI: the edit nulled scene 1's
+  // pack ("Prompt pack queued."), so regenerate just that pack from the Advanced
+  // panel → whole-storyboard version bump (v4) with the fresh pack restored.
+  // This is ALSO the regression guard for the POST preflight (same class as the
+  // PUT CORS fix — POST is allowed by default, but the version-rows round-trip
+  // and response-replaces-state wiring are the real assertions).
+  await page.getByRole("button", { name: /advanced — prompt packs/i }).click();
+  await expect(page.getByText(/prompt pack queued/i)).toBeVisible();
+  await page.getByRole("button", { name: /regenerate prompts for scene 1/i }).click();
+  await expect(page.getByText(/regenerated pack for scene 1/i)).toBeVisible();
+  await expect(page.getByText(/scenes · sb v4/i)).toBeVisible();
+
   // Approve the storyboard → production plan locked (done).
   await page.getByRole("button", { name: /approve & continue/i }).click();
   await expect(page.getByText(/production plan locked/i)).toBeVisible();
+
+  // The crew sheet renders the consistency records extracted after script
+  // approval (queue: CHARACTERS/LOCATIONS) — the done view's source of truth.
+  await expect(page.getByText(/crew sheet — consistency/i)).toBeVisible();
+  await expect(page.getByText(/the narrator/i)).toBeVisible();
+  await expect(page.getByText(/the observable universe/i)).toBeVisible();
 
   // Definition of done: no console/page errors anywhere in the flow.
   expect(errors).toEqual([]);

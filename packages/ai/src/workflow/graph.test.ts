@@ -84,6 +84,8 @@ describe("workflow happy path", () => {
       { content: '{"kind":"brief","brief":{"topic":"universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}' },
       { content: '{"title":"T","hook":"H","introduction":"I","body":["B1"],"conclusion":"C","cta":null}' },
       { content: '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redundancy":4,"notes":[],"overall":4}' },
+      { content: '[{"id":"char-1","name":"The Narrator","description":"A calm voice"}]' }, // characterAgent
+      { content: '[{"id":"loc-1","name":"The Observable Universe","description":"Vast"}]' },   // environmentAgent
       { content: JSON.stringify([SCENE]) },     // storyboardAgent
       { content: JSON.stringify([SCENE]) },     // editorAgent (same scenes, transition/music filled)
       { content: JSON.stringify(PROMPT_PACK) }, // promptAgent
@@ -107,6 +109,37 @@ describe("workflow happy path", () => {
     const state = await graph.getState({ configurable: { thread_id: "p1" } });
     expect(state.values.stage).toBe("done");
   });
+
+  it("runs the consistency node on script approve: characters + locations land in state and reach the prompt agent", async () => {
+    const p = new FakeProvider([
+      { content: '{"kind":"brief","brief":{"topic":"universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}' },
+      { content: '{"title":"T","hook":"H","introduction":"I","body":["B1"],"conclusion":"C","cta":null}' },
+      { content: '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redundancy":4,"notes":[],"overall":4}' },
+      { content: '[{"id":"char-1","name":"The Narrator","description":"A calm voice guiding the journey"}]' }, // characterAgent
+      { content: '[{"id":"loc-1","name":"The Observable Universe","description":"Vast and dark"}]' },           // environmentAgent
+      { content: JSON.stringify([SCENE]) },     // storyboardAgent (receives the records)
+      { content: JSON.stringify([SCENE]) },     // editorAgent
+      { content: JSON.stringify(PROMPT_PACK) }, // promptAgent
+    ]);
+    const graph = buildWorkflow(p, fakeDeps(), checkpointer);
+    const threadId = "p-consistency";
+    await graph.invoke({ projectId: threadId }, { configurable: { thread_id: threadId } });
+    await resumeWorkflow(graph, threadId, { approved: true }); // script approve → consistency + storyboard pass
+
+    const atGate = await graph.getState({ configurable: { thread_id: threadId } });
+    // Consistency records on the state channels (persisted by saveProject).
+    expect(atGate.values.characters).toEqual([{ id: "char-1", name: "The Narrator", description: "A calm voice guiding the journey" }]);
+    expect(atGate.values.locations).toEqual([{ id: "loc-1", name: "The Observable Universe", description: "Vast and dark" }]);
+    // The storyboard agent's prompt must carry the records (lastInput is the
+    // final call — promptAgent — whose content embeds Characters + Locations).
+    const last = p.lastInput.messages[p.lastInput.messages.length - 1].content;
+    expect(last).toContain("The Narrator");
+    expect(last).toContain("The Observable Universe");
+
+    await resumeWorkflow(graph, threadId, { approved: true }); // approve storyboard → done
+    const state = await graph.getState({ configurable: { thread_id: threadId } });
+    expect(state.values.stage).toBe("done");
+  });
 });
 
 describe("workflow reject loop", () => {
@@ -127,6 +160,8 @@ describe("workflow reject loop", () => {
       { content: '{"clarity":2,"pacing":2,"engagement":2,"retention":2,"redundancy":2,"notes":["weak hook"],"overall":2}' },
       { content: '{"title":"T2","hook":"H2","introduction":"I2","body":["B2"],"conclusion":"C2","cta":null}' },
       { content: '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redundancy":4,"notes":[],"overall":4}' },
+      { content: '[{"id":"char-1","name":"The Narrator","description":"A calm voice"}]' }, // characterAgent
+      { content: '[{"id":"loc-1","name":"The Universe","description":"Vast"}]' },           // environmentAgent
       { content: JSON.stringify([SCENE]) },     // storyboardAgent
       { content: JSON.stringify([SCENE]) },     // editorAgent
       { content: JSON.stringify(PROMPT_PACK) }, // promptAgent
@@ -159,6 +194,8 @@ describe("workflow storyboard flow", () => {
       { content: '{"kind":"brief","brief":{"topic":"universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}' },
       { content: '{"title":"T","hook":"H","introduction":"I","body":["B1"],"conclusion":"C","cta":null}' },
       { content: '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redundancy":4,"notes":[],"overall":4}' },
+      { content: '[{"id":"char-1","name":"The Narrator","description":"A calm voice"}]' }, // characterAgent
+      { content: '[{"id":"loc-1","name":"The Universe","description":"Vast"}]' },           // environmentAgent
       { content: JSON.stringify([SCENE]) },     // storyboardAgent
       { content: JSON.stringify([SCENE]) },     // editorAgent
       { content: JSON.stringify(PROMPT_PACK) }, // promptAgent
@@ -187,6 +224,8 @@ describe("workflow storyboard flow", () => {
       { content: '{"kind":"brief","brief":{"topic":"universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}' },
       { content: '{"title":"T","hook":"H","introduction":"I","body":["B1"],"conclusion":"C","cta":null}' },
       { content: '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redundancy":4,"notes":[],"overall":4}' },
+      { content: '[{"id":"char-1","name":"The Narrator","description":"A calm voice"}]' }, // characterAgent
+      { content: '[{"id":"loc-1","name":"The Universe","description":"Vast"}]' },           // environmentAgent
       { content: JSON.stringify([{ ...SCENE, title: "The Bang" }]) },  // storyboardAgent v1
       { content: JSON.stringify([{ ...SCENE, title: "The Bang" }]) },  // editorAgent v1
       { content: JSON.stringify(PROMPT_PACK) },                         // promptAgent v1

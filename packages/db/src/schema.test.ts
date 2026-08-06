@@ -25,6 +25,8 @@ describe("db schema", () => {
         conversation text NOT NULL DEFAULT '[]',
         brief text,
         brief_history text NOT NULL DEFAULT '[]',
+        characters text NOT NULL DEFAULT '[]',
+        locations text NOT NULL DEFAULT '[]',
         created_at integer NOT NULL DEFAULT (unixepoch()),
         updated_at integer NOT NULL DEFAULT (unixepoch())
       );
@@ -69,6 +71,22 @@ describe("db schema", () => {
     expect(got[0].idea).toBe(row.idea);
     expect(got[0].stage).toBe("discovery"); // default applied
     expect(got[0].conversation).toEqual([]); // json mode round-trips
+  });
+
+  it("stores consistency records (characters + locations) as json on the project row", async () => {
+    const id = crypto.randomUUID();
+    const characters = [{ id: "char-1", name: "The Narrator", description: "A calm voice" }];
+    const locations = [{ id: "loc-1", name: "The Observable Universe", description: "Vast and dark" }];
+    await db.insert(projects).values({ id, idea: "x", characters, locations });
+    const [row] = await db.select().from(projects).where(sql`id = ${id}`);
+    expect(row.characters).toEqual(characters); // json mode round-trips
+    expect(row.locations).toEqual(locations);
+    // Defaults apply when omitted.
+    const bare = crypto.randomUUID();
+    await db.insert(projects).values({ id: bare, idea: "y" });
+    const [bareRow] = await db.select().from(projects).where(sql`id = ${bare}`);
+    expect(bareRow.characters).toEqual([]);
+    expect(bareRow.locations).toEqual([]);
   });
 
   it("defaults owner_id to 'local' (slice mode) and accepts an explicit owner", async () => {

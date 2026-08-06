@@ -14,6 +14,9 @@ export interface ProjectRow {
   status: string;
   brief: unknown;
   conversation: { role: "user" | "assistant"; content: string; at: string }[];
+  // Consistency records (crew sheet) — persisted after script approval.
+  characters: CharacterRecord[];
+  locations: LocationRecord[];
   updatedAt: string;
   createdAt: string;
 }
@@ -72,15 +75,29 @@ export interface StoryboardView {
   scenes: StoryboardScene[];
 }
 
+export interface CharacterRecord {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface LocationRecord {
+  id: string;
+  name: string;
+  description: string;
+}
+
 interface ApiErrorBody {
   error: { code: string; message: string; details: Record<string, unknown> };
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
-  });
+  // Only send content-type when there's a body: Fastify rejects an empty body
+  // with content-type set ("Body cannot be empty") — e.g. the body-less
+  // POST .../prompts/regenerate. GETs don't send it either.
+  const hasBody = init?.body !== undefined && init.body !== null;
+  const headers = hasBody ? { "content-type": "application/json", ...(init?.headers ?? {}) } : init?.headers;
+  const res = await fetch(`${API_URL}${path}`, { ...init, headers });
   const body = (await res.json().catch(() => ({}))) as T & ApiErrorBody;
   if (!res.ok) {
     const err = new Error(body.error?.message ?? `API ${res.status}`);
@@ -133,5 +150,13 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ content }),
     });
+  },
+  // Per-scene prompt regeneration → same contract: the response replaces local
+  // state (whole-storyboard version bump = new scene ids).
+  regenerateScenePrompts(projectId: string, sceneId: string) {
+    return request<{ storyboard: StoryboardView }>(
+      `/api/v1/projects/${projectId}/scenes/${sceneId}/prompts/regenerate`,
+      { method: "POST" },
+    );
   },
 };

@@ -160,6 +160,22 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
     }
   };
 
+  // Per-scene prompt regeneration: fresh pack via promptAgent (threaded with
+  // the project's characters/locations), saved as new version rows. Same
+  // response-replaces-state rule as edit/reorder.
+  const regeneratePack = async (sceneId: string) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await api.regenerateScenePrompts(projectId, sceneId);
+      setSb(res.storyboard); // canonical version rows from the server
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const scores = detail?.content.scores ?? null;
   const script = detail?.content.script ?? null;
   const current = stageIndex(stage);
@@ -313,7 +329,17 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                           <div className="plan-section">
                             {sb.scenes.map((sc, i) => (
                               <div className="crew-card" key={sc.id} style={{ marginBottom: 10 }}>
-                                <div className="k">SC {String(sc.order).padStart(2, "0")} · {sc.content.title}</div>
+                                <div className="k" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                  <span>SC {String(sc.order).padStart(2, "0")} · {sc.content.title}</span>
+                                  <button
+                                    className="mini-btn"
+                                    disabled={busy}
+                                    onClick={() => regeneratePack(sc.id)}
+                                    aria-label={`Regenerate prompts for scene ${sc.order}`}
+                                  >
+                                    {busy ? "Working…" : "Regenerate pack"}
+                                  </button>
+                                </div>
                                 {sc.promptPack ? (
                                   <div className="v">
                                     {PACK_TABS.map((t) => (
@@ -341,6 +367,40 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                                 <span className="ds">{sc.content.transition} · {sc.content.musicCue}</span>
                               </div>
                             ))}
+                          </div>
+                        )}
+
+                        {done && (
+                          <div className="plan-section">
+                            <h3>Crew sheet — consistency</h3>
+                            <div className="crew-grid">
+                              <div>
+                                <div className="k">CAST</div>
+                                {project?.characters?.length ? (
+                                  project.characters.map((c) => (
+                                    <div className="crew-row" key={c.id}>
+                                      <b style={{ color: "var(--paper)" }}>{c.name}</b>
+                                      <span style={{ color: "var(--ash)", fontSize: 12 }}>{c.description}</span>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="v">No characters extracted.</div>
+                                )}
+                              </div>
+                              <div>
+                                <div className="k">LOCATIONS</div>
+                                {project?.locations?.length ? (
+                                  project.locations.map((l) => (
+                                    <div className="crew-row" key={l.id}>
+                                      <b style={{ color: "var(--paper)" }}>{l.name}</b>
+                                      <span style={{ color: "var(--ash)", fontSize: 12 }}>{l.description}</span>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="v">No locations extracted.</div>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         )}
                       </>

@@ -2294,3 +2294,33 @@ button {
 .slate-line.editing {
   cursor: default;
 }
+
+/* Crew sheet — consistency records (cast + locations) in the production plan. */
+.crew-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.crew-grid .k {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ash);
+  margin-bottom: 8px;
+}
+.crew-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0;
+  border-top: 1px dashed var(--line-paper);
+}
+.crew-row:first-of-type {
+  border-top: none;
+}
+@media (max-width: 640px) {
+  .crew-grid {
+    grid-template-columns: 1fr;
+  }
+}

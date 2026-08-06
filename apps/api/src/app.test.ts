@@ -12,9 +12,17 @@ const SCORES_HIGH = '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redun
 const SCORES_LOW = '{"clarity":2,"pacing":2,"engagement":2,"retention":2,"redundancy":2,"notes":["weak hook"],"overall":2}';
 const SCENE = { title: "The Bang", narration: "n", visualDescription: "v", cameraDirection: "c", durationSeconds: 8, transition: "CUT", musicCue: "m" };
 const PACK = { imagePrompt: "i", videoPrompt: "v", narrationPrompt: "n", musicPrompt: "m", sfxPrompt: "s" };
-// The storyboard pass costs 2 + n provider calls: storyboardAgent, editorAgent,
-// then promptAgent ONCE PER SCENE (each returns a single PromptPack object).
+const CHARACTERS = '[{"id":"char-1","name":"The Narrator","description":"A calm voice"}]';
+const LOCATIONS = '[{"id":"loc-1","name":"The Universe","description":"Vast"}]';
+// A script APPROVE costs 2 + 2 + n provider calls: consistency first
+// (characterAgent + environmentAgent), then storyboardAgent, editorAgent, and
+// promptAgent ONCE PER SCENE (each returns a single PromptPack object).
+const CONSISTENCY = [
+  { content: CHARACTERS }, // characterAgent
+  { content: LOCATIONS },  // environmentAgent
+];
 const STORY_PASS = (n = 2) => [
+  ...CONSISTENCY,
   { content: JSON.stringify(Array.from({ length: n }, (_, i) => ({ ...SCENE, title: `SC ${i + 1}` }))) }, // storyboardAgent
   { content: JSON.stringify(Array.from({ length: n }, (_, i) => ({ ...SCENE, title: `SC ${i + 1}` }))) }, // editorAgent
   ...Array.from({ length: n }, () => ({ content: JSON.stringify(PACK) })),                                 // promptAgent ×n
@@ -290,6 +298,98 @@ describe("api", () => {
     const madeUp = await app.inject({
       method: "PUT", url: `/api/v1/projects/${id}/scenes/not-a-real-scene`,
       payload: { content: { title: "x" } },
+    });
+    expect(madeUp.statusCode).toBe(404);
+  });
+
+  it("regenerates a scene's prompt pack → new storyboard version with the fresh pack, others preserved", async () => {
+    const REGEN_PACK = { imagePrompt: "regenerated i", videoPrompt: "v", narrationPrompt: "n", musicPrompt: "m", sfxPrompt: "s" };
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+      { content: JSON.stringify(REGEN_PACK) }, // promptAgent for the regenerate call
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
+
+    const before = (await app.inject({ method: "GET", url: `/api/v1/projects/${id}/storyboard` })).json().storyboard;
+    const target = before.scenes[0];
+    const other = before.scenes[1];
+    expect(before.version).toBe(1);
+
+    const res = await app.inject({
+      method: "POST", url: `/api/v1/projects/${id}/scenes/${target.id}/prompts/regenerate`,
+    });
+    expect(res.statusCode).toBe(200);
+    const after = res.json().storyboard;
+    expect(after.version).toBe(2); // whole-storyboard version bump (version-rows model)
+    expect(after.scenes).toHaveLength(2);
+    const regenRow = after.scenes.find((s: { order: number }) => s.order === target.order);
+    expect(regenRow.promptPack.imagePrompt).toBe("regenerated i"); // fresh pack from promptAgent
+    expect(regenRow.content.title).toBe(target.content.title); // content untouched
+    const otherRow = after.scenes.find((s: { order: number }) => s.order === other.order);
+    expect(otherRow.promptPack).not.toBeNull(); // other scenes' packs carried
+    expect(otherRow.promptPack.imagePrompt).toBe("i");
+  });
+
+  it("regenerating a pack fills an edited scene's nulled pack (edit → regenerate round-trip)", async () => {
+    const REGEN_PACK = { imagePrompt: "refilled after edit", videoPrompt: "v", narrationPrompt: "n", musicPrompt: "m", sfxPrompt: "s" };
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+      { content: JSON.stringify(REGEN_PACK) }, // promptAgent for the regenerate call
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
+
+    // Edit scene 1 → its pack is nulled (content changed).
+    const before = (await app.inject({ method: "GET", url: `/api/v1/projects/${id}/storyboard` })).json().storyboard;
+    const target = before.scenes[0];
+    const edited = { ...target.content, narration: "edited narration" };
+    const editRes = await app.inject({
+      method: "PUT", url: `/api/v1/projects/${id}/scenes/${target.id}`,
+      payload: { content: edited },
+    });
+    const afterEdit = editRes.json().storyboard;
+    const editedRow = afterEdit.scenes.find((s: { order: number }) => s.order === target.order);
+    expect(editedRow.promptPack).toBeNull(); // "Prompt pack queued." in the UI
+
+    // Regenerate just that scene's pack → the new row carries the fresh pack.
+    const res = await app.inject({
+      method: "POST", url: `/api/v1/projects/${id}/scenes/${editedRow.id}/prompts/regenerate`,
+    });
+    expect(res.statusCode).toBe(200);
+    const after = res.json().storyboard;
+    const regenRow = after.scenes.find((s: { order: number }) => s.order === target.order);
+    expect(regenRow.promptPack.imagePrompt).toBe("refilled after edit");
+    expect(regenRow.content.narration).toBe("edited narration"); // edit survived
+  });
+
+  it("404s prompt regeneration for a missing project (owner-gated route)", async () => {
+    const app = buildApp({ provider: new FakeProvider([]), checkpointer });
+    const res = await app.inject({
+      method: "POST", url: "/api/v1/projects/nope/scenes/x/prompts/regenerate",
+    });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().error.code).toBe("NOT_FOUND");
+  });
+
+  it("409s prompt regeneration before the storyboard exists; 404s a made-up scene", async () => {
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+    // No storyboard yet → 409.
+    const early = await app.inject({
+      method: "POST", url: `/api/v1/projects/${id}/scenes/nope/prompts/regenerate`,
+    });
+    expect(early.statusCode).toBe(409);
+
+    // With a storyboard, a scene id that doesn't exist → 404.
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
+    const madeUp = await app.inject({
+      method: "POST", url: `/api/v1/projects/${id}/scenes/not-a-real-scene/prompts/regenerate`,
     });
     expect(madeUp.statusCode).toBe(404);
   });

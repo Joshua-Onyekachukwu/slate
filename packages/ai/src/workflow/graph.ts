@@ -1,6 +1,6 @@
 import { StateGraph, START, END, interrupt, BaseCheckpointSaver } from "@langchain/langgraph";
 import { WorkflowState } from "./state";
-import { planningAgent, scriptAgent, reviewerAgent, storyboardAgent, editorAgent, promptAgent } from "../agents";
+import { planningAgent, scriptAgent, reviewerAgent, storyboardAgent, editorAgent, promptAgent, characterAgent, environmentAgent } from "../agents";
 import type { Provider, ChatMessage } from "../providers/types";
 import type { Brief, ScriptContent, SceneContent, PromptPack } from "@slate/shared";
 
@@ -62,12 +62,24 @@ export function buildWorkflow(provider: Provider, deps: WorkflowDeps, checkpoint
       // write_storyboard overwrites stage with "storyboard" immediately after.
       return { scriptApproved: true };
     })
+    // Consistency: after the script is approved, extract stable characters and
+    // locations once, persist them on the project (crew sheet source of truth),
+    // and carry them on the state so storyboard + prompt agents keep continuity.
+    .addNode("consistency", async (state) => {
+      const brief = state.brief as Brief;
+      const script = state.script as ScriptContent;
+      const characters = await characterAgent(provider, brief, script);
+      const locations = await environmentAgent(provider, brief, script);
+      await deps.saveProject(state.projectId, { characters, locations });
+      return { characters, locations };
+    })
     // Node name can't be "storyboard" — it collides with the storyboard state
     // channel (same reason the script node is "write_script").
     .addNode("write_storyboard", async (state) => {
       // Storyboard → Editor (per-scene transition/music) run back-to-back as one
       // production pass; the edited scenes are what get saved and reviewed.
-      const scenes = await storyboardAgent(provider, state.script as ScriptContent, [], [], state.feedback);
+      // The consistency records flow in here so scenes stay on-cast/on-location.
+      const scenes = await storyboardAgent(provider, state.script as ScriptContent, state.characters, state.locations, state.feedback);
       const edited = await editorAgent(provider, scenes);
       await deps.saveStoryboard(state.projectId, edited);
       return { stage: "storyboard", storyboard: edited, feedback: undefined };
@@ -75,7 +87,7 @@ export function buildWorkflow(provider: Provider, deps: WorkflowDeps, checkpoint
     .addNode("prompt_gen", async (state) => {
       const packs: PromptPack[] = [];
       for (const scene of state.storyboard ?? []) {
-        packs.push(await promptAgent(provider, scene, [], []));
+        packs.push(await promptAgent(provider, scene, state.characters, state.locations));
       }
       await deps.savePromptPacks(state.projectId, packs);
       return { promptPacks: packs };
@@ -91,7 +103,8 @@ export function buildWorkflow(provider: Provider, deps: WorkflowDeps, checkpoint
     .addConditionalEdges("discovery", (s) => (s.brief ? "write_script" : "discovery"))
     .addEdge("write_script", "review")
     .addEdge("review", "script_gate")
-    .addConditionalEdges("script_gate", (s) => (s.scriptApproved ? "write_storyboard" : "write_script"))
+    .addConditionalEdges("script_gate", (s) => (s.scriptApproved ? "consistency" : "write_script"))
+    .addEdge("consistency", "write_storyboard")
     .addEdge("write_storyboard", "prompt_gen")
     .addEdge("prompt_gen", "storyboard_gate")
     .addConditionalEdges("storyboard_gate", (s) => (s.stage === "done" ? END : "write_storyboard"))

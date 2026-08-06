@@ -50,6 +50,8 @@ describe("interrupt persistence", () => {
     // their state (script content) must survive in the checkpoint for the
     // storyboard pass to produce scenes; an empty queue here would throw loudly.
     const g2 = buildWorkflow(new FakeProvider([
+      { content: '[{"id":"char-1","name":"The Narrator","description":"A calm voice"}]' }, // characterAgent
+      { content: '[{"id":"loc-1","name":"The Universe","description":"Vast"}]' },           // environmentAgent
       { content: JSON.stringify([{ title: "The Bang", narration: "n", visualDescription: "v", cameraDirection: "c", durationSeconds: 8, transition: "CUT", musicCue: "m" }]) }, // storyboardAgent
       { content: JSON.stringify([{ title: "The Bang", narration: "n", visualDescription: "v", cameraDirection: "c", durationSeconds: 8, transition: "CUT", musicCue: "m" }]) }, // editorAgent
       { content: JSON.stringify({ imagePrompt: "i", videoPrompt: "v", narrationPrompt: "n", musicPrompt: "m", sfxPrompt: "s" }) }, // promptAgent

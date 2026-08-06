@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, uniqueIndex, index } from "drizzle-orm/sqlite-core";
-import type { Brief, ScriptContent, ReviewScores, SceneContent, PromptPack } from "@slate/shared";
+import type { Brief, ScriptContent, ReviewScores, SceneContent, PromptPack, Character, Location } from "@slate/shared";
 
 // Vertical slice (ADR-024): sqlite dialect, single-user, no auth.
 // SQLite mapping per ADR-014: uuid → text PK, jsonb → text with { mode: "json" },
@@ -21,6 +21,11 @@ export const projects = sqliteTable(
     ownerId: text("owner_id").notNull().default("local"),
   conversation: text("conversation", { mode: "json" }).notNull().$type<{ role: "user" | "assistant"; content: string; at: string }[]>().default([]),
   brief: text("brief", { mode: "json" }).$type<Brief>(),
+  // Consistency records (ADR-022 crew sheet): extracted after script approval,
+  // carried on the project so storyboard/prompt agents and the crew sheet read
+  // the same source of truth.
+  characters: text("characters", { mode: "json" }).notNull().$type<Character[]>().default([]),
+  locations: text("locations", { mode: "json" }).notNull().$type<Location[]>().default([]),
   briefHistory: text("brief_history", { mode: "json" }).notNull().$type<unknown[]>().default([]),    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().defaultNow(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().defaultNow(),
   },
