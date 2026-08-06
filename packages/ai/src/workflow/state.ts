@@ -1,13 +1,17 @@
 import { Annotation } from "@langchain/langgraph";
-import type { Brief, ScriptContent, ReviewScores, SceneContent, PromptPack, Character, Location } from "@slate/shared";
+import type { Brief, ScriptContent, ReviewScores, SceneContent, PromptPack, Character, Location, ResearchPacket } from "@slate/shared";
 
 export const WorkflowState = Annotation.Root({
   projectId: Annotation<string>({ reducer: (_, b) => b }),
   stage: Annotation<string>({ reducer: (_, b) => b }),
   brief: Annotation<Brief | null>({ reducer: (_, b) => b, default: () => null }),
+  researchPacket: Annotation<ResearchPacket | null>({ reducer: (_, b) => b, default: () => null }),
   script: Annotation<ScriptContent | null>({ reducer: (_, b) => b, default: () => null }),
   scores: Annotation<ReviewScores | null>({ reducer: (_, b) => b, default: () => null }),
   feedback: Annotation<string | undefined>({ reducer: (_, b) => b, default: () => undefined }),
+  // Routing signal: set by the RESEARCH gate on approve (mirrors scriptApproved
+  // — research approve routes to write_script; reject loops back to research).
+  researchApproved: Annotation<boolean>({ reducer: (_, b) => b, default: () => false }),
   // Routing signal: set by the script gate on approve. Keeps the stage value
   // clean (no premature "done" between the gate and write_storyboard — a crash
   // in that window would otherwise leave a "done" checkpoint with no storyboard).

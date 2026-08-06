@@ -1,6 +1,6 @@
 import { StateGraph, START, END, interrupt, BaseCheckpointSaver } from "@langchain/langgraph";
 import { WorkflowState } from "./state";
-import { planningAgent, scriptAgent, reviewerAgent, storyboardAgent, editorAgent, promptAgent, characterAgent, environmentAgent } from "../agents";
+import { planningAgent, researchAgent, scriptAgent, reviewerAgent, storyboardAgent, editorAgent, promptAgent, characterAgent, environmentAgent } from "../agents";
 import type { Provider, ChatMessage } from "../providers/types";
 import type { Brief, ScriptContent, SceneContent, PromptPack } from "@slate/shared";
 
@@ -40,6 +40,23 @@ export function buildWorkflow(provider: Provider, deps: WorkflowDeps, checkpoint
       }
       await deps.saveProject(state.projectId, { brief: result.brief, stage: "brief" });
       return { stage: "brief", brief: result.brief };
+    })
+    // Research (Block 2): after the brief, produce the factual packet and pause
+    // at a human gate before the script is written (plan topology: discovery →
+    // brief → research → research_gate → script → ...). Rejecting loops back
+    // here with feedback; the packet is overwritten on the project row.
+    .addNode("research", async (state) => {
+      const packet = await researchAgent(provider, state.brief as Brief, state.feedback);
+      await deps.saveProject(state.projectId, { researchPacket: packet, researchStatus: "draft" });
+      return { stage: "research", researchPacket: packet, feedback: undefined };
+    })
+    .addNode("research_gate", async (state) => {
+      const decision = interrupt<string, { approved: boolean; feedback?: string }>("research_review");
+      if (!decision?.approved) {
+        return { feedback: decision?.feedback ?? "revise", stage: "research" };
+      }
+      await deps.saveProject(state.projectId, { researchStatus: "approved" });
+      return { researchApproved: true };
     })
     // Node name can't be "script" — it collides with the `script` state channel.
     .addNode("write_script", async (state) => {
@@ -100,7 +117,9 @@ export function buildWorkflow(provider: Provider, deps: WorkflowDeps, checkpoint
       return { stage: "done" };
     })
     .addEdge(START, "discovery")
-    .addConditionalEdges("discovery", (s) => (s.brief ? "write_script" : "discovery"))
+    .addConditionalEdges("discovery", (s) => (s.brief ? "research" : "discovery"))
+    .addEdge("research", "research_gate")
+    .addConditionalEdges("research_gate", (s) => (s.researchApproved ? "write_script" : "research"))
     .addEdge("write_script", "review")
     .addEdge("review", "script_gate")
     .addConditionalEdges("script_gate", (s) => (s.scriptApproved ? "consistency" : "write_script"))

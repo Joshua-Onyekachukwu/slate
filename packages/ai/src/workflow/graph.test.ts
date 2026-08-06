@@ -18,6 +18,8 @@ const SCENE = {
   durationSeconds: 8, transition: "CUT", musicCue: "m",
 };
 const PROMPT_PACK = { imagePrompt: "i", videoPrompt: "v", narrationPrompt: "n", musicPrompt: "m", sfxPrompt: "s" };
+const RESEARCH = '{"timeline":["13.8 bya: Big Bang"],"concepts":["cosmic inflation"],"terminology":{},"references":["NASA"],"keyEvents":["First stars ignite"]}';
+const RESEARCH_V2 = '{"timeline":["13.8 bya: Big Bang","4.5 bya: Earth forms"],"concepts":["cosmic inflation"],"terminology":{},"references":["NASA","ESA"],"keyEvents":["First stars ignite"]}';
 
 const fakeDeps = (): WorkflowDeps => ({
   getProject: async (id: string) => ({
@@ -82,6 +84,7 @@ describe("workflow happy path", () => {
   it("runs discovery→brief→script→review→storyboard→prompts, pausing at each gate", async () => {
     const p = new FakeProvider([
       { content: '{"kind":"brief","brief":{"topic":"universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}' },
+      { content: RESEARCH }, // researchAgent
       { content: '{"title":"T","hook":"H","introduction":"I","body":["B1"],"conclusion":"C","cta":null}' },
       { content: '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redundancy":4,"notes":[],"overall":4}' },
       { content: '[{"id":"char-1","name":"The Narrator","description":"A calm voice"}]' }, // characterAgent
@@ -92,12 +95,13 @@ describe("workflow happy path", () => {
     ]);
     const graph = buildWorkflow(p, fakeDeps(), checkpointer);
     await graph.invoke({ projectId: "p1" }, { configurable: { thread_id: "p1" } });
-    // Graph pauses at the script gate.
+    // Graph pauses at the RESEARCH gate.
     const paused = await graph.getState({ configurable: { thread_id: "p1" } });
     const pendingInterrupts = (paused.tasks ?? []).flatMap((t: { interrupts?: unknown[] }) => t.interrupts ?? []);
     expect(pendingInterrupts.length).toBeGreaterThan(0);
-    // Approve script → storyboard + prompts → storyboard gate.
-    await resumeWorkflow(graph, "p1", { approved: true });
+    // Approve research → script → review → script gate; approve script → storyboard + prompts.
+    await resumeWorkflow(graph, "p1", { approved: true }); // research approved
+    await resumeWorkflow(graph, "p1", { approved: true }); // script approved
     const atStoryboard = await graph.getState({ configurable: { thread_id: "p1" } });
     expect(atStoryboard.values.stage).toBe("storyboard");
     const sbInterrupts = (atStoryboard.tasks ?? []).flatMap((t: { interrupts?: { value?: unknown }[] }) =>
@@ -113,6 +117,7 @@ describe("workflow happy path", () => {
   it("runs the consistency node on script approve: characters + locations land in state and reach the prompt agent", async () => {
     const p = new FakeProvider([
       { content: '{"kind":"brief","brief":{"topic":"universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}' },
+      { content: RESEARCH }, // researchAgent
       { content: '{"title":"T","hook":"H","introduction":"I","body":["B1"],"conclusion":"C","cta":null}' },
       { content: '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redundancy":4,"notes":[],"overall":4}' },
       { content: '[{"id":"char-1","name":"The Narrator","description":"A calm voice guiding the journey"}]' }, // characterAgent
@@ -124,6 +129,7 @@ describe("workflow happy path", () => {
     const graph = buildWorkflow(p, fakeDeps(), checkpointer);
     const threadId = "p-consistency";
     await graph.invoke({ projectId: threadId }, { configurable: { thread_id: threadId } });
+    await resumeWorkflow(graph, threadId, { approved: true }); // research approve → script + review
     await resumeWorkflow(graph, threadId, { approved: true }); // script approve → consistency + storyboard pass
 
     const atGate = await graph.getState({ configurable: { thread_id: threadId } });
@@ -156,6 +162,7 @@ describe("workflow reject loop", () => {
   it("rejects the script, regenerates with feedback, then approves to done", async () => {
     const p = new FakeProvider([
       { content: '{"kind":"brief","brief":{"topic":"universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}' },
+      { content: RESEARCH }, // researchAgent
       { content: '{"title":"T","hook":"H","introduction":"I","body":["B1"],"conclusion":"C","cta":null}' },
       { content: '{"clarity":2,"pacing":2,"engagement":2,"retention":2,"redundancy":2,"notes":["weak hook"],"overall":2}' },
       { content: '{"title":"T2","hook":"H2","introduction":"I2","body":["B2"],"conclusion":"C2","cta":null}' },
@@ -168,7 +175,8 @@ describe("workflow reject loop", () => {
     ]);
     const graph = buildWorkflow(p, fakeDeps(), checkpointer);
     const threadId = "p-reject";
-    await graph.invoke({ projectId: threadId }, { configurable: { thread_id: threadId } }); // → script gate (low scores)
+    await graph.invoke({ projectId: threadId }, { configurable: { thread_id: threadId } }); // → research gate
+    await resumeWorkflow(graph, threadId, { approved: true }); // research approve → script gate (low scores)
     await resumeWorkflow(graph, threadId, { approved: false, feedback: "fix the hook" }); // reject → regenerate script → review → script gate
     await resumeWorkflow(graph, threadId, { approved: true }); // approve script → storyboard gate
     await resumeWorkflow(graph, threadId, { approved: true }); // approve storyboard → done
@@ -192,6 +200,7 @@ describe("workflow storyboard flow", () => {
     // Queue: brief, script, scores, storyboard (1 scene), prompt for that scene.
     const p = new FakeProvider([
       { content: '{"kind":"brief","brief":{"topic":"universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}' },
+      { content: RESEARCH }, // researchAgent
       { content: '{"title":"T","hook":"H","introduction":"I","body":["B1"],"conclusion":"C","cta":null}' },
       { content: '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redundancy":4,"notes":[],"overall":4}' },
       { content: '[{"id":"char-1","name":"The Narrator","description":"A calm voice"}]' }, // characterAgent
@@ -202,7 +211,8 @@ describe("workflow storyboard flow", () => {
     ]);
     const graph = buildWorkflow(p, fakeDeps(), checkpointer);
     const threadId = "p-story";
-    await graph.invoke({ projectId: threadId }, { configurable: { thread_id: threadId } }); // → script gate
+    await graph.invoke({ projectId: threadId }, { configurable: { thread_id: threadId } }); // → research gate
+    await resumeWorkflow(graph, threadId, { approved: true }); // research approve → script gate
     await resumeWorkflow(graph, threadId, { approved: true }); // approve script → storyboard → prompts
     const paused = await graph.getState({ configurable: { thread_id: threadId } });
     const interruptValues = (paused.tasks ?? []).flatMap((t: { interrupts?: { value?: unknown }[] }) =>
@@ -222,6 +232,7 @@ describe("workflow storyboard flow", () => {
     // Queue: brief, script, scores, storyboard v1 + prompt, storyboard v2 + prompt.
     const p = new FakeProvider([
       { content: '{"kind":"brief","brief":{"topic":"universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}' },
+      { content: RESEARCH }, // researchAgent
       { content: '{"title":"T","hook":"H","introduction":"I","body":["B1"],"conclusion":"C","cta":null}' },
       { content: '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redundancy":4,"notes":[],"overall":4}' },
       { content: '[{"id":"char-1","name":"The Narrator","description":"A calm voice"}]' }, // characterAgent
@@ -236,6 +247,7 @@ describe("workflow storyboard flow", () => {
     const graph = buildWorkflow(p, fakeDeps(), checkpointer);
     const threadId = "p-story-reject";
     await graph.invoke({ projectId: threadId }, { configurable: { thread_id: threadId } });
+    await resumeWorkflow(graph, threadId, { approved: true }); // approve research
     await resumeWorkflow(graph, threadId, { approved: true }); // approve script
     await resumeWorkflow(graph, threadId, { approved: false, feedback: "make scene 1 shorter" }); // reject storyboard
     const rePaused = await graph.getState({ configurable: { thread_id: threadId } });
@@ -262,6 +274,7 @@ describe("workflow discovery interview", () => {
     const p = new FakeProvider([
       { content: '{"kind":"questions","questions":["Audience?","Length?"]}' },
       { content: '{"kind":"brief","brief":{"topic":"universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}' },
+      { content: RESEARCH }, // researchAgent
       { content: '{"title":"T","hook":"H","introduction":"I","body":["B1"],"conclusion":"C","cta":null}' },
       { content: '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redundancy":4,"notes":[],"overall":4}' },
     ]);
@@ -286,6 +299,59 @@ describe("workflow discovery interview", () => {
     const afterInterrupts = (after.tasks ?? []).flatMap((t: { interrupts?: { value?: unknown }[] }) =>
       (t.interrupts ?? []).map((i) => i.value),
     );
-    expect(afterInterrupts).toContain("script_review"); // paused again, at the script gate
+    expect(afterInterrupts).toContain("research_review"); // paused at the research gate
+    await resumeWorkflow(graph, threadId, { approved: true }); // research approve → script + review
+    const atScript = await graph.getState({ configurable: { thread_id: threadId } });
+    const scriptInterrupts = (atScript.tasks ?? []).flatMap((t: { interrupts?: { value?: unknown }[] }) =>
+      (t.interrupts ?? []).map((i) => i.value),
+    );
+    expect(scriptInterrupts).toContain("script_review"); // paused at the script gate
+  });
+});
+
+describe("workflow research loop", () => {
+  let checkpointer: SqliteSaver;
+  beforeAll(() => {
+    mkdirSync("./data", { recursive: true });
+    rmSync("./data/test-workflow-research.db", { force: true }); // hermetic
+    checkpointer = SqliteSaver.fromConnString("./data/test-workflow-research.db");
+  });
+  afterAll(() => {
+    checkpointer.db.close();
+  });
+
+  it("rejects research → regenerates with feedback → v2 packet at the gate → approve → script gate", async () => {
+    const p = new FakeProvider([
+      { content: '{"kind":"brief","brief":{"topic":"universe","audience":"general","platform":"youtube","style":"documentary","durationSeconds":270,"tone":"wonder","narration":"male","aspectRatio":"16:9"}}' },
+      { content: RESEARCH },    // researchAgent v1
+      { content: RESEARCH_V2 }, // researchAgent v2 (regenerated with feedback)
+      { content: '{"title":"T","hook":"H","introduction":"I","body":["B1"],"conclusion":"C","cta":null}' },
+      { content: '{"clarity":4,"pacing":4,"engagement":4,"retention":4,"redundancy":4,"notes":[],"overall":4}' },
+    ]);
+    const graph = buildWorkflow(p, fakeDeps(), checkpointer);
+    const threadId = "p-research";
+    await graph.invoke({ projectId: threadId }, { configurable: { thread_id: threadId } }); // → research gate v1
+    const v1 = await graph.getState({ configurable: { thread_id: threadId } });
+    const v1Interrupts = (v1.tasks ?? []).flatMap((t: { interrupts?: { value?: unknown }[] }) =>
+      (t.interrupts ?? []).map((i) => i.value),
+    );
+    expect(v1Interrupts).toContain("research_review");
+    expect((v1.values.researchPacket as { timeline: string[] }).timeline[0]).toContain("Big Bang");
+
+    // Reject with feedback → research regenerates → v2 pauses at the gate.
+    await resumeWorkflow(graph, threadId, { approved: false, feedback: "add sources" });
+    const v2 = await graph.getState({ configurable: { thread_id: threadId } });
+    const v2Packet = v2.values.researchPacket as { timeline: string[] };
+    expect(v2Packet.timeline[1]).toContain("Earth forms");
+    // The rejection feedback reached the research agent's input (last call).
+    expect(p.lastInput.messages[p.lastInput.messages.length - 1].content).toContain("add sources");
+
+    // Approve research → script + review → script gate.
+    await resumeWorkflow(graph, threadId, { approved: true });
+    const atScript = await graph.getState({ configurable: { thread_id: threadId } });
+    const scriptInterrupts = (atScript.tasks ?? []).flatMap((t: { interrupts?: { value?: unknown }[] }) =>
+      (t.interrupts ?? []).map((i) => i.value),
+    );
+    expect(scriptInterrupts).toContain("script_review");
   });
 });
