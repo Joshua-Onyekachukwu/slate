@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, projects } from "@slate/db";
 import { buildApiWorkflow, readCheckpoint } from "../workflow";
 import { sendError, ERROR_CODES } from "../error";
+import { getOwnedProject } from "../hooks";
 import type { AppDeps } from "../app";
 
 // Simple SSE: poll the workflow checkpoint every 500ms, emit on change.
@@ -10,7 +11,7 @@ import type { AppDeps } from "../app";
 export async function streamRoute(app: FastifyInstance, deps: AppDeps) {
   app.get("/api/v1/projects/:id/stream", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const [row] = await db.select().from(projects).where(eq(projects.id, id));
+    const row = await getOwnedProject(req.userId, id);
     if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
 
     // @fastify/cors doesn't wrap raw reply.raw responses — set the header here

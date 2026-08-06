@@ -15,6 +15,13 @@
       "when": 1785968312811,
       "tag": "0001_tranquil_nightshade",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1785974189737,
+      "tag": "0002_serious_the_executioner",
+      "breakpoints": true
     }
   ]
 }

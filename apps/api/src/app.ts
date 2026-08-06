@@ -8,18 +8,39 @@ import { scriptRoutes } from "./routes/scripts";
 import { storyboardRoutes } from "./routes/storyboard";
 import { streamRoute } from "./routes/stream";
 import { ApiError } from "./error";
+import { requireUser } from "./hooks";
+import type { TokenVerifier } from "./auth";
 
 export interface AppDeps {
   provider: Provider;
   checkpointer: BaseCheckpointSaver;
+  // Enforced auth (Clerk, ADR-022/023): when provided, every /api/v1 request
+  // must present a valid Bearer JWT and routes scope by owner_id. Omit it for
+  // local/slice mode (single-user, no sessions) — the demo and E2E run that way.
+  verifyToken?: TokenVerifier;
 }
 
 export function buildApp(deps: AppDeps) {
   const app = Fastify({ logger: false });
 
+  // userId is set by requireUser in enforced mode; stays "" in local mode.
+  app.decorateRequest("userId", "");
+
   // Local-first slice (no auth): allow the Next.js dev origin. Tightened when
-  // auth lands (Phase 1+2) — CORS will be scoped to the app origin.
+  // auth lands (Phase 1+2) — CORS will be scoped to the app origin. Registered
+  // BEFORE the auth hook: Fastify runs onRequest hooks in registration order,
+  // so preflight (OPTIONS, no Authorization header) must hit CORS first or it
+  // would be 401'd by auth and cross-origin calls would break in enforced mode.
   app.register(cors, { origin: true });
+
+  if (deps.verifyToken) {
+    const authHook = requireUser(deps.verifyToken);
+    app.addHook("onRequest", async (req, reply) => {
+      if (req.method === "OPTIONS") return; // CORS preflight carries no bearer token
+      if (req.url.split("?")[0] === "/api/v1/health") return; // liveness probes stay public
+      return authHook(req, reply);
+    });
+  }
 
   app.register(projectRoutes, deps);
   app.register(stageRoutes, deps);

@@ -12,6 +12,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@clerk/backend": "^3.15.1",
     "@fastify/cors": "^11.3.0",
     "@langchain/langgraph": "^0.2.33",
     "@slate/ai": "workspace:*",

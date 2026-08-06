@@ -21,12 +21,14 @@ describe("db schema", () => {
         title text,
         stage text NOT NULL DEFAULT 'discovery',
         status text NOT NULL DEFAULT 'active',
+        owner_id text NOT NULL DEFAULT 'local',
         conversation text NOT NULL DEFAULT '[]',
         brief text,
         brief_history text NOT NULL DEFAULT '[]',
         created_at integer NOT NULL DEFAULT (unixepoch()),
         updated_at integer NOT NULL DEFAULT (unixepoch())
       );
+      CREATE INDEX projects_owner_id ON projects(owner_id);
       CREATE TABLE scripts (
         id text PRIMARY KEY,
         project_id text NOT NULL REFERENCES projects(id),
@@ -67,6 +69,19 @@ describe("db schema", () => {
     expect(got[0].idea).toBe(row.idea);
     expect(got[0].stage).toBe("discovery"); // default applied
     expect(got[0].conversation).toEqual([]); // json mode round-trips
+  });
+
+  it("defaults owner_id to 'local' (slice mode) and accepts an explicit owner", async () => {
+    await db.insert(projects).values({ id: crypto.randomUUID(), idea: "unowned" });
+    const owned = crypto.randomUUID();
+    await db.insert(projects).values({ id: owned, idea: "owned", ownerId: "user_abc" });
+    // Only the explicitly owned row matches an owner filter on 'user_abc'.
+    const got = await db.select().from(projects).where(sql`owner_id = ${'user_abc'}`);
+    expect(got).toHaveLength(1);
+    expect(got[0].id).toBe(owned);
+    // The unowned insert fell back to the NOT NULL DEFAULT 'local'.
+    const [local] = await db.select().from(projects).where(sql`idea = ${'unowned'}`);
+    expect(local.ownerId).toBe("local");
   });
 
   it("stores script versions per project and enforces (project_id, version) uniqueness", async () => {

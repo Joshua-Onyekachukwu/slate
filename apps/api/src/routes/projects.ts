@@ -4,6 +4,7 @@ import { eq, desc } from "drizzle-orm";
 import { db, projects } from "@slate/db";
 import { buildApiWorkflow, readCheckpoint, resumeWorkflow } from "../workflow";
 import { sendError, ApiError, ERROR_CODES } from "../error";
+import { getOwnedProject, ownerFor } from "../hooks";
 import type { AppDeps } from "../app";
 
 export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
@@ -13,7 +14,7 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
       return sendError(reply, ERROR_CODES.VALIDATION_ERROR, 400, "idea is required");
     }
     const id = randomUUID();
-    await db.insert(projects).values({ id, idea: idea.trim(), conversation: [], briefHistory: [] });
+    await db.insert(projects).values({ id, idea: idea.trim(), conversation: [], briefHistory: [], ownerId: ownerFor(req.userId) });
     // Run the workflow synchronously to its first interrupt (the script gate).
     const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
     await graph.invoke({ projectId: id }, { configurable: { thread_id: id } });
@@ -23,8 +24,11 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
     return reply.code(201).send({ project: { ...row, stage: cp.stage } });
   });
 
-  app.get("/api/v1/projects", async () => {
-    const rows = await db.select().from(projects).orderBy(desc(projects.updatedAt));
+  app.get("/api/v1/projects", async (req) => {
+    // Enforced mode: only my rows. Local mode (req.userId === ""): everything.
+    const rows = req.userId === ""
+      ? await db.select().from(projects).orderBy(desc(projects.updatedAt))
+      : await db.select().from(projects).where(eq(projects.ownerId, req.userId)).orderBy(desc(projects.updatedAt));
     // Same checkpoint-vs-column rule as the single-project route: the projects
     // column only ever records "discovery"/"brief" (lazily patched by the
     // workflow), so the dashboard would show stale stages without this.
@@ -40,7 +44,7 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
 
   app.get("/api/v1/projects/:id", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const [row] = await db.select().from(projects).where(eq(projects.id, id));
+    const row = await getOwnedProject(req.userId, id);
     if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
     const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
     const cp = await readCheckpoint(graph, id);
@@ -54,7 +58,7 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
     if (!body.content || typeof body.content !== "string") {
       return sendError(reply, ERROR_CODES.VALIDATION_ERROR, 400, "content is required");
     }
-    const [row] = await db.select().from(projects).where(eq(projects.id, id));
+    const row = await getOwnedProject(req.userId, id);
     if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
     const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
     const cp = await readCheckpoint(graph, id);

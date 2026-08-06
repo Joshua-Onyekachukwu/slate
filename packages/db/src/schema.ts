@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, uniqueIndex, index } from "drizzle-orm/sqlite-core";
 import type { Brief, ScriptContent, ReviewScores, SceneContent, PromptPack } from "@slate/shared";
 
 // Vertical slice (ADR-024): sqlite dialect, single-user, no auth.
@@ -7,18 +7,25 @@ import type { Brief, ScriptContent, ReviewScores, SceneContent, PromptPack } fro
 // Storyboard model (spec §12.9): storyboards + scenes carry VERSION ROWS — a
 // reorder, edit, or prompt regeneration inserts new version rows; the latest
 // version per (storyboard_id, order) is the current scene.
-export const projects = sqliteTable("projects", {
-  id: text("id").primaryKey(),
-  idea: text("idea").notNull(),
-  title: text("title"),
-  stage: text("stage").notNull().default("discovery"),
-  status: text("status").notNull().default("active"),
+export const projects = sqliteTable(
+  "projects",
+  {
+    id: text("id").primaryKey(),
+    idea: text("idea").notNull(),
+    title: text("title"),
+    stage: text("stage").notNull().default("discovery"),
+    status: text("status").notNull().default("active"),
+    // Multi-user isolation (ADR-022/023): Clerk owns identity; this stores the
+    // Clerk user id (user_...). Slice/local mode writes 'local' (NOT NULL
+    // DEFAULT) so zero-container demos and the E2E run without a session.
+    ownerId: text("owner_id").notNull().default("local"),
   conversation: text("conversation", { mode: "json" }).notNull().$type<{ role: "user" | "assistant"; content: string; at: string }[]>().default([]),
   brief: text("brief", { mode: "json" }).$type<Brief>(),
-  briefHistory: text("brief_history", { mode: "json" }).notNull().$type<unknown[]>().default([]),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().defaultNow(),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().defaultNow(),
-});
+  briefHistory: text("brief_history", { mode: "json" }).notNull().$type<unknown[]>().default([]),    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().defaultNow(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().defaultNow(),
+  },
+  (t) => [index("projects_owner_id").on(t.ownerId)],
+);
 
 export const scripts = sqliteTable(
   "scripts",

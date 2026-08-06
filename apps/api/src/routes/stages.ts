@@ -3,6 +3,7 @@ import { eq, desc } from "drizzle-orm";
 import { db, projects, scripts, storyboards, scenes } from "@slate/db";
 import { buildApiWorkflow, readCheckpoint, resumeWorkflow, GATE_VALUE_BY_STAGE } from "../workflow";
 import { sendError, ApiError, ERROR_CODES } from "../error";
+import { getOwnedProject } from "../hooks";
 import type { AppDeps } from "../app";
 
 // Stage payload shape per api-design.md "Stage approve / regenerate — exact contract".
@@ -54,6 +55,7 @@ export async function stageRoutes(app: FastifyInstance, deps: AppDeps) {
   // the workflow gate is the only place a new version is produced. Returns
   // null if it already replied with an error (4xx); else returns the view.
   const gateResume = async (
+    userId: string,
     id: string,
     stage: string,
     reply: FastifyReply,
@@ -64,7 +66,9 @@ export async function stageRoutes(app: FastifyInstance, deps: AppDeps) {
       sendError(reply, ERROR_CODES.VALIDATION_ERROR, 400, `unknown stage: ${stage}`);
       return null;
     }
-    const [row] = await db.select().from(projects).where(eq(projects.id, id));
+    // Owner gate BEFORE resume: cross-user approve/regenerate must 404, never
+    // resume someone else's LangGraph thread.
+    const row = await getOwnedProject(userId, id);
     if (!row) throw new ApiError(ERROR_CODES.NOT_FOUND, 404, "project not found");
     const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
     const cp = await readCheckpoint(graph, id);
@@ -80,7 +84,7 @@ export async function stageRoutes(app: FastifyInstance, deps: AppDeps) {
 
   app.get("/api/v1/projects/:id/stages", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const [row] = await db.select().from(projects).where(eq(projects.id, id));
+    const row = await getOwnedProject(req.userId, id);
     if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
     const view = await loadStageView(id, "script");
     return { stages: [view.stage] };
@@ -88,7 +92,7 @@ export async function stageRoutes(app: FastifyInstance, deps: AppDeps) {
 
   app.get("/api/v1/projects/:id/stages/:stage", async (req, reply) => {
     const { id, stage } = req.params as { id: string; stage: string };
-    const [row] = await db.select().from(projects).where(eq(projects.id, id));
+    const row = await getOwnedProject(req.userId, id);
     if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
     const view = await loadStageView(id, stage);
     const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
@@ -116,7 +120,7 @@ export async function stageRoutes(app: FastifyInstance, deps: AppDeps) {
     if (typeof body.approved !== "boolean") {
       return sendError(reply, ERROR_CODES.VALIDATION_ERROR, 400, "approved must be a boolean");
     }
-    const view = await gateResume(id, stage, reply, { approved: body.approved, feedback: body.feedback });
+    const view = await gateResume(req.userId, id, stage, reply, { approved: body.approved, feedback: body.feedback });
     if (!view) return;
     return { project: view.project, stage: view.stage };
   });
@@ -124,7 +128,7 @@ export async function stageRoutes(app: FastifyInstance, deps: AppDeps) {
   app.post("/api/v1/projects/:id/stages/:stage/regenerate", async (req, reply) => {
     const { id, stage } = req.params as { id: string; stage: string };
     const body = (req.body ?? {}) as { feedback?: string };
-    const view = await gateResume(id, stage, reply, { approved: false, feedback: body.feedback ?? "regenerate" });
+    const view = await gateResume(req.userId, id, stage, reply, { approved: false, feedback: body.feedback ?? "regenerate" });
     if (!view) return;
     return { project: view.project, stage: view.stage };
   });

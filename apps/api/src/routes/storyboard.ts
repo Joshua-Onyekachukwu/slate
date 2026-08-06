@@ -4,6 +4,7 @@ import { eq, desc } from "drizzle-orm";
 import { db, sqlite, projects, storyboards, scenes } from "@slate/db";
 import { buildApiWorkflow, readCheckpoint } from "../workflow";
 import { sendError, ERROR_CODES } from "../error";
+import { getOwnedProject } from "../hooks";
 import type { AppDeps } from "../app";
 
 interface SceneView {
@@ -42,7 +43,7 @@ async function loadStoryboard(id: string): Promise<StoryboardView | null> {
 export async function storyboardRoutes(app: FastifyInstance, deps: AppDeps) {
   app.get("/api/v1/projects/:id/storyboard", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const [row] = await db.select().from(projects).where(eq(projects.id, id));
+    const row = await getOwnedProject(req.userId, id);
     if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
     const sb = await loadStoryboard(id);
     // null, not 404: the workspace polls this on every refresh and expects the
@@ -63,7 +64,7 @@ export async function storyboardRoutes(app: FastifyInstance, deps: AppDeps) {
     if (!Array.isArray(body.scene_ids) || !body.scene_ids.every((s) => typeof s === "string")) {
       return sendError(reply, ERROR_CODES.VALIDATION_ERROR, 400, "scene_ids must be an array of strings");
     }
-    const [row] = await db.select().from(projects).where(eq(projects.id, id));
+    const row = await getOwnedProject(req.userId, id);
     if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
     const [sb] = await db.select().from(storyboards)
       .where(eq(storyboards.projectId, id)).orderBy(desc(storyboards.version)).limit(1);

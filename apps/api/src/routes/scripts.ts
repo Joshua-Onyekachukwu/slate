@@ -3,12 +3,13 @@ import { randomUUID } from "node:crypto";
 import { eq, desc } from "drizzle-orm";
 import { db, projects, scripts } from "@slate/db";
 import { sendError, ERROR_CODES } from "../error";
+import { getOwnedProject } from "../hooks";
 import type { AppDeps } from "../app";
 
 export async function scriptRoutes(app: FastifyInstance, _deps: AppDeps) {
   app.get("/api/v1/projects/:id/scripts", async (req, reply) => {
     const { id } = req.params as { id: string };
-    const [row] = await db.select().from(projects).where(eq(projects.id, id));
+    const row = await getOwnedProject(req.userId, id);
     if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
     const versions = await db.select().from(scripts).where(eq(scripts.projectId, id)).orderBy(desc(scripts.version));
     return { versions };
@@ -21,7 +22,7 @@ export async function scriptRoutes(app: FastifyInstance, _deps: AppDeps) {
     if (!body.content || typeof body.content !== "object") {
       return sendError(reply, ERROR_CODES.VALIDATION_ERROR, 400, "content object is required");
     }
-    const [row] = await db.select().from(projects).where(eq(projects.id, id));
+    const row = await getOwnedProject(req.userId, id);
     if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
     // The edited script row must exist and belong to this project — a made-up
     // scriptId should 404, not silently create a version under it.
