@@ -27,6 +27,8 @@ describe("db schema", () => {
         brief_history text NOT NULL DEFAULT '[]',
         characters text NOT NULL DEFAULT '[]',
         locations text NOT NULL DEFAULT '[]',
+        research_packet text,
+        research_status text NOT NULL DEFAULT 'pending',
         created_at integer NOT NULL DEFAULT (unixepoch()),
         updated_at integer NOT NULL DEFAULT (unixepoch())
       );

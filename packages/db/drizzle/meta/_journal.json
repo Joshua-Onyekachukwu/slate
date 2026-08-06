@@ -29,6 +29,13 @@
       "when": 1785978134867,
       "tag": "0003_public_stellaris",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1786120000000,
+      "tag": "0004_research_stage",
+      "breakpoints": true
     }
   ]
 }

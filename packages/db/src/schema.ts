@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, uniqueIndex, index } from "drizzle-orm/sqlite-core";
-import type { Brief, ScriptContent, ReviewScores, SceneContent, PromptPack, Character, Location } from "@slate/shared";
+import type { Brief, ScriptContent, ReviewScores, SceneContent, PromptPack, Character, Location, ResearchPacket } from "@slate/shared";
 
 // Vertical slice (ADR-024): sqlite dialect, single-user, no auth.
 // SQLite mapping per ADR-014: uuid → text PK, jsonb → text with { mode: "json" },
@@ -26,6 +26,12 @@ export const projects = sqliteTable(
   // the same source of truth.
   characters: text("characters", { mode: "json" }).notNull().$type<Character[]>().default([]),
   locations: text("locations", { mode: "json" }).notNull().$type<Location[]>().default([]),
+  // Research stage (Block 2): the research agent's packet lives on the project
+  // row (database-schema.md — jsonb on projects, not a table). researchStatus
+  // is the column-level source of truth; the workflow ALSO pauses at a
+  // research_gate for human review before the script is written.
+  researchPacket: text("research_packet", { mode: "json" }).$type<ResearchPacket>(),
+  researchStatus: text("research_status").notNull().default("pending"),
   briefHistory: text("brief_history", { mode: "json" }).notNull().$type<unknown[]>().default([]),    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().defaultNow(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().defaultNow(),
   },
