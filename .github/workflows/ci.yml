@@ -9,11 +9,15 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # checkout@v5 + pnpm/action-setup@v6: GitHub runners now force Node 24,
+      # which breaks the Node-20 runtime of the v4 actions.
+      - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9.15.0
+      # NO `version:` pin — pinning 9.15.0 here while package.json declares
+      # "packageManager": "pnpm@9.15.9" made the action fail with
+      # "Error: Multiple versions of pnpm specified" (see run 31063527747).
+      # The action reads the version from package.json instead.
+      - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v4
         with:
