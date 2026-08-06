@@ -1,5 +1,2 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Run lint-staged: docs changes trigger the docs-consistency guard (check-docs.sh)
 pnpm exec lint-staged
