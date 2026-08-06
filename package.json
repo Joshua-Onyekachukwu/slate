@@ -18,7 +18,9 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "docs/**/*.md": "pnpm check:docs"
+    "docs/**/*.md": "pnpm check:docs",
+    "**/*.{ts,tsx}": "bash -c 'pnpm typecheck'",
+    "**/*.{test,spec}.{ts,tsx}": "bash -c 'pnpm test'"
   },
   "devDependencies": {
     "husky": "^9.1.7",
