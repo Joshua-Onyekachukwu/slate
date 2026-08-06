@@ -3,8 +3,9 @@ import { test, expect, type Page } from "@playwright/test";
 // Task 8 Step 1 — executed in Task 10 (E2E + full verification).
 // Playwright boots the API (:4000, FAKE_PROVIDER=1, fresh data/e2e.db) and web (:3000)
 // via the webServer array in tests/playwright.config.ts.
-// Full journey: idea → script gate → approve → storyboard gate v1 → REGENERATE
-// with feedback → gate v2 ("(rev)" titles) → per-scene edit (→ v3) → approve → done.
+// Full journey: idea → research gate → approve → script gate → approve →
+// storyboard gate v1 → REGENERATE with feedback → gate v2 ("(rev)" titles) →
+// per-scene edit (→ v3) → approve → done.
 async function trackErrors(page: Page) {
   const errors: string[] = [];
   page.on("console", (msg) => {
@@ -35,8 +36,16 @@ test("idea → script gate → storyboard gate (regenerate + edit) → approve (
   await page.getByRole("button", { name: /begin production/i }).click();
   await page.waitForURL(/\/projects\//);
 
-  // POST /projects ran the workflow to the script gate (FakeProvider scripted sequence):
-  // brief → script → low scores. The workspace shows the script on paper with scores.
+  // Block 2: the workflow pauses at the RESEARCH gate first (brief → researchAgent
+  // → research_review). The packet renders in the workspace; approve it to reach
+  // the script gate.
+  await expect(page.getByText(/research · awaiting review/i)).toBeVisible();
+  await expect(page.getByText(/13\.8 bya: Big Bang/i)).toBeVisible();
+  await expect(page.getByText(/nasa · esa/i)).toBeVisible(); // references
+  await page.getByRole("button", { name: /approve & continue/i }).click();
+
+  // Research approved → the script gate (FakeProvider scripted sequence:
+  // script → low scores). The workspace shows the script on paper with scores.
   await expect(page.getByText(/overall/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /approve & continue/i })).toBeVisible();
 

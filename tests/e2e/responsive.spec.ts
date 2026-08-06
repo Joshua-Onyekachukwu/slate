@@ -51,6 +51,12 @@ test.describe("workspace viewports", () => {
       const res = await req.post("/api/v1/projects", { data: { idea: "viewport regression test" } });
       expect(res.ok(), `project create failed: ${res.status()} ${await res.text()}`).toBeTruthy();
       projectId = (await res.json()).project.id as string;
+      // Block 2: approve the research gate via API so the viewport tests exercise
+      // the script gate (the workflow pauses at research_review first).
+      const research = await req.post(`/api/v1/projects/${projectId}/stages/research/approve`, {
+        data: { approved: true },
+      });
+      expect(research.ok()).toBeTruthy();
     } finally {
       await req.dispose();
     }
@@ -69,7 +75,9 @@ test.describe("workspace viewports", () => {
 
   test("mobile (390px) — storyboard view, no overflow, scene cards visible", async ({ page, playwright }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    // Approve the script via API so the storyboard pass runs, then reload.
+    // Research was already approved in beforeAll (Block 2 — approving it AGAIN
+    // here would 409 on the consumed interrupt and desync the shared provider
+    // queue for the vertical-slice spec). Only the script gate is pending.
     const req = await playwright.request.newContext({ baseURL: API });
     const res = await req.post(`/api/v1/projects/${projectId}/stages/script/approve`, {
       data: { approved: true },
