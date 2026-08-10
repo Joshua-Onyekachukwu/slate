@@ -55,6 +55,8 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
   const [feedback, setFeedback] = useState("");
   const [showPacks, setShowPacks] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingPackId, setEditingPackId] = useState<string | null>(null);
+  const [packDraft, setPackDraft] = useState<PromptPack | null>(null);
   const esRef = useRef<EventSource | null>(null);
 
   const refresh = useCallback(async () => {
@@ -193,6 +195,29 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
     try {
       const res = await api.regenerateScenePrompts(projectId, sceneId);
       setSb(res.storyboard); // canonical version rows from the server
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Manual prompt-pack edit: the Advanced panel's Edit mode collects a draft
+  // pack, then PUTs it as new version rows (same response-replaces-state rule
+  // as regenerate — the save handler swaps the whole storyboard view in).
+  const startPackEdit = (sceneId: string, pack: PromptPack) => {
+    setEditingPackId(sceneId);
+    setPackDraft({ ...pack });
+  };
+
+  const savePack = async (sceneId: string) => {
+    if (busy || !packDraft) return;
+    setBusy(true);
+    try {
+      const res = await api.saveScenePrompts(projectId, sceneId, packDraft);
+      setSb(res.storyboard); // canonical version rows from the server
+      setEditingPackId(null);
+      setPackDraft(null);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -440,16 +465,61 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                               <div className="crew-card" key={sc.id} style={{ marginBottom: 10 }}>
                                 <div className="k" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                   <span>SC {String(sc.order).padStart(2, "0")} · {sc.content.title}</span>
-                                  <button
-                                    className="mini-btn"
-                                    disabled={busy}
-                                    onClick={() => regeneratePack(sc.id)}
-                                    aria-label={`Regenerate prompts for scene ${sc.order}`}
-                                  >
-                                    {busy ? "Working…" : "Regenerate pack"}
-                                  </button>
+                                  <span style={{ display: "flex", gap: 8 }}>
+                                    {sc.promptPack && (
+                                      <button
+                                        className="mini-btn"
+                                        disabled={busy}
+                                        onClick={() => startPackEdit(sc.id, sc.promptPack!)}
+                                        aria-label={`Edit pack for scene ${sc.order}`}
+                                      >
+                                        {editingPackId === sc.id ? "Editing…" : "Edit pack"}
+                                      </button>
+                                    )}
+                                    <button
+                                      className="mini-btn"
+                                      disabled={busy}
+                                      onClick={() => regeneratePack(sc.id)}
+                                      aria-label={`Regenerate prompts for scene ${sc.order}`}
+                                    >
+                                      {busy ? "Working…" : "Regenerate pack"}
+                                    </button>
+                                  </span>
                                 </div>
-                                {sc.promptPack ? (
+                                {editingPackId === sc.id && packDraft ? (
+                                  <div className="v">
+                                    {PACK_TABS.map((t) => (
+                                      <div key={t.key} style={{ marginBottom: 8 }}>
+                                        <b style={{ color: "var(--paper)" }}>{t.label}</b>
+                                        <textarea
+                                          className="pack-input"
+                                          aria-label={`${t.label} prompt`}
+                                          rows={2}
+                                          value={packDraft[t.key]}
+                                          onChange={(e) => setPackDraft((d) => (d ? { ...d, [t.key]: e.target.value } : d))}
+                                        />
+                                      </div>
+                                    ))}
+                                    <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                                      <button
+                                        className="mini-btn solid"
+                                        disabled={busy}
+                                        onClick={() => savePack(sc.id)}
+                                        aria-label={`Save pack for scene ${sc.order}`}
+                                      >
+                                        {busy ? "Saving…" : "Save pack"}
+                                      </button>
+                                      <button
+                                        className="mini-btn"
+                                        disabled={busy}
+                                        onClick={() => { setEditingPackId(null); setPackDraft(null); }}
+                                        aria-label={`Cancel pack edit for scene ${sc.order}`}
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : sc.promptPack ? (
                                   <div className="v">
                                     {PACK_TABS.map((t) => (
                                       <div key={t.key} style={{ marginBottom: 6 }}>

@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { eq, desc } from "drizzle-orm";
 import { db, storyboards, scenes } from "@slate/db";
 import { promptAgent } from "@slate/ai";
-import type { Character, Location } from "@slate/shared";
+import { PromptPackSchema, type Character, type Location } from "@slate/shared";
 import { loadStoryboard } from "./storyboard";
 import { getOwnedProject } from "../hooks";
 import { sendError, ERROR_CODES } from "../error";
@@ -55,6 +55,57 @@ export async function promptRoutes(app: FastifyInstance, deps: AppDeps) {
           // Only the target scene gets the regenerated pack; everything else
           // (content, order, other packs) carries into the new version rows.
           promptPack: s.id === sceneId ? pack : s.promptPack,
+        })),
+      );
+    });
+
+    const storyboard = await loadStoryboard(id);
+    return { storyboard };
+  });
+
+  // Manual prompt-pack edit (plan Task 10 contract: PUT
+  // /projects/:id/scenes/:sceneId/prompts with { promptPack } → NEW VERSION
+  // ROW). Identical version-rows model to the regenerate endpoint above — one
+  // atomic transaction bumps the WHOLE storyboard version and rewrites every
+  // scene row at the new version, swapping in the user's edited pack for the
+  // target scene and carrying content/order/other packs. (The plan's sketch
+  // inserted a single row at the same storyboardId, which would DUPLICATE the
+  // scene in loadStoryboard — it selects by storyboardId only; the shipped
+  // full-bump keeps "latest (storyboard_id, order) is the current scene".)
+  // Direct-DB write, outside the gate path — the plan's one-mutation-path
+  // guarantee explicitly doesn't apply to per-scene writes.
+  app.put("/api/v1/projects/:id/scenes/:sceneId/prompts", async (req, reply) => {
+    const { id, sceneId } = req.params as { id: string; sceneId: string };
+    const row = await getOwnedProject(req.userId, id);
+    if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
+
+    const [sb] = await db.select().from(storyboards)
+      .where(eq(storyboards.projectId, id)).orderBy(desc(storyboards.version)).limit(1);
+    if (!sb) return sendError(reply, ERROR_CODES.CONFLICT, 409, "no storyboard yet for this project");
+
+    const current = await db.select().from(scenes).where(eq(scenes.storyboardId, sb.id)).orderBy(scenes.order);
+    const target = current.find((s) => s.id === sceneId);
+    if (!target) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "scene not found");
+
+    const body = (req.body ?? {}) as { promptPack?: unknown };
+    const parsed = PromptPackSchema.safeParse(body.promptPack);
+    if (!parsed.success) return sendError(reply, ERROR_CODES.VALIDATION_ERROR, 400, "promptPack must be a valid pack");
+
+    const version = sb.version + 1;
+    const newSbId = randomUUID();
+    await db.transaction(async (tx) => {
+      await tx.insert(storyboards).values({ id: newSbId, projectId: id, version });
+      await tx.insert(scenes).values(
+        current.map((s) => ({
+          id: randomUUID(),
+          storyboardId: newSbId,
+          order: s.order,
+          version,
+          title: s.content.title,
+          content: s.content,
+          // Only the target scene gets the user's edited pack; everything else
+          // (content, order, other packs) carries into the new version rows.
+          promptPack: s.id === sceneId ? parsed.data : s.promptPack,
         })),
       );
     });

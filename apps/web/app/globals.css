@@ -1113,6 +1113,24 @@ button {
   gap: 12px;
 }
 
+/* manual prompt-pack edit — same paper inputs as .field, inside the crew-card */
+.pack-input {
+  width: 100%;
+  background: #fffdf7;
+  border: 1px solid var(--line-paper);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #241f1b;
+  padding: 8px 10px;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+.pack-input:focus {
+  border-color: var(--rec);
+}
+
 /* advanced toggle + prompt tabs */
 .adv {
   display: flex;

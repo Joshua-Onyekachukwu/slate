@@ -419,6 +419,86 @@ describe("api", () => {
     expect(regenRow.content.narration).toBe("edited narration"); // edit survived
   });
 
+  it("manually edits a scene's prompt pack → new storyboard version with the edited pack, others preserved", async () => {
+    const EDITED_PACK = { imagePrompt: "hand-written i", videoPrompt: "v2", narrationPrompt: "n2", musicPrompt: "m2", sfxPrompt: "s2" };
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
+
+    const before = (await app.inject({ method: "GET", url: `/api/v1/projects/${id}/storyboard` })).json().storyboard;
+    const target = before.scenes[0];
+    const other = before.scenes[1];
+    expect(before.version).toBe(1);
+
+    const res = await app.inject({
+      method: "PUT", url: `/api/v1/projects/${id}/scenes/${target.id}/prompts`,
+      payload: { promptPack: EDITED_PACK },
+    });
+    expect(res.statusCode).toBe(200);
+    const after = res.json().storyboard;
+    expect(after.version).toBe(2); // whole-storyboard version bump (version-rows model)
+    expect(after.scenes).toHaveLength(2);
+    const editedRow = after.scenes.find((s: { order: number }) => s.order === target.order);
+    expect(editedRow.promptPack).toEqual(EDITED_PACK);
+    expect(editedRow.content.title).toBe(target.content.title); // content untouched
+    const otherRow = after.scenes.find((s: { order: number }) => s.order === other.order);
+    expect(otherRow.promptPack).not.toBeNull(); // other scenes' packs carried
+    expect(otherRow.promptPack.imagePrompt).toBe("i");
+  });
+
+  it("rejects an invalid prompt pack edit with 400 VALIDATION_ERROR", async () => {
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
+    const sb = (await app.inject({ method: "GET", url: `/api/v1/projects/${id}/storyboard` })).json().storyboard;
+
+    const res = await app.inject({
+      method: "PUT", url: `/api/v1/projects/${id}/scenes/${sb.scenes[0].id}/prompts`,
+      payload: { promptPack: { imagePrompt: "only one field" } },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("409s a pack edit before the storyboard exists; 404s a made-up scene and a missing project", async () => {
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+
+    // No storyboard yet → 409 (same guard as edit/reorder/regenerate).
+    const early = await app.inject({
+      method: "PUT", url: `/api/v1/projects/${id}/scenes/nope/prompts`,
+      payload: { promptPack: PACK },
+    });
+    expect(early.statusCode).toBe(409);
+
+    // With a storyboard, a scene id that doesn't exist → 404.
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
+    const madeUp = await app.inject({
+      method: "PUT", url: `/api/v1/projects/${id}/scenes/not-a-real-scene/prompts`,
+      payload: { promptPack: PACK },
+    });
+    expect(madeUp.statusCode).toBe(404);
+
+    // Owner-gated: a missing project 404s regardless.
+    const noProj = await app.inject({
+      method: "PUT", url: "/api/v1/projects/nope/scenes/x/prompts",
+      payload: { promptPack: PACK },
+    });
+    expect(noProj.statusCode).toBe(404);
+  });
+
   it("404s prompt regeneration for a missing project (owner-gated route)", async () => {
     const app = buildApp({ provider: new FakeProvider([]), checkpointer });
     const res = await app.inject({

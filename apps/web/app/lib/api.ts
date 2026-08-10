@@ -231,4 +231,12 @@ export const api = {
       { method: "POST" },
     );
   },
+  // Manual prompt-pack edit (PUT .../prompts with { promptPack }) → new version
+  // rows; same response-replaces-state contract as regenerate/edit/reorder.
+  saveScenePrompts(projectId: string, sceneId: string, promptPack: PromptPack) {
+    return request<{ storyboard: StoryboardView }>(
+      `/api/v1/projects/${projectId}/scenes/${sceneId}/prompts`,
+      { method: "PUT", body: JSON.stringify({ promptPack }) },
+    );
+  },
 };

@@ -5,8 +5,8 @@ import { test, expect, type Page } from "@playwright/test";
 // via the webServer array in tests/playwright.config.ts.
 // Full journey: idea → research gate → approve → script gate → approve →
 // storyboard gate v1 → REGENERATE with feedback → gate v2 ("(rev)" titles) →
-// per-scene edit (→ v3) → prompt regen (→ v4) → DRAG-REORDER scene 1 below
-// scene 3 (→ v5, survives reload) → approve → done.
+// per-scene edit (→ v3) → prompt regen (→ v4) → manual pack edit (→ v5) →
+// DRAG-REORDER scene 1 below scene 3 (→ v6, survives reload) → approve → done.
 async function trackErrors(page: Page) {
   const errors: string[] = [];
   page.on("console", (msg) => {
@@ -109,13 +109,24 @@ test("idea → script gate → storyboard gate (regenerate + edit + drag-reorder
   await expect(page.getByText(/regenerated pack for scene 1/i)).toBeVisible();
   await expect(page.getByText(/scenes · sb v4/i)).toBeVisible();
 
+  // MANUAL prompt-pack EDIT through the real UI: the Advanced panel's Edit
+  // mode exposes the pack as editable fields; saving PUTs the edited pack back
+  // as new version rows (direct-DB write, no provider queue consumed) → v5.
+  await page.getByRole("button", { name: /edit pack for scene 1/i }).click();
+  const imagePrompt = page.getByLabel("Image prompt");
+  await expect(imagePrompt).toBeVisible();
+  await imagePrompt.fill("MANUAL EDIT: tungsten-lit nebula, no text");
+  await page.getByRole("button", { name: /save pack for scene 1/i }).click();
+  await expect(page.getByText(/MANUAL EDIT: tungsten-lit nebula, no text/i)).toBeVisible();
+  await expect(page.getByText(/scenes · sb v5/i)).toBeVisible();
+
   // DRAG-TO-REORDER through the real UI — closes the drag-only-verified-via-curl
   // gap (the reorder endpoint had E2E coverage only through the API inject/curl
   // tests, never through the browser gesture). Scene 1 (index 0) is dragged
   // BELOW scene 3 (drop in scene 3's bottom half → moveScene(0, 2) →
   // [S2, S3, S1]). Like the edit, this is a direct-DB write, so it consumes NO
   // provider queue — the 28-entry exhaustion contract is untouched. It bumps the
-  // whole storyboard version v4 → v5 (new version rows, per spec §12.9).
+  // whole storyboard version v5 → v6 (new version rows, per spec §12.9).
   //
   // HTML5 DnD: SceneCard is `draggable` and reads dataTransfer.getData in its
   // onDrop. Playwright's locator.dragTo does not reliably round-trip the
@@ -136,20 +147,20 @@ test("idea → script gate → storyboard gate (regenerate + edit + drag-reorder
       target.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dt, clientX, clientY }));
     });
 
-  // Sanity: the gate holds the storyboard at v4 with (rev) titles in order.
+  // Sanity: the gate holds the storyboard at v5 with (rev) titles in order.
   await expect(page.getByTestId("scene-card-1")).toContainText("Scene 1 (rev)");
   await expect(page.getByTestId("scene-card-3")).toContainText("Scene 3 (rev)");
   await dragScene1BelowScene3();
   // Optimistic move + PUT round-trip → new version rows; card ORDER follows the
   // scene order prop, so scene-card-1 now holds the former Scene 2.
-  await expect(page.getByText(/scenes · sb v5/i)).toBeVisible();
+  await expect(page.getByText(/scenes · sb v6/i)).toBeVisible();
   await expect(page.getByTestId("scene-card-1")).toContainText("Scene 2 (rev)");
   await expect(page.getByTestId("scene-card-3")).toContainText("Scene 1 (rev)");
 
   // RELOAD: the reorder must come back from the DB (new version rows), not from
   // client state — the whole point of the version-rows persistence contract.
   await page.reload();
-  await expect(page.getByText(/scenes · sb v5/i)).toBeVisible();
+  await expect(page.getByText(/scenes · sb v6/i)).toBeVisible();
   await expect(page.getByTestId("scene-card-1")).toContainText("Scene 2 (rev)");
   await expect(page.getByTestId("scene-card-3")).toContainText("Scene 1 (rev)");
 
