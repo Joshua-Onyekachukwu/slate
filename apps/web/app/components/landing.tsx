@@ -15,35 +15,68 @@ import { useState } from "react";
 // demo mode (no keys) they go straight to /studio. The middleware protects
 // /studio + /projects, so an anonymous real-Clerk visitor hitting /studio gets
 // the 307 → /sign-in contract instead.
+// The five phases read like a shoot schedule — each is a DAY on the call
+// sheet with its own beat sheet (what happens / you review / ships) and a
+// mini product mock. DAY 05 is the Phase 3 tail.
 const PHASES = [
   {
     n: "01",
     name: "Conceive",
-    tag: "One line in, a creative brief out — topic, audience, style, tone, aspect ratio.",
+    day: "Day 01",
+    call: "09:00 call",
+    dept: "Planning",
+    what: "Your one-line idea is interrogated by the planning agent — audience, platform, style, tone, duration, aspect ratio.",
+    review: "The creative brief, before any research or writing begins.",
+    ships: "A locked brief the whole production works from.",
+    tags: ["Creative brief", "Audience", "Style", "Tone"],
     future: false,
   },
   {
     n: "02",
     name: "Research",
-    tag: "A factual packet — timeline, concepts, references, key events — reviewed before a word is written.",
+    day: "Day 02",
+    call: "09:00 call",
+    dept: "Facts",
+    what: "The research agent assembles a factual packet — timeline, concepts, terminology, references, key events.",
+    review: "The packet at its own gate; approve it or send it back with notes.",
+    ships: "A source of truth the script is checked against.",
+    tags: ["Timeline", "Concepts", "References", "Key events"],
     future: false,
   },
   {
     n: "03",
     name: "Write",
-    tag: "A scored, editable script on paper. Below the line? Retake with notes until it clears.",
+    day: "Day 03",
+    call: "09:00 call",
+    dept: "Writing",
+    what: "The script agent drafts hook, body, and close; the reviewer scores clarity, pacing, engagement, retention, redundancy.",
+    review: "The script on paper — rewrite any paragraph, or retake with notes below the line.",
+    ships: "An approved, versioned script.",
+    tags: ["Title", "Hook", "Body", "Conclusion"],
     future: false,
   },
   {
     n: "04",
     name: "Plan",
-    tag: "Scenes as slate lines — reorder, edit, per-scene prompt packs, and a consistency crew.",
+    day: "Day 04",
+    call: "09:00 call",
+    dept: "Storyboard",
+    what: "Scenes become slate lines — narration, visuals, camera, duration, transitions. Characters and locations lock for consistency.",
+    review: "The storyboard — reorder scenes, edit takes, regenerate prompt packs.",
+    ships: "A production plan ready for generation.",
+    tags: ["Scenes", "Prompt packs", "Cast", "Locations"],
     future: false,
   },
   {
     n: "05",
     name: "Produce",
-    tag: "Asset generation, render, and export — Phase 3, built against this exact scaffold.",
+    day: "Day 05",
+    call: "09:00 call",
+    dept: "Post",
+    what: "Assets generate per scene — image, video, voice, music — then render into a finished film.",
+    review: "Every asset at a quality gate; low scores regenerate.",
+    ships: "MP4 with captions, thumbnail, project package.",
+    tags: ["Image", "Video", "Voice", "Music", "Render", "Export"],
     future: true,
   },
 ];
@@ -300,30 +333,57 @@ export function Landing({ authEnabled }: { authEnabled: boolean }) {
           One workflow, five phases — each reviewable and editable. The studio
           never runs ahead of your approval.
         </p>
-        <div className="land-phases" role="list" aria-label="Production phases">
+        <div className="land-timeline" role="list" aria-label="Production phases">
           {PHASES.map((p) => {
             const Visual = PHASE_VISUALS[p.n];
             return (
-              <div
+              <article
                 key={p.n}
-                className={`land-phase${p.future ? " future" : ""}`}
+                className={`land-day${p.future ? " future" : ""}`}
                 role="listitem"
               >
-                <div className="land-phase-head">
-                  <span className="land-phase-n">{p.n}</span>
-                  <span className="land-phase-name">{p.name}</span>
-                  {p.future && <span className="land-stage-tag">Phase 3</span>}
+                <div className="land-day-body">
+                  <div className="land-day-head">
+                    <span className="land-day-code">
+                      {p.day} · {p.call} · dept: {p.dept}
+                    </span>
+                    <span className="land-day-name">
+                      <span className="land-day-n">{p.n}</span>
+                      {p.name}
+                    </span>
+                    {p.future && <span className="land-stage-tag">Phase 3</span>}
+                  </div>
+                  <div className="land-beats">
+                    <div className="land-beat">
+                      <span className="land-beat-t">What happens</span>
+                      <span>{p.what}</span>
+                    </div>
+                    <div className="land-beat">
+                      <span className="land-beat-t">You review</span>
+                      <span>{p.review}</span>
+                    </div>
+                    <div className="land-beat">
+                      <span className="land-beat-t">Ships</span>
+                      <span>{p.ships}</span>
+                    </div>
+                  </div>
+                  <div className="land-day-tags">
+                    {p.tags.map((t) => (
+                      <span key={t} className="land-day-tag">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <div className="land-phase-vis">
+                <div className="land-day-vis">
                   <Visual />
                 </div>
-                <p className="land-phase-tag">{p.tag}</p>
-              </div>
+              </article>
             );
           })}
         </div>
         <p className="land-note">
-          Phases 01–04 ship in this build — asset generation, render, and export arrive with Phase 3.
+          Days 01–04 ship in this build — asset generation, render, and export arrive with Phase 3.
         </p>
       </section>
 

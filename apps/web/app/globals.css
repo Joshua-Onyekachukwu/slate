@@ -2639,46 +2639,137 @@ button {
   line-height: 1.7;
 }
 
-/* the 5-phase pipeline — cards with mini product visuals */
-.land-phases {
+/* the 5-phase pipeline — a shoot schedule: day rows on a spine, visuals
+   alternating sides. Each day carries a beat sheet (what happens / you
+   review / ships) and deliverable chips — a call sheet, not a one-liner. */
+.land-timeline {
+  position: relative;
+  margin-top: 44px;
+  padding-left: 30px;
+}
+.land-timeline::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 1px;
+  background: var(--line-dark);
+}
+.land-day {
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
-  gap: 10px;
-  margin-top: 36px;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 28px;
+  align-items: start;
+  padding: 30px 0;
+  border-bottom: 1px solid var(--line-dark);
 }
-.land-phase {
-  display: flex;
-  flex-direction: column;
+.land-day::before {
+  content: "";
+  position: absolute;
+  left: -34px;
+  top: 42px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 1px solid var(--tungsten);
+}
+.land-day.future {
+  opacity: 0.55;
+}
+.land-day.future::before {
   background: var(--surface);
-  border: 1px solid var(--line-dark);
-  border-radius: var(--radius);
-  padding: 16px;
-  transition: border-color 0.18s;
-}
-.land-phase:hover {
   border-color: var(--ash);
 }
-.land-phase.future {
-  opacity: 0.6;
-}
-.land-phase-head {
+.land-day-code {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ash);
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
 }
-.land-phase-n {
+.land-day-code::after {
+  content: "";
+  flex: 0 0 34px;
+  height: 1px;
+  background: var(--line-dark);
+}
+.land-day-name {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3vw, 30px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--paper);
+  margin-top: 8px;
+}
+.land-day-n {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.18em;
   color: var(--tungsten);
 }
-.land-phase-name {
+.land-day .land-stage-tag {
+  align-self: flex-start;
+  margin-top: 12px;
+}
+.land-beats {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+}
+.land-beat {
+  display: grid;
+  grid-template-columns: 118px 1fr;
+  gap: 14px;
+  align-items: baseline;
+  padding: 7px 0;
+  border-top: 1px dashed var(--line-dark);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--paper-dim);
+}
+.land-beat-t {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 9px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--paper);
+  color: var(--ash);
+}
+.land-day-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+.land-day-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ash);
+  border: 1px solid var(--line-dark);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.land-day-vis {
+  display: flex;
+  align-items: stretch;
+}
+.land-day-vis .lv {
+  min-height: 160px;
+  justify-content: center;
+}
+/* visuals swing to the left on even days — a deliberate alternating rhythm */
+.land-day:nth-child(even) .land-day-vis {
+  order: -1;
 }
 .land-stage-tag {
   display: inline-block;
@@ -2690,17 +2781,6 @@ button {
   border: 1px solid rgba(226, 168, 92, 0.4);
   border-radius: 999px;
   padding: 1px 7px;
-}
-.land-phase-vis {
-  margin-top: 12px;
-  min-height: 118px;
-  display: flex;
-}
-.land-phase-tag {
-  font-size: 12.5px;
-  line-height: 1.65;
-  color: var(--ash);
-  margin-top: 12px;
 }
 .land-note {
   font-family: var(--font-mono);
@@ -3155,6 +3235,19 @@ button {
   .land-gates-row {
     grid-template-columns: 1fr;
   }
+  .land-timeline {
+    padding-left: 22px;
+  }
+  .land-day {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .land-day::before {
+    left: -26px;
+  }
+  .land-day:nth-child(even) .land-day-vis {
+    order: 0;
+  }
 }
 @media (max-width: 640px) {
   .land-hero {
@@ -3207,8 +3300,15 @@ button {
   .land-lead {
     text-align: left;
   }
-  .land-phases {
+  .land-timeline {
+    padding-left: 18px;
+  }
+  .land-day::before {
+    left: -22px;
+  }
+  .land-beat {
     grid-template-columns: 1fr;
+    gap: 2px;
   }
   .land-strip-frames {
     grid-template-columns: repeat(2, 1fr);
