@@ -73,7 +73,8 @@ export function createProvider(): Provider {
         { content: SCRIPT_V2 }, { content: SCORES_HIGH }, // script retake: v2 + 4/5 scores
         ...APPROVE_BLOCK(SCENES, PACKS),       // script approved → consistency + storyboard gate (v1, plain titles)
         ...STORY_BLOCK(REV_SCENES, REV_PACKS), // storyboard REJECT → gate v2 ("(rev)" titles)
-        ...GATE_BLOCK,                         // project 2 → script gate
+        ...GATE_BLOCK,                         // project 2 → script gate (2/5)
+        { content: SCRIPT_V2 }, { content: SCORES_HIGH }, // project 2 script retake: v2 + 4/5 scores
         ...APPROVE_BLOCK(SCENES, PACKS),       // project 2 approved → consistency + storyboard gate
         { content: JSON.stringify({ ...PACK(1), imagePrompt: "Demo regenerated pack" }) }, // per-scene prompts/regenerate
       ]);
