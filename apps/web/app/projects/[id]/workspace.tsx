@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, API_URL, type ProjectRow, type StageDetail, type StoryboardView, type PromptPack, type SceneContent, type ResearchPacket, type Brief } from "../../lib/api";
+import {
+  api, API_URL, type ProjectRow, type StageDetail, type StoryboardView, type PromptPack, type SceneContent,
+  type ResearchPacket, type Brief, type Asset, type AssetKind, ASSET_KINDS, ASSET_KIND_LABEL, assetQuality,
+} from "../../lib/api";
 import { SceneCard } from "../../components/scene-card";
 
 // Slice stages — mirrors the workflow's checkpoint journey (idea → approved
@@ -49,6 +52,10 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
   const [research, setResearch] = useState<ResearchPacket | null>(null);
   const [brief, setBrief] = useState<Brief | null>(null);
   const [sb, setSb] = useState<StoryboardView | null>(null);
+  // Phase 3 Block 2 — per-scene generated assets, keyed by the CURRENT scene id.
+  // Version bumps (edit/regen/reorder) mint new scene ids, so the map resets
+  // with each adopted storyboard view.
+  const [assetsByScene, setAssetsByScene] = useState<Record<string, Asset[]>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +84,16 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
       // The storyboard 404s until the script is approved — that's expected.
       const st = await api.getStoryboard(projectId).catch(() => null);
       setSb(st?.storyboard ?? null);
+      // Phase 3 Block 2 — per-scene assets for the CURRENT storyboard rows.
+      if (st?.storyboard) {
+        const entries = await Promise.all(
+          st.storyboard.scenes.map(async (sc) => {
+            const { assets } = await api.listAssets(projectId, sc.id).catch(() => ({ assets: [] }));
+            return [sc.id, assets] as const;
+          }),
+        );
+        setAssetsByScene(Object.fromEntries(entries));
+      }
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -161,6 +178,7 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
     try {
       const res = await api.reorderStoryboard(projectId, next.map((s) => s.id));
       setSb(res.storyboard); // canonical: new ids + order from the server
+      resetAssetsFor(res.storyboard); // new version rows → assets start empty
     } catch (e) {
       setError((e as Error).message);
       await refresh(); // revert to server truth
@@ -178,6 +196,7 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
     try {
       const res = await api.saveScene(projectId, sceneId, content);
       setSb(res.storyboard); // canonical version rows from the server
+      resetAssetsFor(res.storyboard);
       setEditingId(null);
     } catch (e) {
       setError((e as Error).message);
@@ -195,6 +214,7 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
     try {
       const res = await api.regenerateScenePrompts(projectId, sceneId);
       setSb(res.storyboard); // canonical version rows from the server
+      resetAssetsFor(res.storyboard);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -216,11 +236,41 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
     try {
       const res = await api.saveScenePrompts(projectId, sceneId, packDraft);
       setSb(res.storyboard); // canonical version rows from the server
+      resetAssetsFor(res.storyboard);
       setEditingPackId(null);
       setPackDraft(null);
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      setBusy(false);
+    }
+  };
+
+  // Version-bump handlers (edit/regen/reorder/save-pack) adopt a NEW storyboard
+  // view whose scene ids are fresh rows — their assets start empty; drop the
+  // stale map so the UI never shows a dead version's assets under new ids.
+  const resetAssetsFor = (view: StoryboardView) => {
+    setAssetsByScene((m) => {
+      const next: Record<string, Asset[]> = {};
+      for (const sc of view.scenes) next[sc.id] = [];
+      return next;
+    });
+  };
+
+  // Phase 3 Block 2 — generate one asset kind for a scene. Generation is
+  // synchronous with the fake provider; a failed generation 502s but still
+  // PERSISTS a failed row, so re-list to surface it (visible + retryable).
+  const generateAsset = async (sceneId: string, kind: AssetKind) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await api.generateAsset(projectId, sceneId, kind);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      // Re-list regardless: success appends, failure surfaces the persisted row.
+      const { assets } = await api.listAssets(projectId, sceneId).catch(() => ({ assets: [] }));
+      setAssetsByScene((m) => ({ ...m, [sceneId]: assets }));
       setBusy(false);
     }
   };
@@ -431,23 +481,53 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                       <>
                         <div className="scene-list" style={{ marginBottom: 14 }}>
                           {sb.scenes.map((sc, i) => (
-                            <SceneCard
-                              key={sc.id}
-                              index={i}
-                              order={sc.order}
-                              durationSeconds={sc.content.durationSeconds}
-                              transition={sc.content.transition}
-                              status={done ? "Approved" : "Scene"}
-                              tone={done ? "default" : "rec"}
-                              meta={`${sc.content.cameraDirection} · music: ${sc.content.musicCue}`}
-                              onReorder={moveScene}
-                              content={sc.content}
-                              editing={editingId === sc.id}
-                              onEdit={() => setEditingId(sc.id)}
-                              onSave={(c) => saveSceneContent(sc.id, c)}
-                              onCancel={() => setEditingId(null)}
-                              saving={busy}
-                            />
+                            <div key={sc.id} className="scene-block">
+                              <SceneCard
+                                index={i}
+                                order={sc.order}
+                                durationSeconds={sc.content.durationSeconds}
+                                transition={sc.content.transition}
+                                status={done ? "Approved" : "Scene"}
+                                tone={done ? "default" : "rec"}
+                                meta={`${sc.content.cameraDirection} · music: ${sc.content.musicCue}`}
+                                onReorder={moveScene}
+                                content={sc.content}
+                                editing={editingId === sc.id}
+                                onEdit={() => setEditingId(sc.id)}
+                                onSave={(c) => saveSceneContent(sc.id, c)}
+                                onCancel={() => setEditingId(null)}
+                                saving={busy}
+                              />
+                              {/* Phase 3 Block 2 — per-scene asset generation: one
+                                  button per kind, score once ready (low < 3 flags
+                                  regeneration), FAILED becomes a retry with the
+                                  error as its title. Disabled without a prompt
+                                  pack (the API 409s) and at the locked plan. */}
+                              <div className="scene-assets" data-testid={`scene-assets-${sc.order}`}>
+                                <span className="sa-lbl">Assets</span>
+                                {ASSET_KINDS.map((k) => {
+                                  const ready = assetsByScene[sc.id]?.find((x) => x.kind === k && x.status === "ready");
+                                  const failed = assetsByScene[sc.id]?.find((x) => x.kind === k && x.status === "failed");
+                                  const q = ready ? assetQuality(ready) : null;
+                                  const cls = ["mini-btn"];
+                                  if (failed) cls.push("fail");
+                                  else if (q && q.score < 3) cls.push("low");
+                                  return (
+                                    <button
+                                      key={k}
+                                      className={cls.join(" ")}
+                                      disabled={busy || !sc.promptPack || done}
+                                      onClick={() => generateAsset(sc.id, k)}
+                                      aria-label={`Generate ${k} for scene ${sc.order}`}
+                                      title={failed ? (failed.error ?? "generation failed — retry") : q ? q.notes.join(" · ") : undefined}
+                                    >
+                                      {ASSET_KIND_LABEL[k]}
+                                      {q && ` · ${q.score}/5`}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           ))}
                         </div>
 

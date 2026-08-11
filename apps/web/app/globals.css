@@ -897,6 +897,36 @@ button {
   gap: 12px;
   margin-top: 20px;
 }
+/* Phase 3 Block 2 — per-scene asset generation strip under each slate line */
+.scene-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.scene-assets {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  flex-wrap: wrap;
+}
+.sa-lbl {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ash);
+  margin-right: 2px;
+}
+/* quality gate: low score (< 3) flags regeneration; a failed row becomes a retry */
+.mini-btn.low {
+  border-color: rgba(224, 75, 58, 0.65);
+  color: #ff9c8e;
+}
+.mini-btn.fail {
+  border-color: var(--rec);
+  color: var(--rec);
+}
 .slate-line {
   position: relative;
   background: #241f1b;

@@ -150,6 +150,38 @@ export interface LocationRecord {
   description: string;
 }
 
+// Phase 3 Block 1/2 — a generated media asset (mirrors the API's `assets`
+// rows). `meta.quality` carries the per-asset quality gate: { score 1–5, notes }.
+export type AssetKind = "image" | "video" | "voice" | "music";
+export type AssetStatus = "pending" | "generating" | "ready" | "failed";
+
+export interface Asset {
+  id: string;
+  sceneId: string;
+  kind: AssetKind;
+  status: AssetStatus;
+  url: string | null;
+  mimeType: string | null;
+  provider: string | null;
+  meta: Record<string, unknown>;
+  error: string | null;
+  createdAt: string;
+}
+
+export const ASSET_KINDS: AssetKind[] = ["image", "video", "voice", "music"];
+export const ASSET_KIND_LABEL: Record<AssetKind, string> = {
+  image: "IMG",
+  video: "VID",
+  voice: "VO",
+  music: "MUS",
+};
+
+export function assetQuality(asset: Asset): { score: number; notes: string[] } | null {
+  const q = asset.meta?.quality as { score?: unknown; notes?: unknown } | null | undefined;
+  if (!q || typeof q.score !== "number") return null;
+  return { score: q.score, notes: Array.isArray(q.notes) ? (q.notes as string[]) : [] };
+}
+
 interface ApiErrorBody {
   error: { code: string; message: string; details: Record<string, unknown> };
 }
@@ -237,6 +269,18 @@ export const api = {
     return request<{ storyboard: StoryboardView }>(
       `/api/v1/projects/${projectId}/scenes/${sceneId}/prompts`,
       { method: "PUT", body: JSON.stringify({ promptPack }) },
+    );
+  },
+  // Phase 3 Block 1/2 — per-scene media assets. Generation is synchronous with
+  // the fake provider; the quality gate rides in asset.meta.quality. A failed
+  // generation 502s but still PERSISTS a failed row — re-list to surface it.
+  listAssets(projectId: string, sceneId: string) {
+    return request<{ assets: Asset[] }>(`/api/v1/projects/${projectId}/scenes/${sceneId}/assets`);
+  },
+  generateAsset(projectId: string, sceneId: string, kind: AssetKind) {
+    return request<{ asset: Asset }>(
+      `/api/v1/projects/${projectId}/scenes/${sceneId}/assets`,
+      { method: "POST", body: JSON.stringify({ kind }) },
     );
   },
 };
