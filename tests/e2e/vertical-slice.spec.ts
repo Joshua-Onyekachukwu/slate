@@ -71,6 +71,17 @@ test("idea → script gate → storyboard gate (regenerate + edit + drag-reorder
   await expect(page.getByText(/the narrator/i)).toBeVisible();
   await expect(page.getByText(/the observable universe/i)).toBeVisible();
 
+  // Phase 3 Block 2 — per-scene ASSET generation through the real UI. Scene 1
+  // has a prompt pack at the gate, so the IMG button is enabled. Generation
+  // uses the provider's MEDIA methods (not the scripted chat queue — media is
+  // deterministic from the prompt seed), so nothing is consumed. Once ready the
+  // button becomes the quality chip "IMG · X/5" (the per-asset quality gate
+  // riding in meta.quality). Assert BEFORE any version bump: assets belong to
+  // their scene's version rows, and the upcoming edits mint new scene ids.
+  await expect(page.getByTestId("scene-assets-1")).toBeVisible();
+  await page.getByRole("button", { name: /generate image for scene 1/i }).click();
+  await expect(page.getByTestId("scene-assets-1").getByText(/IMG · [1-5]\/5/)).toBeVisible();
+
   // Storyboard REGENERATE through the real UI: type retake feedback, hit
   // Regenerate → write_storyboard runs again (queue: REV_SCENES) → the gate
   // reopens at v2 with "(rev)" titles. This proves the reject path round-trips
