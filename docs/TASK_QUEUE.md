@@ -9,19 +9,50 @@
 ## Queue — top of the queue is the next task
 
 1. **Deploy on Vercel (user action)** — follow `docs/deploy.md`: Neon
-   DATABASE_URL → Render API → Vercel web → Clerk keys. I've made everything
-   env-driven (CORS_ORIGIN hardening included) and verified `next build`.
-   Then drive the live flow + sign up a dummy user (steps in deploy.md).
-2. **Re-enable local testing (user call)** — Docker/Postgres suites are on
-   hold; CI runs them online on every push. When you say go, I re-run the
-   local gate (unit + E2E).
-3. **Phase 3 Block 1 — media generation** (next build task): per-scene image/
-   video/voice generation behind the provider interface + quality gates +
-   FFmpeg render/export — the path to actually "making videos".
-4. **Admin dashboard** — plan locked in `docs/admin-dashboard-plan.md`
+   DATABASE_URL → Render API → Vercel web → Clerk keys (env-driven + `next
+   build` verified). Then drive the live flow + sign up a dummy user.
+2. **Phase 3 Block 2 — asset UI + quality gates** (next build task): generate
+   buttons + status chips in the scene card, a per-asset quality gate
+   (score/flag + regenerate) behind the provider interface, E2E coverage.
+3. **Phase 3 Block 3 — real NVIDIA media endpoints** behind
+   generateImage/Video/Voiceover/Music (currently typed NOT_SUPPORTED) + voice
+   over / music providers as they become available.
+4. **Phase 3 Block 4 — FFmpeg render/export**: stitch approved assets, captions,
+   transitions, audio mix → MP4 + thumbnail + project package.
+5. **Admin dashboard** — plan locked in `docs/admin-dashboard-plan.md`
    (requireAdmin hook + read endpoints + admin pages; build after MVP is live).
 
 ## Completed — newest first
+
+- [x] **Phase 3 Block 1 — asset generation foundation (backend, TDD + review gate)** (2026-08-11)
+  - **Provider media methods** (`packages/ai`): `generateImage / generateVideo /
+    generateVoiceover / generateMusic` on the `Provider` interface (Phase 1+2
+    was chat-only). FakeProvider returns deterministic, hash-stable artifacts
+    (`fake://image/<hash>.png` — same prompt → same URL, idempotent retries);
+    NvidiaProvider throws typed `NOT_SUPPORTED` until a real media endpoint is
+    wired (Block 3).
+  - **`assets` table** (`packages/db`): scene-scoped rows (kind, status, url,
+    mime, provider, meta, error) + migration `0001_assets.sql`; version-rows
+    philosophy — a storyboard bump mints new scene ids and the current scene's
+    list starts fresh, old rows persist.
+  - **Asset API** (`apps/api/routes/assets.ts`): `GET/POST
+    /projects/:id/scenes/:sceneId/assets` — owner-scoped (getOwnedProject), 409
+    no-storyboard (before scene-id validation, matching the prompts routes),
+    400 invalid kind, 404 missing scene/foreign project, 409 no prompt pack
+    (edited scenes), provider failure persists a **failed** row + 502
+    (retryable, never a silent 500). New `PROVIDER_FAILURE` error code.
+  - **Review gate caught a real defect twice:** garbage (non-uuid) scene ids hit
+    Postgres' uuid type-cast → 500 (fixed with `UUID_RE` guard), then the guard
+    ordering flipped the no-storyboard 409 → 404 (fixed by checking the
+    storyboard first). Final gate: typecheck 6/6 · shared 5/5 · db 14/14 ·
+    ai 23/23 · api 36/36 · docs guard clean. (db suite flaked once under
+    parallel load — 10s hook timeout, passed 14/14 in isolation; same known
+    flake class.)
+  - **UI deliberately deferred to Block 2** — this block is fully unit-gated;
+    the running demo stack was not touched.
+  - **Follow-up recommendation:** Block 2 = asset UI (generate buttons + status
+    chips in the scene card) + per-asset quality gate, then Block 3 real media
+    endpoints, then Block 4 FFmpeg render/export.
 
 - [x] **Landing redesign (visuals + 5-phase pipeline) + Vercel deploy prep** (2026-08-11)
   - Landing now leads with **visuals built from the product itself**: a hero

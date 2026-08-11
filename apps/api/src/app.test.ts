@@ -3,7 +3,7 @@
 import "./test/api-db";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { buildApp } from "./app";
-import { FakeProvider } from "@slate/ai";
+import { FakeProvider, ProviderError } from "@slate/ai";
 import { ensureDatabase, runMigrations } from "@slate/db";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 
@@ -578,5 +578,128 @@ describe("api", () => {
       method: "POST", url: `/api/v1/projects/${id}/scenes/not-a-real-scene/prompts/regenerate`,
     });
     expect(madeUp.statusCode).toBe(404);
+  });
+
+  // ============ Phase 3 Block 1 — per-scene media assets ============
+  it("generates a scene asset (fake provider) and lists it back", async () => {
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(2),
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
+    const sb = (await app.inject({ method: "GET", url: `/api/v1/projects/${id}/storyboard` })).json().storyboard;
+    const sceneId = sb.scenes[0].id as string;
+
+    const gen = await app.inject({
+      method: "POST", url: `/api/v1/projects/${id}/scenes/${sceneId}/assets`,
+      payload: { kind: "image" },
+    });
+    expect(gen.statusCode).toBe(201);
+    const asset = gen.json().asset;
+    expect(asset.kind).toBe("image");
+    expect(asset.status).toBe("ready");
+    expect(asset.url).toMatch(/^fake:\/\/image\/[0-9a-f]{12}\.png$/);
+    expect(asset.provider).toBe("fake");
+
+    const list = await app.inject({ method: "GET", url: `/api/v1/projects/${id}/scenes/${sceneId}/assets` });
+    expect(list.statusCode).toBe(200);
+    expect(list.json().assets).toHaveLength(1);
+    expect(list.json().assets[0].url).toBe(asset.url);
+  });
+
+  it("409s before the storyboard exists; 400s an invalid kind; 409s a pack-less scene", async () => {
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(1),
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+
+    // No storyboard yet → 409 (same contract as the prompts routes).
+    const early = await app.inject({
+      method: "POST", url: `/api/v1/projects/${id}/scenes/nope/assets`,
+      payload: { kind: "image" },
+    });
+    expect(early.statusCode).toBe(409);
+
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
+    const sb = (await app.inject({ method: "GET", url: `/api/v1/projects/${id}/storyboard` })).json().storyboard;
+    const sceneId = sb.scenes[0].id as string;
+
+    const bad = await app.inject({
+      method: "POST", url: `/api/v1/projects/${id}/scenes/${sceneId}/assets`,
+      payload: { kind: "gif" },
+    });
+    expect(bad.statusCode).toBe(400);
+    expect(bad.json().error.code).toBe("VALIDATION_ERROR");
+
+    // Editing the scene nulls its prompt pack (version-rows model) → 409.
+    const edited = await app.inject({
+      method: "PUT", url: `/api/v1/projects/${id}/scenes/${sceneId}`,
+      payload: { content: SCENE },
+    });
+    expect(edited.statusCode).toBe(200);
+    const newSceneId = edited.json().storyboard.scenes[0].id as string;
+    const noPack = await app.inject({
+      method: "POST", url: `/api/v1/projects/${id}/scenes/${newSceneId}/assets`,
+      payload: { kind: "image" },
+    });
+    expect(noPack.statusCode).toBe(409);
+    expect(noPack.json().error.code).toBe("CONFLICT");
+  });
+
+  it("404s a made-up scene and a foreign project id", async () => {
+    const app = buildApp({ provider: new FakeProvider([
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(1),
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
+
+    const madeUp = await app.inject({
+      method: "POST", url: `/api/v1/projects/${id}/scenes/not-a-scene/assets`,
+      payload: { kind: "image" },
+    });
+    expect(madeUp.statusCode).toBe(404);
+
+    const foreign = await app.inject({
+      method: "POST", url: `/api/v1/projects/00000000-0000-0000-0000-000000000000/scenes/not-a-scene/assets`,
+      payload: { kind: "image" },
+    });
+    expect(foreign.statusCode).toBe(404);
+  });
+
+  it("persists a FAILED asset row and 502s when the provider fails", async () => {
+    class FailingMediaProvider extends FakeProvider {
+      override async generateImage(): Promise<never> {
+        throw new ProviderError("PROVIDER_FAILURE", "image service down");
+      }
+    }
+    const app = buildApp({ provider: new FailingMediaProvider([
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(1),
+    ]), checkpointer });
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
+    const id = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
+    await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
+    const sb = (await app.inject({ method: "GET", url: `/api/v1/projects/${id}/storyboard` })).json().storyboard;
+    const sceneId = sb.scenes[0].id as string;
+
+    const res = await app.inject({
+      method: "POST", url: `/api/v1/projects/${id}/scenes/${sceneId}/assets`,
+      payload: { kind: "image" },
+    });
+    expect(res.statusCode).toBe(502);
+    expect(res.json().error.code).toBe("PROVIDER_FAILURE");
+    expect(res.json().error.message).toContain("image service down");
+
+    // The failed row is visible + retryable, never a silent 500.
+    const list = await app.inject({ method: "GET", url: `/api/v1/projects/${id}/scenes/${sceneId}/assets` });
+    expect(list.json().assets).toHaveLength(1);
+    expect(list.json().assets[0].status).toBe("failed");
+    expect(list.json().assets[0].error).toContain("image service down");
   });
 });

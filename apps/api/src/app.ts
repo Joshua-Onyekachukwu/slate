@@ -8,6 +8,7 @@ import { scriptRoutes } from "./routes/scripts";
 import { storyboardRoutes } from "./routes/storyboard";
 import { sceneRoutes } from "./routes/scenes";
 import { promptRoutes } from "./routes/prompts";
+import { assetRoutes } from "./routes/assets";
 import { productionPlanRoutes } from "./routes/production-plan";
 import { streamRoute } from "./routes/stream";
 import { ApiError } from "./error";
@@ -57,6 +58,7 @@ export function buildApp(deps: AppDeps) {
   app.register(storyboardRoutes, deps);
   app.register(sceneRoutes, deps);
   app.register(promptRoutes, deps);
+  app.register(assetRoutes, deps); // Phase 3 Block 1 — per-scene media assets
   app.register(productionPlanRoutes, deps);
   app.register(streamRoute, deps);
 
