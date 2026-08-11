@@ -1,5 +1,5 @@
-import type { Provider, ChatMessage } from "./types";
-import { ProviderError } from "./types";
+import type { Provider, ChatMessage, MediaArtifact } from "./types";
+import { ProviderError, notSupported } from "./types";
 import type { ZodType } from "zod";
 
 type NvidiaConfig = { apiKey: string; model: string; baseUrl?: string; maxRetries?: number };
@@ -47,5 +47,21 @@ export class NvidiaProvider implements Provider {
         attempt++; continue;
       }
     }
+  }
+
+  // Phase 3 Block 1 — media endpoints are NOT wired yet. The typed NOT_SUPPORTED
+  // error makes failures explicit (the API persists a failed asset row) instead
+  // of pretending chat completions can generate media.
+  async generateImage(_input: { prompt: string; aspectRatio?: string }): Promise<MediaArtifact> {
+    throw notSupported(this.name, "image generation");
+  }
+  async generateVideo(_input: { prompt: string; durationSeconds?: number }): Promise<MediaArtifact> {
+    throw notSupported(this.name, "video generation");
+  }
+  async generateVoiceover(_input: { text: string; style?: string }): Promise<MediaArtifact> {
+    throw notSupported(this.name, "voiceover generation");
+  }
+  async generateMusic(_input: { prompt: string; durationSeconds?: number }): Promise<MediaArtifact> {
+    throw notSupported(this.name, "music generation");
   }
 }

@@ -25,3 +25,12 @@ export type StoryboardStatus = (typeof StoryboardStatus)[keyof typeof Storyboard
 
 export const ProductionPlanStatus = { DRAFT: "draft", READY: "ready" } as const;
 export type ProductionPlanStatus = (typeof ProductionPlanStatus)[keyof typeof ProductionPlanStatus];
+
+// Phase 3 Block 1 — per-scene media assets (image / video / voice / music).
+// Each kind maps to a Provider media method and a prompt-pack field. SFX
+// arrives with sound design in a later block.
+export const AssetKind = { IMAGE: "image", VIDEO: "video", VOICE: "voice", MUSIC: "music" } as const;
+export type AssetKind = (typeof AssetKind)[keyof typeof AssetKind];
+
+export const AssetStatus = { PENDING: "pending", GENERATING: "generating", READY: "ready", FAILED: "failed" } as const;
+export type AssetStatus = (typeof AssetStatus)[keyof typeof AssetStatus];
