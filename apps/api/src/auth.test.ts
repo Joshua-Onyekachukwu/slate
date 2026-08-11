@@ -156,6 +156,10 @@ describe("auth — Clerk-style multi-user isolation (ADR-022/023)", () => {
       { method: "PUT", url: `/api/v1/projects/${pid}/scenes/${sceneId}/prompts`, payload: { promptPack: PACK } },
       { method: "POST", url: `/api/v1/projects/${pid}/scenes/${sceneId}/prompts/regenerate` },
       { method: "POST", url: `/api/v1/projects/${pid}/stages/storyboard/approve`, payload: { approved: true } },
+      // Phase 3 Block 1 — the per-scene assets routes are owner-gated the same
+      // way (POST would otherwise 502 on a real provider; both must 404 first).
+      { method: "GET", url: `/api/v1/projects/${pid}/scenes/${sceneId}/assets` },
+      { method: "POST", url: `/api/v1/projects/${pid}/scenes/${sceneId}/assets`, payload: { kind: "image" } },
     ];
     for (const r of routes) {
       const res = await app.inject({ method: r.method, url: r.url, payload: r.payload, headers: bearer("tok-b") });

@@ -21,6 +21,13 @@
 
 ## Completed — newest first
 
+- [x] **Task 12 hardening — auth-sweep extended to the Block 1 assets routes** (2026-08-12)
+  - The owner-scoped 404 sweep in `auth.test.ts` (user B on every route after A
+    drives to a storyboard) predated Phase 3 Block 1; added `GET` + `POST
+    /scenes/:id/assets` to it. api 36/36 · typecheck · docs guard green.
+  - Reorder `scene_ids` mismatch 409 + auth isolation were already shipped in
+    `c951c74` (per the standing rule, moved past the done work, closed the gap).
+
 - [x] **Phase 3 Block 2 — asset UI in the scene card + per-asset quality gate (TDD + review gate)** (2026-08-11)
   - **Quality gate on the provider** (`packages/ai`): `MediaArtifact.quality`
     (`{ score 1–5, notes[] }`); FakeProvider scores DETERMINISTICALLY from the
