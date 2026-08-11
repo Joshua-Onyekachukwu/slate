@@ -8,10 +8,16 @@ import { useClerk, useUser } from "@clerk/nextjs";
 // authEnabled (both Clerk keys present, layout.tsx) and passes it down — client
 // components can't read CLERK_SECRET_KEY. False → static local avatar, nothing
 // Clerk mounted; true → signed-in avatar + sign out / sign-in link.
+//
+// The public landing page lives at / (marketing); the studio moved to /studio
+// (protected). The nav reflects that: Studio/Projects are app links, and the
+// landing page gets a primary CTA ("Open studio" in local demo mode; the
+// NavAuth sign-in link serves that role when Clerk is configured).
 export function Nav({ authEnabled }: { authEnabled: boolean }) {
   const pathname = usePathname();
-  const isDash = pathname === "/";
+  const isStudio = pathname === "/studio";
   const isWs = pathname.startsWith("/projects");
+  const isLanding = pathname === "/";
 
   return (
     <nav className="nav">
@@ -19,7 +25,7 @@ export function Nav({ authEnabled }: { authEnabled: boolean }) {
         <span className="rec-dot"></span> slate
       </Link>
       <div className="nav-links">
-        <Link className={`nav-link${isDash ? " active" : ""}`} href="/">
+        <Link className={`nav-link${isStudio ? " active" : ""}`} href="/studio">
           Studio
         </Link>
         <Link className={`nav-link${isWs ? " active" : ""}`} href="/projects/0042?stage=7">
@@ -31,7 +37,15 @@ export function Nav({ authEnabled }: { authEnabled: boolean }) {
       </div>
       <div className="nav-right">
         <span className="status-pill">nvidia build · live</span>
-        {authEnabled ? <NavAuth /> : <div className="avatar">S</div>}
+        {authEnabled ? (
+          <NavAuth />
+        ) : isLanding ? (
+          <Link className="nav-cta" href="/studio">
+            Open studio →
+          </Link>
+        ) : (
+          <div className="avatar">S</div>
+        )}
       </div>
     </nav>
   );

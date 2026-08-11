@@ -116,7 +116,7 @@ export function StatePanel({
         storyboard, prompts.
       </p>
       <div style={{ marginTop: 20 }}>
-        <Link className="mini-btn dark" href="/">
+        <Link className="mini-btn dark" href="/studio">
           ← Back to idea input
         </Link>
       </div>
