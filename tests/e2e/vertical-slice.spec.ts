@@ -38,7 +38,7 @@ async function trackErrors(page: Page) {
 test("idea → script gate → storyboard gate (regenerate + edit + drag-reorder) → approve (no console errors)", async ({ page }) => {
   const errors = await trackErrors(page);
 
-  await page.goto("/");
+  await page.goto("/studio"); // the studio (dashboard) moved from / to /studio — / is the public landing
   await page.getByLabel("Describe your video idea").fill("A documentary about the history of the universe");
   await page.getByRole("button", { name: /begin production/i }).click();
   await page.waitForURL(/\/projects\//);

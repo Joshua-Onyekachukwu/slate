@@ -2,7 +2,10 @@
   "name": "@slate/e2e",
   "version": "0.0.0",
   "private": true,
-  "scripts": { "test": "playwright test" },
+  "scripts": {
+    "test": "playwright test",
+    "test:auth": "playwright test -c playwright.auth.config.ts"
+  },
   "dependencies": { "@slate/db": "workspace:*" },
   "devDependencies": { "@playwright/test": "^1.62.0" }
 }

@@ -11,7 +11,9 @@
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:unit": "turbo run test --filter=!@slate/e2e",
     "test:e2e": "pnpm --filter e2e test",
+    "test:e2e:auth": "pnpm --filter e2e test:auth",
     "dev:slice": "bash scripts/boot-slice.sh",
     "lint": "turbo run lint",
     "check:docs": "bash scripts/check-docs.sh",
@@ -20,7 +22,7 @@
   "lint-staged": {
     "docs/**/*.md": "pnpm check:docs",
     "**/*.{ts,tsx}": "bash -c 'pnpm typecheck'",
-    "**/*.{test,spec}.{ts,tsx}": "bash -c 'pnpm test'"
+    "**/*.{test,spec}.{ts,tsx}": "bash -c 'pnpm test:unit'"
   },
   "devDependencies": {
     "husky": "^9.1.7",

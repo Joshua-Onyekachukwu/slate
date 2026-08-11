@@ -227,13 +227,23 @@ describe("api", () => {
     expect(after.scenes.map((s: { content: { title: string } }) => s.content.title)).toEqual(["SC 2", "SC 1"]);
     expect(after.scenes[0].promptPack).not.toBeNull(); // pack carried into the new row
 
-    // Not a permutation → 400.
+    // Not a permutation of the server set → 409 CONFLICT (plan Task 12: a
+    // mismatched scene_ids means the client is acting on a STALE version —
+    // conflict, not malformed input; the UI refetches on 409).
     const bad = await app.inject({
       method: "PUT", url: `/api/v1/projects/${id}/storyboard/order`,
       payload: { scene_ids: [ids[0]] },
     });
-    expect(bad.statusCode).toBe(400);
-    expect(bad.json().error.code).toBe("VALIDATION_ERROR");
+    expect(bad.statusCode).toBe(409);
+    expect(bad.json().error.code).toBe("CONFLICT");
+
+    // Structurally invalid input stays 400 VALIDATION_ERROR.
+    const malformed = await app.inject({
+      method: "PUT", url: `/api/v1/projects/${id}/storyboard/order`,
+      payload: { scene_ids: "not-an-array" },
+    });
+    expect(malformed.statusCode).toBe(400);
+    expect(malformed.json().error.code).toBe("VALIDATION_ERROR");
   });
 
   it("reorders only while at the storyboard gate — 409 before it exists, 404 for missing project", async () => {

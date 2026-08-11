@@ -25,11 +25,30 @@ async function expectNoHorizontalOverflow(page: Page) {
     .toBeLessThanOrEqual(0);
 }
 
+test.describe("landing page viewports", () => {
+  // / is now the PUBLIC marketing landing (the studio moved to /studio). It
+  // must hold the same zero-overflow contract at every breakpoint, with the
+  // hero prompt + pipeline visible.
+  for (const vp of VIEWPORTS) {
+    test(`${vp.name} (${vp.width}px) — hero + pipeline, no overflow`, async ({ page }) => {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto("/");
+      await expectNoHorizontalOverflow(page);
+      await expect(page.getByRole("link", { name: "SLATE" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /type an idea/i })).toBeVisible();
+      await expect(page.getByLabel("Type your video idea")).toBeVisible();
+      await expect(page.getByText(/the production pipeline/i)).toBeVisible();
+    });
+  }
+});
+
 test.describe("dashboard viewports", () => {
+  // The studio lives at /studio (protected when auth is configured; the main
+  // E2E config boots without Clerk keys, so it renders directly).
   for (const vp of VIEWPORTS) {
     test(`${vp.name} (${vp.width}px) — no overflow, key elements visible`, async ({ page }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
-      await page.goto("/");
+      await page.goto("/studio");
       await expectNoHorizontalOverflow(page);
       await expect(page.getByRole("link", { name: "SLATE" })).toBeVisible();
       await expect(page.getByRole("heading", { name: /what do you want to make/i })).toBeVisible();

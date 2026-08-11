@@ -6,6 +6,7 @@ import { buildApp } from "./app";
 import { FakeProvider } from "@slate/ai";
 import { ensureDatabase, runMigrations } from "@slate/db";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
+import { makeStubVerifyToken } from "./auth";
 
 const TEST_URL = process.env.DATABASE_URL ?? "postgres://slate:slate@localhost:5432/slate_test_auth";
 
@@ -20,6 +21,19 @@ const fakeVerify = (map: Record<string, string>) => async (token: string) => {
   if (!userId) throw new Error("invalid token");
   return { userId };
 };
+
+describe("makeStubVerifyToken — the STUB_AUTH=1 verifier the auth E2E boots", () => {
+  it("maps the fixed E2E tokens to their user ids", async () => {
+    const verify = makeStubVerifyToken();
+    await expect(verify("stub-token-a")).resolves.toEqual({ userId: "user_stub_a" });
+    await expect(verify("stub-token-b")).resolves.toEqual({ userId: "user_stub_b" });
+  });
+
+  it("rejects any token it doesn't know", async () => {
+    const verify = makeStubVerifyToken();
+    await expect(verify("garbage")).rejects.toThrow();
+  });
+});
 
 describe("auth — Clerk-style multi-user isolation (ADR-022/023)", () => {
   let checkpointer: PostgresSaver;
@@ -99,6 +113,59 @@ describe("auth — Clerk-style multi-user isolation (ADR-022/023)", () => {
     const list = await app.inject({ method: "GET", url: "/api/v1/projects", headers: bearer("tok-b") });
     const found = (list.json().projects as { id: string }[]).find((p) => p.id === pid);
     expect(found).toBeUndefined();
+  });
+
+  it("404s user B on EVERY owner-scoped route after A drives the project to a storyboard", async () => {
+    // Full queue to drive A's project through research → script → storyboard.
+    const SCENE = { title: "The Bang", narration: "n", visualDescription: "v", cameraDirection: "c", durationSeconds: 8, transition: "CUT", musicCue: "m" };
+    const PACK = { imagePrompt: "i", videoPrompt: "v", narrationPrompt: "n", musicPrompt: "m", sfxPrompt: "s" };
+    const CHARACTERS = '[{"id":"char-1","name":"The Narrator","description":"A calm voice"}]';
+    const LOCATIONS = '[{"id":"loc-1","name":"The Universe","description":"Vast"}]';
+    const RESEARCH = '{"timeline":["13.8 bya: Big Bang"],"concepts":[],"terminology":{},"references":[],"keyEvents":[]}';
+    const queue = [
+      { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH },
+      { content: CHARACTERS }, { content: LOCATIONS }, // consistency on script approve
+      { content: JSON.stringify([SCENE]) }, // storyboardAgent
+      { content: JSON.stringify([SCENE]) }, // editorAgent
+      { content: JSON.stringify(PACK) },    // promptAgent
+    ];
+    const app = buildApp({
+      provider: new FakeProvider(queue),
+      checkpointer,
+      verifyToken: fakeVerify({ "tok-a": "user_a", "tok-b": "user_b" }),
+    });
+
+    // A drives idea → storyboard gate.
+    const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" }, headers: bearer("tok-a") });
+    const pid = created.json().project.id as string;
+    await app.inject({ method: "POST", url: `/api/v1/projects/${pid}/stages/research/approve`, payload: { approved: true }, headers: bearer("tok-a") });
+    const sb = await app.inject({ method: "POST", url: `/api/v1/projects/${pid}/stages/script/approve`, payload: { approved: true }, headers: bearer("tok-a") });
+    expect(sb.json().project.stage).toBe("storyboard");
+    const storyboard = (await app.inject({ method: "GET", url: `/api/v1/projects/${pid}/storyboard`, headers: bearer("tok-a") })).json().storyboard;
+    const sceneId = storyboard.scenes[0].id as string;
+
+    // B gets 404 — never 403, never data — on every owner-scoped route.
+    const routes: { method: "GET" | "PUT" | "POST"; url: string; payload?: Record<string, unknown> }[] = [
+      { method: "GET", url: `/api/v1/projects/${pid}` },
+      { method: "GET", url: `/api/v1/projects/${pid}/storyboard` },
+      { method: "GET", url: `/api/v1/projects/${pid}/production-plan` },
+      { method: "GET", url: `/api/v1/projects/${pid}/stages/storyboard` },
+      { method: "GET", url: `/api/v1/projects/${pid}/stages` },
+      { method: "PUT", url: `/api/v1/projects/${pid}/scenes/${sceneId}`, payload: { content: SCENE } },
+      { method: "PUT", url: `/api/v1/projects/${pid}/storyboard/order`, payload: { scene_ids: [sceneId, "stale-id-from-an-old-version"] } },
+      { method: "PUT", url: `/api/v1/projects/${pid}/scenes/${sceneId}/prompts`, payload: { promptPack: PACK } },
+      { method: "POST", url: `/api/v1/projects/${pid}/scenes/${sceneId}/prompts/regenerate` },
+      { method: "POST", url: `/api/v1/projects/${pid}/stages/storyboard/approve`, payload: { approved: true } },
+    ];
+    for (const r of routes) {
+      const res = await app.inject({ method: r.method, url: r.url, payload: r.payload, headers: bearer("tok-b") });
+      expect(res.statusCode, `${r.method} ${r.url}`).toBe(404);
+      expect(res.json().error.code).toBe("NOT_FOUND");
+    }
+
+    // And B's list still doesn't contain the project.
+    const list = await app.inject({ method: "GET", url: "/api/v1/projects", headers: bearer("tok-b") });
+    expect((list.json().projects as { id: string }[]).find((p) => p.id === pid)).toBeUndefined();
   });
 
   it("keeps health public and answers CORS preflight in enforced mode", async () => {
