@@ -11,18 +11,36 @@
 1. **Deploy on Vercel (user action)** — follow `docs/deploy.md`: Neon
    DATABASE_URL → Render API → Vercel web → Clerk keys (env-driven + `next
    build` verified). Then drive the live flow + sign up a dummy user.
-2. **Phase 3 Block 2 — asset UI + quality gates** (next build task): generate
-   buttons + status chips in the scene card, a per-asset quality gate
-   (score/flag + regenerate) behind the provider interface, E2E coverage.
-3. **Phase 3 Block 3 — real NVIDIA media endpoints** behind
+2. **Phase 3 Block 3 — real NVIDIA media endpoints** behind
    generateImage/Video/Voiceover/Music (currently typed NOT_SUPPORTED) + voice
    over / music providers as they become available.
-4. **Phase 3 Block 4 — FFmpeg render/export**: stitch approved assets, captions,
+3. **Phase 3 Block 4 — FFmpeg render/export**: stitch approved assets, captions,
    transitions, audio mix → MP4 + thumbnail + project package.
-5. **Admin dashboard** — plan locked in `docs/admin-dashboard-plan.md`
+4. **Admin dashboard** — plan locked in `docs/admin-dashboard-plan.md`
    (requireAdmin hook + read endpoints + admin pages; build after MVP is live).
 
 ## Completed — newest first
+
+- [x] **Phase 3 Block 2 — asset UI in the scene card + per-asset quality gate (TDD + review gate)** (2026-08-11)
+  - **Quality gate on the provider** (`packages/ai`): `MediaArtifact.quality`
+    (`{ score 1–5, notes[] }`); FakeProvider scores DETERMINISTICALLY from the
+    same prompt seed (same prompt → same score → idempotent retry), spread 2–5.
+  - **API** (`apps/api`): the assets POST persists `meta.quality` from the
+    artifact; GET returns it. The gate is visible + retryable, never silent.
+  - **Web** (`apps/web`): per-scene `Assets` strip under every scene card — one
+    generate button per kind (IMG/VID/VO/MUS), score shown once ready, low
+    (< 3) flags regeneration, FAILED becomes a retry with the error as title.
+    `api.ts` grew `Asset`/`ASSET_KINDS`/`listAssets`/`generateAsset`; version
+    bumps (edit/regen/reorder/pack-edit) reset the per-scene map (new ids).
+  - **Tests**: ai 24/24 (deterministic quality) · api 36/36 (meta.quality
+    persisted) · E2E 14/14 (vertical-slice now generates an IMG at the gate
+    and asserts the `IMG · X/5` chip before any version bump).
+  - **Hardening**: api vitest `testTimeout` 5s → 15s — the first full-graph
+    run in a file (create → research gate) flakes at ~6.4s under load while
+    passing comfortably in CI; 15s keeps the gate honest without masking hangs.
+  - **Follow-up recommendation**: Block 3 — real NVIDIA media endpoints (the
+    quality gate is then a real eval; FakeProvider's deterministic score stays
+    for tests).
 
 - [x] **Phase 3 Block 1 — asset generation foundation (backend, TDD + review gate)** (2026-08-11)
   - **Provider media methods** (`packages/ai`): `generateImage / generateVideo /
