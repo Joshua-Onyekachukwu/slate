@@ -602,6 +602,10 @@ describe("api", () => {
     expect(asset.status).toBe("ready");
     expect(asset.url).toMatch(/^fake:\/\/image\/[0-9a-f]{12}\.png$/);
     expect(asset.provider).toBe("fake");
+    // Block 2 — the quality gate rides in meta.quality (1–5 + notes).
+    expect(asset.meta.quality.score).toBeGreaterThanOrEqual(1);
+    expect(asset.meta.quality.score).toBeLessThanOrEqual(5);
+    expect(asset.meta.quality.notes.length).toBeGreaterThan(0);
 
     const list = await app.inject({ method: "GET", url: `/api/v1/projects/${id}/scenes/${sceneId}/assets` });
     expect(list.statusCode).toBe(200);

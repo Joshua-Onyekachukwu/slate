@@ -80,7 +80,13 @@ export async function assetRoutes(app: FastifyInstance, deps: AppDeps) {
       const artifact = await generate(deps.provider, kind, scene);
       await db.insert(assets).values({
         ...base, status: "ready", url: artifact.url, mimeType: artifact.mimeType,
-        meta: { width: artifact.width ?? null, height: artifact.height ?? null },
+        // Block 2 — the per-asset quality gate: the provider's eval rides in
+        // meta.quality; the UI flags score < 3 for regeneration.
+        meta: {
+          width: artifact.width ?? null,
+          height: artifact.height ?? null,
+          quality: artifact.quality ?? null,
+        },
       });
       const [saved] = await db.select().from(assets).where(eq(assets.id, assetId)).limit(1);
       return reply.code(201).send({ asset: saved });
