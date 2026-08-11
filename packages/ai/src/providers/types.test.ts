@@ -31,6 +31,20 @@ describe("FakeProvider", () => {
     expect(music.url).toMatch(/^fake:\/\/music\//);
     expect(music.mimeType).toBe("audio/mpeg");
   });
+  // Phase 3 Block 2 — the per-asset quality gate is deterministic and bounded:
+  // same prompt → same score (retry idempotent), score within 1–5, notes set.
+  it("scores every artifact deterministically (1–5, hash-stable)", async () => {
+    const p = new FakeProvider([]);
+    const a = await p.generateImage({ prompt: "a nebula" });
+    const b = await p.generateImage({ prompt: "a nebula" });
+    const c = await p.generateVideo({ prompt: "a nebula" });
+    expect(a.quality?.score).toBe(b.quality?.score); // same prompt → same score
+    expect(a.quality?.score).toBeGreaterThanOrEqual(1);
+    expect(a.quality?.score).toBeLessThanOrEqual(5);
+    expect(a.quality?.notes.length).toBeGreaterThan(0);
+    expect(c.quality?.score).toBeGreaterThanOrEqual(1); // every kind is scored
+    expect(c.quality?.score).toBeLessThanOrEqual(5);
+  });
   it("throws when the queue is exhausted", async () => {
     const p = new FakeProvider([]);
     await expect(p.complete({ messages: [{ role: "user", content: "hi" }], schema: z.object({}) })).rejects.toThrow(/no scripted response/i);

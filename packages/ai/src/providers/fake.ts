@@ -5,10 +5,24 @@ import type { ZodType } from "zod";
 // Phase 3 Block 1 — media artifacts are DETERMINISTIC: the same prompt always
 // yields the same fake URL (hash-stable), so tests and the demo can assert on
 // exact URLs, and a retry with the same prompt is idempotent.
-const art = (kind: string, ext: string, mime: string, seed: string): MediaArtifact => ({
-  url: `fake://${kind}/${createHash("sha1").update(seed).digest("hex").slice(0, 12)}.${ext}`,
-  mimeType: mime,
-});
+// Phase 3 Block 2 — the quality score is derived from the SAME seed hash, so
+// it is deterministic too: same prompt → same score, retry is idempotent.
+// The spread is 2–5 (never a 1, so a failed eval is a genuine failure, and
+// never a perfect 5) — low scores (< 3) flag the asset for regeneration.
+const art = (kind: string, ext: string, mime: string, seed: string): MediaArtifact => {
+  const hash = createHash("sha1").update(seed).digest("hex");
+  const score = 2 + (parseInt(hash.slice(0, 2), 16) % 4);
+  return {
+    url: `fake://${kind}/${hash.slice(0, 12)}.${ext}`,
+    mimeType: mime,
+    quality: {
+      score,
+      notes: score < 3
+        ? ["low prompt adherence — consider regenerating"]
+        : ["on-brief — matches the prompt pack"],
+    },
+  };
+};
 
 export class FakeProvider implements Provider {
   readonly name = "fake";

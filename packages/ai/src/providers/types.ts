@@ -2,6 +2,14 @@ import type { ZodType } from "zod";
 
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
+// Phase 3 Block 2 — the per-asset quality gate (plan Stage 8, scoped to the
+// asset level for the MVP). A score of 1–5 plus notes; LOW scores (< 3) flag
+// the asset for regeneration rather than continuing blindly.
+export interface MediaQuality {
+  score: number; // 1–5
+  notes: string[];
+}
+
 // Phase 3 Block 1 — a generated media artifact. The provider returns a URL
 // reference (CDN/hosted) rather than bytes so the abstraction stays model-
 // agnostic and the API can persist it directly.
@@ -10,6 +18,9 @@ export interface MediaArtifact {
   mimeType: string;
   width?: number;
   height?: number;
+  // Block 2 — set by providers that evaluate their own output. The API
+  // persists it into assets.meta.quality; the UI flags score < 3.
+  quality?: MediaQuality;
 }
 
 export interface Provider {
