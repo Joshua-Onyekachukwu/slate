@@ -58,3 +58,23 @@ export const scenes = pgTable("scenes", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [uniqueIndex("scenes_storyboard_order_version").on(t.storyboardId, t.order, t.version)]);
+
+// Phase 3 Block 1 — per-scene generated media assets. One row per generation
+// attempt; status moves pending → generating → ready | failed, so a failed
+// attempt stays visible and retryable (the UI's regenerate path reads it).
+// Assets hang off the SCENE row they were generated for — when a storyboard
+// version bump mints new scene ids, the old rows' assets persist but the
+// current scene's list starts fresh (same version-rows philosophy).
+export const assets = pgTable("assets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sceneId: uuid("scene_id").notNull().references(() => scenes.id),
+  kind: text("kind").notNull(), // image | video | voice | music (AssetKind)
+  status: text("status").notNull().default("pending"), // AssetStatus
+  url: text("url"),
+  mimeType: text("mime_type"),
+  provider: text("provider"),
+  meta: jsonb("meta").notNull().$type<Record<string, unknown>>().default({}),
+  error: text("error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("assets_scene_id").on(t.sceneId)]);

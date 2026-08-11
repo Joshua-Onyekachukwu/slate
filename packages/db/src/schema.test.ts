@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { sql } from "drizzle-orm";
 import pg from "pg";
-import { projects, scripts, storyboards, scenes } from "./schema";
+import { projects, scripts, storyboards, scenes, assets } from "./schema";
 import { ensureDatabase } from "./pg";
 
 // Hermetic DB: this suite DROPS all tables (incl. the drizzle journal) in
@@ -16,7 +16,7 @@ describe("db schema", () => {
   beforeAll(async () => {
     await ensureDatabase(TEST_URL);
     pool = new pg.Pool({ connectionString: TEST_URL });
-    await pool.query(`DROP TABLE IF EXISTS scenes, storyboards, scripts, projects CASCADE`);
+    await pool.query(`DROP TABLE IF EXISTS assets, scenes, storyboards, scripts, projects CASCADE`);
     await pool.query(`
       CREATE TABLE projects (
         id uuid PRIMARY KEY,
@@ -69,6 +69,19 @@ describe("db schema", () => {
         updated_at timestamptz NOT NULL DEFAULT now(),
         UNIQUE (storyboard_id, "order", version)
       );
+      CREATE TABLE assets (
+        id uuid PRIMARY KEY,
+        scene_id uuid NOT NULL REFERENCES scenes(id),
+        kind text NOT NULL,
+        status text NOT NULL DEFAULT 'pending',
+        url text,
+        mime_type text,
+        provider text,
+        meta jsonb NOT NULL DEFAULT '{}',
+        error text,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
     `);
   });
   afterAll(async () => {
@@ -77,7 +90,7 @@ describe("db schema", () => {
     // a migrate-then-test cycle would leave "journal says applied, tables gone" —
     // the next migrate would skip and every query would fail with relation missing.
     await pool.query(`DROP TABLE IF EXISTS drizzle.__drizzle_migrations`);
-    await pool.query(`DROP TABLE IF EXISTS scenes, storyboards, scripts, projects CASCADE`);
+    await pool.query(`DROP TABLE IF EXISTS assets, scenes, storyboards, scripts, projects CASCADE`);
     await pool.end();
   });
 
@@ -119,5 +132,42 @@ describe("db schema", () => {
     const rows = await db.select().from(scenes).where(sql`storyboard_id = ${sbId}`);
     expect(rows).toHaveLength(2); // both versions persist
     expect(rows.map((r) => r.version)).toEqual([1, 2]);
+  });
+
+  it("round-trips a generated asset and defaults its status", async () => {
+    const db = drizzle(pool);
+    const pid = crypto.randomUUID();
+    await db.insert(projects).values({ id: pid, ownerId: "user_abc123", idea: "x" });
+    const sbId = crypto.randomUUID();
+    await db.insert(storyboards).values({ id: sbId, projectId: pid, version: 1 });
+    const sceneId = crypto.randomUUID();
+    await db.insert(scenes).values({
+      id: sceneId, storyboardId: sbId, order: 1, version: 1, title: "The Bang",
+      content: { title: "The Bang", narration: "n", visualDescription: "v", cameraDirection: "c", durationSeconds: 8, transition: "CUT", musicCue: "m" },
+      promptPack: null,
+    });
+    const assetId = crypto.randomUUID();
+    await db.insert(assets).values({
+      id: assetId, sceneId, kind: "image", status: "ready", url: "fake://image/abc.png", mimeType: "image/png", provider: "fake",
+    });
+    const got = await db.select().from(assets).where(sql`id = ${assetId}`);
+    expect(got).toHaveLength(1);
+    expect(got[0].kind).toBe("image");
+    expect(got[0].status).toBe("ready");
+    expect(got[0].url).toBe("fake://image/abc.png");
+    expect(got[0].meta).toEqual({}); // jsonb default
+    // a second asset WITHOUT a status gets the pending default
+    const a2 = crypto.randomUUID();
+    await db.insert(assets).values({ id: a2, sceneId, kind: "voice" });
+    const [got2] = await db.select().from(assets).where(sql`id = ${a2}`);
+    expect(got2.status).toBe("pending");
+  });
+
+  it("rejects an asset with an orphan scene id (FK)", async () => {
+    await expect(
+      pool.query(`INSERT INTO assets (id, scene_id, kind) VALUES ($1, $2, 'image')`, [
+        crypto.randomUUID(), crypto.randomUUID(), // no such scene
+      ]),
+    ).rejects.toThrow(); // FK violation
   });
 });
