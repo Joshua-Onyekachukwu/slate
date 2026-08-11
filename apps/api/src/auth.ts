@@ -16,3 +16,21 @@ export function makeVerifyToken(secretKey = process.env.CLERK_SECRET_KEY): Token
     return { userId: payload.sub as string };
   };
 }
+
+// Hermetic E2E stub (tests/playwright.auth.config.ts): maps fixed bearer tokens
+// to fixed user ids so enforced-mode auth + owner isolation can be exercised
+// end-to-end WITHOUT Clerk. Enabled ONLY by STUB_AUTH=1 (a test-only env var
+// never set in production/CI); the two-token map also proves multi-user
+// isolation at the E2E layer (user B cannot see user A's rows → 404).
+export const STUB_USERS: Record<string, string> = {
+  "stub-token-a": "user_stub_a",
+  "stub-token-b": "user_stub_b",
+};
+
+export function makeStubVerifyToken(users: Record<string, string> = STUB_USERS): TokenVerifier {
+  return async (token: string) => {
+    const userId = users[token];
+    if (!userId) throw new Error(`unknown stub token`);
+    return { userId };
+  };
+}

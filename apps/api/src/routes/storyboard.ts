@@ -75,7 +75,13 @@ export async function storyboardRoutes(app: FastifyInstance, deps: AppDeps) {
     const currentIds = new Set(current.map((s) => s.id));
     const validPermutation = ids.length === current.length && ids.every((x) => currentIds.has(x)) && new Set(ids).size === ids.length;
     if (!validPermutation) {
-      return sendError(reply, ERROR_CODES.VALIDATION_ERROR, 400, "scene_ids must be a permutation of the current scene ids");
+      // Plan Task 12: a well-formed but MISMATCHED scene_ids set means the
+      // client is reordering against a STALE storyboard version (its ids are
+      // from an old version-row set) — a conflict, not malformed input. 409
+      // is what the UI refetches on (plan Task 11: "optimistic UI + refetch
+      // on 409"). Structural validation (not an array / not strings) stays
+      // 400 above.
+      return sendError(reply, ERROR_CODES.CONFLICT, 409, "scene_ids do not match the current storyboard version");
     }
 
     const byId = new Map(current.map((s) => [s.id, s]));

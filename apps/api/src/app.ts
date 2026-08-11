@@ -37,7 +37,10 @@ export function buildApp(deps: AppDeps) {
   // methods EXPLICIT: @fastify/cors@11 defaults to 'GET,HEAD,POST', which would
   // CORS-block every PUT (reorder, scene edits) — the browser preflight fails
   // with "Method PUT is not allowed by Access-Control-Allow-Methods".
-  app.register(cors, { origin: true, methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] });
+  // origin: local-first default reflects ANY origin; CORS_ORIGIN (comma-separated)
+  // locks it to the deployed web origin(s) for production (docs/deploy.md).
+  const corsOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",").map((s) => s.trim()) : true;
+  app.register(cors, { origin: corsOrigins, methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] });
 
   if (deps.verifyToken) {
     const authHook = requireUser(deps.verifyToken);

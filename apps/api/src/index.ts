@@ -2,7 +2,7 @@ import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { ensureDatabase, resolveDatabaseUrl, runMigrations } from "@slate/db";
 import { buildApp } from "./app";
 import { createProvider } from "./provider";
-import { makeVerifyToken } from "./auth";
+import { makeStubVerifyToken, makeVerifyToken } from "./auth";
 
 // Phase 1+2 boot (Task 10): DATABASE_URL is the single source of truth — Docker
 // Compose locally (postgres://slate:slate@localhost:5432/slate) or Neon in the
@@ -25,7 +25,14 @@ await checkpointer.setup();
 
 // Task 2 (ADR-022/023): enforced auth when CLERK_SECRET_KEY is present (the
 // demo and E2E run local-first without keys — FAKE_PROVIDER=1, no sessions).
-const verifyToken = process.env.CLERK_SECRET_KEY ? makeVerifyToken() : undefined;
+// STUB_AUTH=1 (test-only) installs the hermetic stub verifier instead, so the
+// auth E2E spec (playwright.auth.config.ts) exercises enforced mode + owner
+// isolation with fixed bearer tokens and no Clerk network access.
+const verifyToken = process.env.STUB_AUTH === "1"
+  ? makeStubVerifyToken()
+  : process.env.CLERK_SECRET_KEY
+    ? makeVerifyToken()
+    : undefined;
 const app = buildApp({ provider: createProvider(), checkpointer, verifyToken });
 
 const port = Number(process.env.PORT ?? 4000);
