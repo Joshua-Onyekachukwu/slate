@@ -5,6 +5,13 @@ on:
     branches: [master, main]
   pull_request:
 
+concurrency:
+  # Branch-protection friendly: one live run per ref (branch or PR merge ref),
+  # so a new push cancels the in-flight run instead of queueing a redundant
+  # one — the required CI check always reflects the freshest commit.
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
