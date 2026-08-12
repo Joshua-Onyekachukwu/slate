@@ -42,6 +42,10 @@ test("idea → script gate → storyboard gate (regenerate + edit + drag-reorder
   await page.getByLabel("Describe your video idea").fill("A documentary about the history of the universe");
   await page.getByRole("button", { name: /begin production/i }).click();
   await page.waitForURL(/\/projects\//);
+  // The API base the web boots against (playwright.config webServer env).
+  const projectId = page.url().match(/\/projects\/([0-9a-f-]+)/)?.[1] ?? "";
+  expect(projectId).toMatch(/^[0-9a-f-]+$/);
+  const API = "http://localhost:4000";
 
   // Block 2: the workflow pauses at the RESEARCH gate first (brief → researchAgent
   // → research_review). The packet renders in the workspace; approve it to reach
@@ -195,6 +199,21 @@ test("idea → script gate → storyboard gate (regenerate + edit + drag-reorder
   await expect(crewSheet).toBeVisible();
   await expect(crewSheet.getByText(/the narrator/i)).toBeVisible();
   await expect(crewSheet.getByText(/the observable universe/i)).toBeVisible();
+
+  // Consolidated production-plan payload after storyboard approve: the done
+  // view's single source of truth (Task 10 contract). Assert the checkpoint
+  // stage, the status, the REORDERED scene order (the drag's [S2, S3, S1]
+  // sequence, not the original [S1, S2, S3]), and the consistency records.
+  const planRes = await page.request.get(`${API}/api/v1/projects/${projectId}/production-plan`);
+  expect(planRes.status()).toBe(200);
+  const plan = (await planRes.json()).plan;
+  expect(plan.stage).toBe("done"); // checkpoint-derived (not the stale column)
+  expect(plan.productionPlanStatus).toBe("ready");
+  expect(plan.scenes.map((s: { content: { title: string } }) => s.content.title)).toEqual([
+    "Scene 2 (rev)", "Scene 3 (rev)", "Scene 1 (rev)", // dragged order survives into the plan
+  ]);
+  expect(plan.characters.map((c: { name: string }) => c.name)).toContain("The Narrator");
+  expect(plan.locations.map((l: { name: string }) => l.name)).toContain("The Observable Universe");
 
   // Definition of done: no console/page errors anywhere in the flow.
   expect(errors).toEqual([]);

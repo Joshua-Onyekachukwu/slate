@@ -21,6 +21,13 @@
 
 ## Completed — newest first
 
+- [x] **E2E: assert the consolidated production-plan payload** (2026-08-12)
+  - The vertical-slice spec now GETs `/production-plan` after storyboard approve
+    and asserts the Task 10 contract: `stage: "done"` (checkpoint-derived),
+    `productionPlanStatus: "ready"`, the DRAGGED scene order
+    [Scene 2 (rev), Scene 3 (rev), Scene 1 (rev)] in the payload, and the
+    cast/locations records. Main E2E still 14/14.
+
 - [x] **Demo-queue smoke as an automated spec** (2026-08-12)
   - `tests/playwright.demo.config.ts` — sibling config that boots the API with
     `FAKE_PROVIDER=1 DEMO_QUEUE=1` (hermetic `slate_test_demo` DB, API :4002,
