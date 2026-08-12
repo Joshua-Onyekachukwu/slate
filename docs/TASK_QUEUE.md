@@ -8,6 +8,22 @@
 
 ## Queue — top of the queue is the next task
 
+- [x] **Live drive — per-scene prompt regeneration at sb v4 (2026-08-12)**
+  - From the storyboard gate (PROJ B410, demo queue): edited scene 1
+    (narration) → sb v2 (pack nulled, asset buttons disabled) → manual pack
+    edit on scene 2 via the Advanced panel → sb v3 → **Regenerate pack** on
+    scene 1 (consumed the trailing demo entry `{ imagePrompt: "Demo
+    regenerated pack" }`) → **sb v4**. DB proof: 4 distinct storyboard
+    version rows; v4 scene 1 `prompt_pack->>'imagePrompt'` =
+    `"Demo regenerated pack"`; scene 2's hand-edited pack + scene 3's
+    original carried forward. Zero console errors, all mutations 200
+    (PUT /scenes/:id, PUT /prompts, POST /prompts/regenerate).
+  - **Driver quirk noted (not a bug):** `preview_click` doesn't fire the
+    pack-edit toggle; a full pointerdown/up+click sequence does. Playwright
+    E2E already covers the pack edit, so no code change needed.
+  - **Follow-up recommendation:** the queue's demo trailing pack entry is
+    consumed — next regen drive needs a fresh API boot.
+
 1. **Deploy on Vercel (user action)** — follow `docs/deploy.md`: Neon
    DATABASE_URL → Render API → Vercel web → Clerk keys (env-driven + `next
    build` verified). Then drive the live flow + sign up a dummy user.
