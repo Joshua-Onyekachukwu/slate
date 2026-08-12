@@ -60,8 +60,11 @@ describe("NvidiaProvider media (Phase 3 Block 1)", () => {
   // Media endpoints are NOT wired yet — every method must fail with the typed
   // NOT_SUPPORTED error so the API can persist a failed asset row explicitly.
   const p = new NvidiaProvider({ apiKey: "sk-test", model: "nvidia/llama-3.3-70b" });
-  it("throws NOT_SUPPORTED for every media method", async () => {
-    await expect(p.generateImage({ prompt: "x" })).rejects.toMatchObject({ code: "NOT_SUPPORTED" });
+  it("keeps the unverifiable media methods typed NOT_SUPPORTED (Block 3: image is real, the rest wait on NVIDIA hosting)", async () => {
+    // Block 3 wired real image generation (OpenAI-compatible /images/generations
+    // + vision-model eval); video/voice/music have no verifiable OpenAI-compatible
+    // NVIDIA Build surface (TTS is gRPC + approval-gated), so they keep the typed
+    // NOT_SUPPORTED error the API persists as a retryable failed asset row.
     await expect(p.generateVideo({ prompt: "x" })).rejects.toMatchObject({ code: "NOT_SUPPORTED" });
     await expect(p.generateVoiceover({ text: "x" })).rejects.toMatchObject({ code: "NOT_SUPPORTED" });
     await expect(p.generateMusic({ prompt: "x" })).rejects.toMatchObject({ code: "NOT_SUPPORTED" });

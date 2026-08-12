@@ -100,5 +100,14 @@ export function createProvider(): Provider {
   }
   const apiKey = process.env.NVIDIA_API_KEY;
   if (!apiKey) throw new Error("NVIDIA_API_KEY is required when FAKE_PROVIDER != 1");
-  return new NvidiaProvider({ apiKey, model: "nvidia/llama-3.3-70b" });
+  // Phase 3 Block 3 — real media endpoints. Image generation + the vision-model
+  // quality eval are env-routed; video/voice/music stay NOT_SUPPORTED (NVIDIA's
+  // TTS is gRPC/approval-gated, no verifiable video/music HTTP surface).
+  return new NvidiaProvider({
+    apiKey,
+    model: process.env.NVIDIA_MODEL ?? "nvidia/llama-3.3-70b",
+    imageModel: process.env.NVIDIA_IMAGE_MODEL ?? "stabilityai/stable-diffusion-3.5-large",
+    evalModel: process.env.NVIDIA_EVAL_MODEL ?? "meta/llama-3.2-90b-vision-instruct",
+    evalEnabled: process.env.NVIDIA_IMAGE_EVAL !== "0",
+  });
 }
