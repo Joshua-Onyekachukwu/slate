@@ -206,9 +206,18 @@
     (`core.hooksPath` → `.husky/_/pre-commit` → `h` → user hook).
   - Only warning observed is git's CRLF autocrlf notice (`LF will be replaced by CRLF`)
     — cosmetic Windows artifact, unrelated to husky.
-  - **Follow-up recommendation:** if a husky-branded warning ever appears on another
-    machine, run `pnpm install` (prepare script regenerates the gitignored `.husky/_`)
-    — the repo itself needs no change.
+  - **Version pin + next-bump migration (2026-08-12):** `package.json` pins
+    `"husky": "^9.1.7"` — the caret admits v10 on any install that regenerates
+    the lockfile (the exact path this deprecation came through). The hook is
+    **already v10-format**, so a v10 bump is a no-op migration: no `.husky`
+    change needed, verified zero warnings through git's exact invocation path.
+  - **CI needs no pin:** `.github/workflows/ci.yml` never invokes husky or the
+    pre-commit hook — it runs `pnpm install --frozen-lockfile` → typecheck →
+    tests → docs guard directly. The hook is local-only by design.
+  - **Next bump:** at leisure, pin `"husky": "^10.0.0"` (or drop the pin and
+    let corepack resolve) — the hook works unchanged. If a husky-branded
+    warning ever appears on another machine first, run `pnpm install` (prepare
+    regenerates the gitignored `.husky/_`) — the repo itself needs no change.
 
 - [x] **CI concurrency + PR dedup — `.github/workflows/ci.yml`** (2026-08-11)
   - `pull_request` trigger was already present; added a top-level `concurrency`
