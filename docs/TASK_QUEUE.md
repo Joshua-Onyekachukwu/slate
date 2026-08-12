@@ -47,6 +47,27 @@
 
 ## Completed — newest first
 
+- [x] **Landing-create defect FIXED — TDD + review gate (2026-08-12)**
+  - **Red:** demo-smoke now starts on the LANDING (`/` → "Type your video
+    idea" → "Begin production" → waitForURL(/projects/)) + asserts a
+    single-project DELTA via the API (before vs after = +1). Confirmed red:
+    the landing used to route to /studio, dropping the idea and inviting a
+    second create that double-consumed the FIFO queue.
+  - **Fix 1 — `landing.tsx`:** `begin()` now CREATES via
+    `api.createProject(idea)` and navigates straight to `/projects/:id` in
+    demo mode (auth mode unchanged → /sign-up). Busy guard swallows a slow-
+    navigation second click; inline error note on failure.
+  - **Fix 2 — `studio/page.tsx`:** busy flag releases ONLY on failure (was
+    `finally`), so a second click during a slow push can't fire a duplicate
+    create. Retrying after a real failure is safe (no row created).
+  - Gate: demo config **1/1** (landing journey + exactly-one-create) · main
+    E2E **14/14** (studio create path + 28-entry exhaustion intact) · auth
+    **3/3** (landing still routes to /sign-up with keys) · typecheck 6/6 ·
+    docs guard clean.
+  - **Follow-up recommendation:** extend the responsive spec to cover the
+    landing's new busy/error state at 390px; consider a landing-create step
+    in the auth-mode suite once real Clerk keys exist.
+
 - [x] **Live drive — IMG asset + deterministic quality chip, DB-verified (2026-08-12)**
   - Fresh stack + fresh db (the sb-v4 project was wiped by the earlier
     fresh-db reboot, so drove PROJ 61DD to the storyboard gate, sb v1).
