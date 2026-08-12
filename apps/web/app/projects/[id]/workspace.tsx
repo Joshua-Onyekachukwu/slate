@@ -620,10 +620,11 @@ export function Workspace({ projectId, initialIdea }: { projectId: string; initi
                           <div className="plan-section">
                             <h3>Scenes in order</h3>
                             {sb.scenes.map((sc, i) => (
-                              <div className="plan-row" key={sc.id}>
+                              <div className="plan-row plan-row--scene" key={sc.id}>
                                 <span className="idx">SC {String(i + 1).padStart(2, "0")}</span>
                                 <span className="nm">{sc.content.title}</span>
                                 <span className="ds">{sc.content.transition} · {sc.content.musicCue}</span>
+                                <span className="narr">{sc.content.narration}</span>
                               </div>
                             ))}
                           </div>

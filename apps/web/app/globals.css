@@ -1300,6 +1300,16 @@ button {
   color: #5c554a;
   flex: 1;
 }
+.plan-row--scene {
+  flex-wrap: wrap;
+}
+.plan-row--scene .narr {
+  flex-basis: 100%;
+  margin-top: 2px;
+  font-size: 13px;
+  font-style: italic;
+  color: #6a6256;
+}
 .crew-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
