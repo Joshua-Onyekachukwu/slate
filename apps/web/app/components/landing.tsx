@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { api } from "../lib/api";
 
 // The public face of Slate (the Cutting Room) — a marketing landing page in the
 // approved token language (ink/tungsten/REC, 2px radius, brackets, timecode).
@@ -261,14 +262,32 @@ function HeroStrip() {
 export function Landing({ authEnabled }: { authEnabled: boolean }) {
   const router = useRouter();
   const [idea, setIdea] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Landing CTAs: auth configured → /sign-up (real accounts); local demo →
-  // straight into the studio. The middleware handles the enforced-mode redirect
-  // contract for any anonymous hit on /studio.
+  // create the project HERE and navigate straight to its workspace. The
+  // middleware handles the enforced-mode redirect contract for any anonymous
+  // hit on /studio.
   const enter = () => router.push(authEnabled ? "/sign-up" : "/studio");
-  const begin = () => {
-    if (!idea.trim()) return;
-    router.push(authEnabled ? `/sign-up?redirect_url=/studio` : "/studio");
+  const begin = async () => {
+    if (!idea.trim() || busy) return;
+    if (authEnabled) {
+      router.push(`/sign-up?redirect_url=/studio`);
+      return;
+    }
+    // Demo mode: create + navigate in ONE step. Routing to /studio instead
+    // dropped the typed idea and invited a second create that double-consumed
+    // the FIFO provider queue (the landing/studio double-create defect). The
+    // busy flag stays set through navigation so a slow push can't double-fire.
+    setBusy(true);
+    try {
+      const { project } = await api.createProject(idea.trim());
+      await router.push(`/projects/${project.id}`);
+    } catch (e) {
+      setBusy(false);
+      setError((e as Error).message ?? "Could not start production.");
+    }
   };
 
   return (
@@ -303,13 +322,14 @@ export function Landing({ authEnabled }: { authEnabled: boolean }) {
             placeholder="“A documentary about the history of the universe.”"
             aria-label="Type your video idea"
           />
-          <button className="btn btn-rec" onClick={begin} disabled={!idea.trim()}>
-            Begin production →
+          <button className="btn btn-rec" onClick={begin} disabled={!idea.trim() || busy}>
+            {busy ? "Starting production…" : "Begin production →"}
           </button>
         </div>
         <button className="land-skip" onClick={enter}>
           or open the studio without an idea →
         </button>
+        {error && <p className="api-note">Could not start production ({error}) — is the API running?</p>}
 
         <div className="land-trust">
           <span className="land-trust-lbl">Model-agnostic pipeline</span>

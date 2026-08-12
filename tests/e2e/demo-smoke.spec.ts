@@ -33,12 +33,29 @@ async function trackErrors(page: Page) {
 test("demo journey: research gate → script v1 (2/5) → retake → v2 (4/5) → approve → storyboard gate (no console errors)", async ({ page }) => {
   const errors = await trackErrors(page);
 
-  // Idea → the studio creates the project and the workflow pauses at the
-  // RESEARCH gate (brief cards + research packet rendered).
-  await page.goto("/studio");
-  await page.getByLabel("Describe your video idea").fill("A documentary about the history of the universe");
+  // Exactly ONE project may be created — a double-create (landing + studio
+  // path) would add TWO and desync the scripted demo queue. The demo DB
+  // persists across runs (ensureDatabase is create-if-missing), so assert the
+  // DELTA, not an absolute count. API base = the demo config's pinned port
+  // (playwright.demo.config.ts).
+  const listProjects = async () => {
+    const res = await page.request.get("http://localhost:4002/api/v1/projects");
+    expect(res.status()).toBe(200);
+    return ((await res.json()) as { projects: unknown[] }).projects;
+  };
+  const before = (await listProjects()).length;
+
+  // Idea → the LANDING's "Begin production" creates the project and navigates
+  // to ITS workspace. Regression: it used to only route to /studio, dropping
+  // the typed idea and inviting a second create that double-consumed the FIFO
+  // demo queue (the landing/studio double-create defect). The workflow then
+  // pauses at the RESEARCH gate (brief cards + research packet rendered).
+  await page.goto("/");
+  await page.getByLabel("Type your video idea").fill("A documentary about the history of the universe");
   await page.getByRole("button", { name: /begin production/i }).click();
   await page.waitForURL(/\/projects\//);
+  const after = (await listProjects()).length;
+  expect(after).toBe(before + 1);
 
   await expect(page.getByText(/research · awaiting review/i)).toBeVisible();
   await expect(page.getByText(/creative brief/i)).toBeVisible();

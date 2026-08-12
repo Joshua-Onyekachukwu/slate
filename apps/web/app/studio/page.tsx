@@ -42,11 +42,13 @@ export default function StudioHome() {
       const { project } = await api.createProject(idea.trim());
       await router.push(`/projects/${project.id}`);
     } catch (e) {
-      // Only surface a banner for real failures; a rejected navigation is not
-      // an error worth showing. Either way, always release the busy flag.
-      setLoadError((e as Error).message ?? "");
-    } finally {
+      // Release the guard ONLY on failure. After a successful create the busy
+      // flag stays set through navigation — a second click during a slow push
+      // used to fire a duplicate create and desync the FIFO provider queue
+      // (the landing/studio double-create defect). Retrying after a real
+      // failure is safe: no project row was created.
       setBusy(false);
+      setLoadError((e as Error).message ?? "");
     }
   };
 
