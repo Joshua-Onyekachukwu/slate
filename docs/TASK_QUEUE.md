@@ -47,6 +47,59 @@
 
 ## Completed — newest first
 
+- [x] **Live drive — IMG asset + deterministic quality chip, DB-verified (2026-08-12)**
+  - Fresh stack + fresh db (the sb-v4 project was wiped by the earlier
+    fresh-db reboot, so drove PROJ 61DD to the storyboard gate, sb v1).
+    Generated IMG on scene 1 → chip **`IMG · 2/5`** (low → regen flag).
+  - DB proof: assets row `kind=image, status=ready,
+    url=fake://image/9c2f90235ffd.png, mime=image/png,
+    meta.quality={score:2, notes:["low prompt adherence — consider
+    regenerating"]}`. Determinism proven: `sha1(prompt)` recomputed
+    locally yields the exact same hash, URL, and score 2.
+  - **Genuine defect found:** the LANDING "BEGIN PRODUCTION" click created a
+    project (row b395b04e) but never navigated to its workspace — the UI
+    landed on /studio, so the FIFO queue was double-consumed and the next
+    project's approve 500'd (script schema got a research packet). Rebooted
+    fresh per the standing rule. **Queue candidate: make the landing create
+    navigate to the new project's workspace** (or POST only on the studio).
+  - **Follow-up recommendation:** drive a retry on the 2/5 IMG (idempotent —
+    same prompt → same score), then extend the E2E to assert the chip text.
+
+- [x] **Admin plan extended — provider keys + usage sections (design doc only, not in the build)** (2026-08-12)
+  - `docs/admin-dashboard-plan.md` already locked the admin direction; extended
+    it with the two explicit asks: **provider keys** (presence + masked suffix
+    only, env is the source of truth, rotation = env → redeploy, never raw
+    secrets in responses) and **usage v1** (derived from existing rows — assets
+    by kind/day, quality, failures, per-user/project — with an explicit
+    NOT-measured list: tokens/latency/cost need the future `usage_events` table
+    in the credits ADR). No new tables for v1; nothing built.
+
+- [x] **Phase 3 Block 3 — real NVIDIA image generation + REAL vision-model quality eval (TDD + review gate)** (2026-08-12)
+  - `packages/ai/src/providers/nvidia.ts`: `generateImage` now POSTs to NVIDIA
+    Build's OpenAI-compatible `/images/generations` (`stabilityai/stable-diffusion-3.5-large`
+    default; `NVIDIA_IMAGE_MODEL` overrides; aspect ratios map to sizes).
+    Parses `b64_json` → data-URI artifact (or a returned `url`); same
+    retry/typed-error semantics as `complete()` (429/5xx → RATE_LIMITED, garbage
+    → INVALID_OUTPUT). **The quality gate is now a REAL eval:** the generated
+    image goes back to a hosted vision model (`meta/llama-3.2-90b-vision-instruct`,
+    `NVIDIA_EVAL_MODEL`) which scores prompt adherence + visual quality
+    `{score 1-5, notes[]}`; a failed eval never fails generation or fabricates a
+    score (artifact carries no quality). `NVIDIA_IMAGE_EVAL=0` skips the eval.
+  - **Video / voiceover / music stay typed NOT_SUPPORTED — researched decision:**
+    NVIDIA's TTS (Nemotron Speech) is a gRPC service (grpc.nvcf.nvidia.com)
+    behind access approval, and no OpenAI-compatible video or music generation
+    endpoint on Build is verifiable — wiring unverified contracts would be a
+    defect. Queue'd as follow-ons as NVIDIA hosts HTTP surfaces.
+  - **Env wiring:** `apps/api/src/provider.ts` passes the media config through;
+    `.env.example` documents all four vars. FakeProvider untouched (tests).
+  - Gate: ai **30/30** (8 nvidia tests incl. the eval contract, eval-failure
+    survival, 429/INVALID_OUTPUT, NOT_SUPPORTED trio) · api **36/36** ·
+    typecheck 6/6. One stale Block-1 test updated (image no longer NOT_SUPPORTED).
+  - **Follow-up recommendation:** live smoke against the real endpoint once
+    `NVIDIA_API_KEY` is on disk (drive an IMG generate on the demo stack with
+    `FAKE_PROVIDER=0`); object-storage upload (R2) replaces the data-URI
+    artifact before production.
+
 - [x] **E2E: assert the consolidated production-plan payload** (2026-08-12)
   - The vertical-slice spec now GETs `/production-plan` after storyboard approve
     and asserts the Task 10 contract: `stage: "done"` (checkpoint-derived),

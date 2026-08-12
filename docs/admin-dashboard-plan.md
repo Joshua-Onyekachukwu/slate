@@ -18,8 +18,9 @@ individual rows; creators keep using the studio untouched.
 | **Users** | All accounts (Clerk id, email, created, project count, last activity) | Suspend / restore |
 | **Projects** | Every project with owner, stage, status, version count, updated-at | Open in studio (deep link), delete |
 | **Jobs / queue** | Workflow runs: stage, status (running/awaiting review/failed), version, error | Retry failed, cancel running |
-| **Providers** | Model + provider config, success/failure rates, recent latency | Toggle provider, view last error |
-| **Credits (later)** | Usage per user, credit balance | Grant / revoke credits |
+| **Providers** | Model + provider config, success/failure rates, recent latency, **key presence + masked suffix** | Toggle provider, view last error |
+| **Usage (v1)** | Generation volume by kind/day, failed rate, low-quality rate, per-user / per-project aggregates — **derived from existing rows** | — (dashboards only) |
+| **Credits (later)** | Token/cost/latency per call (needs the `usage_events` table), usage per user, credit balance | Grant / revoke credits |
 
 ## Auth & authorization
 
@@ -38,13 +39,45 @@ individual rows; creators keep using the studio untouched.
 - `GET /admin/users` · `POST /admin/users/:id/suspend`
 - `GET /admin/projects` · `DELETE /admin/projects/:id`
 - `GET /admin/jobs` · `POST /admin/jobs/:id/retry`
-- `GET /admin/providers` · `PUT /admin/providers/:key` (enabled, model)
+- `GET /admin/providers` · `PUT /admin/providers/:key` (enabled, model) — **never returns raw keys**
+- `GET /admin/usage` — the v1 derived usage aggregates (below)
 
 ## Data
 
 No new tables for v1 — everything is already in the existing schema
 (projects, users via Clerk id + `owner_id`, stage/status columns, scene
 versions). Only if credit-billing lands would a `credits` table be added.
+
+## Provider keys (v1) — presence, never the secret
+
+- **Keys live in env / the platform secrets manager** (Render/Vercel env vars —
+  see `deploy.md`), never in the DB and never in an API response. The admin UI
+  shows **presence + a masked suffix** (`sk-••••1234`, last-4 only), configured
+  vs missing, and the last error — nothing more.
+- **Rotation = change env → redeploy** (same path as the deploy doc). No
+  in-UI key editing in v1: env is the source of truth, a deliberate
+  simplification. An encrypted secrets table becomes a separate ADR only if
+  self-service rotation is ever needed.
+- `GET /admin/providers` is the ONLY provider endpoint and it is
+  read-mostly: enabled flag + model + masked key + health. Raw secrets are
+  treated as un-renderable — the route would 400 before echoing them.
+
+## Usage (v1) — derived, honest about what it does NOT measure
+
+- v1 derives usage from **existing rows**, so it needs no schema change:
+  - Generation volume by kind/day → `assets` (`created_at`, `kind`, `status`)
+  - Quality signals → `assets.meta.quality` (score distribution, low-score rate)
+  - Failure rate → `assets.status = 'failed'` + `error`; workflow failures via
+    jobs/stage status
+  - Per-user / per-project → `assets → scenes → storyboards → projects
+    (owner_id)`
+- **What v1 does NOT measure (explicit):** tokens, latency, and monetary cost
+  per call. Those need a `usage_events` row per provider call (kind, provider,
+  model, ms, tokens, bytes) — deferred to the credits/billing ADR (sequencing
+  step 5), and the only schema addition on the admin horizon.
+- UI: Overview cards (today's generations, by kind, failed rate, low-score
+  rate); Users / Projects tables gain generation-count columns; drill-down
+  uses the existing coverage-rail pattern.
 
 ## UI (Cutting Room language)
 
