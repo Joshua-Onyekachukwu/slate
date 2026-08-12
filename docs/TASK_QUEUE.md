@@ -8,7 +8,17 @@
 
 ## Queue — top of the queue is the next task
 
-- [x] **Live drive — per-scene prompt regeneration at sb v4 (2026-08-12)**
+- [x] **Done-view verify + narration fix (2026-08-12)**
+  - Approved PROJ B410's storyboard at **sb v4** → done view verified:
+    crew sheet (The Narrator / The Observable Universe), consolidated
+    production plan (3 scenes · sb v4), all 6 stages ✓.
+  - **Genuine gap found + fixed:** "Scenes in order" rendered only
+    title + transition · music cue — the narration (incl. the user's
+    edited scene-1 line) was in the API payload + DB but never shown.
+    Added a narration line to each plan row (`workspace.tsx`
+    `.plan-row--scene .narr`), typecheck 6/6, E2E 14/14 green.
+  - **Follow-up recommendation:** confirm the narration style reads well
+    at 390px; optionally assert narration text in the E2E done-view step.
   - From the storyboard gate (PROJ B410, demo queue): edited scene 1
     (narration) → sb v2 (pack nulled, asset buttons disabled) → manual pack
     edit on scene 2 via the Advanced panel → sb v3 → **Regenerate pack** on
