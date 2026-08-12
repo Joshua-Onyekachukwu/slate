@@ -19,12 +19,12 @@ async function trackErrors(page: Page) {
   // first EventSource on cleanup, and navigation cancels in-flight fetches.
   page.on("requestfailed", (req) => {
     const errText = req.failure()?.errorText ?? "";
-    // ERR_ABORTED is benign (StrictMode/navigation); ERR_BLOCKED_BY_ORB on the
-    // external font CDNs is also benign — Chromium blocks the cross-origin font
-    // CSS when the CDN serves invalid CORS headers (a third-party response the
-    // app can't control), and the app falls back to system fonts.
+    // ERR_ABORTED is benign (StrictMode/navigation). Any network-class failure
+    // on the external font CDNs (DNS resolution, timeout, blocked-by-orb, CORS
+    // rejection) is also benign — a third-party response the app can't control,
+    // and the app falls back to system fonts when they're unreachable.
     if (errText.includes("ERR_ABORTED")) return;
-    if (errText.includes("ERR_BLOCKED_BY_ORB") && /fontshare|fonts\.googleapis/.test(req.url())) return;
+    if (/fontshare|fonts\.googleapis/.test(req.url())) return;
     errors.push(`requestfailed: ${req.url()} ${errText}`);
   });
   page.on("response", (res) => {
