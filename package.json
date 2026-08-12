@@ -14,6 +14,7 @@
     "test:unit": "turbo run test --filter=!@slate/e2e",
     "test:e2e": "pnpm --filter e2e test",
     "test:e2e:auth": "pnpm --filter e2e test:auth",
+    "test:e2e:demo": "pnpm --filter e2e test:demo",
     "dev:slice": "bash scripts/boot-slice.sh",
     "lint": "turbo run lint",
     "check:docs": "bash scripts/check-docs.sh",

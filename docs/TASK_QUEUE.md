@@ -21,6 +21,17 @@
 
 ## Completed — newest first
 
+- [x] **Demo-queue smoke as an automated spec** (2026-08-12)
+  - `tests/playwright.demo.config.ts` — sibling config that boots the API with
+    `FAKE_PROVIDER=1 DEMO_QUEUE=1` (hermetic `slate_test_demo` DB, API :4002,
+    web :3000) + `tests/e2e/demo-smoke.spec.ts` asserting the demo journey:
+    research gate → script v1 (2/5) → retake with feedback → v2 (4/5) →
+    approve → storyboard gate v1 (crew sheet in the rail), zero console errors.
+  - `pnpm test:e2e:demo` (tests package + root); demo-smoke is EXCLUDED from
+    the main config (testIgnore) so it can never consume the E2E queue.
+  - Gate: demo smoke 1/1 · main E2E still 14/14 · typecheck 6/6. First pass
+    caught a strict-mode collision (brief card vs page title → exact: true).
+
 - [x] **Task 12 hardening — auth-sweep extended to the Block 1 assets routes** (2026-08-12)
   - The owner-scoped 404 sweep in `auth.test.ts` (user B on every route after A
     drives to a storyboard) predated Phase 3 Block 1; added `GET` + `POST

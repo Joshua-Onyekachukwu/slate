@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "test": "playwright test",
-    "test:auth": "playwright test -c playwright.auth.config.ts"
+    "test:auth": "playwright test -c playwright.auth.config.ts",
+    "test:demo": "playwright test -c playwright.demo.config.ts"
   },
   "dependencies": { "@slate/db": "workspace:*" },
   "devDependencies": { "@playwright/test": "^1.62.0" }

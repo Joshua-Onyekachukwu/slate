@@ -3,9 +3,11 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   // auth.spec.ts is owned by playwright.auth.config.ts (testMatch — boots the
-  // stack with STUB_AUTH=1 + fake Clerk keys). Under this main config it would
-  // run against the demo-mode stack and fail, so exclude it here.
-  testIgnore: /auth\.spec\.ts/,
+  // stack with STUB_AUTH=1 + fake Clerk keys) and demo-smoke.spec.ts is owned
+  // by playwright.demo.config.ts (testMatch — boots DEMO_QUEUE=1, a DIFFERENT
+  // scripted queue). Under this main config each would consume the E2E queue
+  // out of sequence and break the deterministic contract, so exclude both.
+  testIgnore: [/auth\.spec\.ts/, /demo-smoke\.spec\.ts/],
   // Creates the hermetic E2E database (slate_test_e2e) before the webServer
   // array boots the API — Postgres boot requires the DB to exist. Also swaps
   // the old SQLite boot (DATABASE_PATH) for the Task 10 DATABASE_URL contract.
