@@ -16,7 +16,7 @@ export function TakeLog({ showToast }: { showToast: (msg: string) => void }) {
         </div>
       ))}
       <div className="cov-actions" style={{ paddingTop: 8 }}>
-        <button className="mini-btn" onClick={() => showToast("Compared v1 vs v2 — narration tightened")}>
+        <button className="mini-btn" onClick={() => showToast("Compared v1 vs v2 - narration tightened")}>
           Compare
         </button>
         <button className="mini-btn" onClick={() => showToast("Rolled back to v1")}>

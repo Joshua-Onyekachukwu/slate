@@ -9,14 +9,14 @@ creative process**.
 
 | Stage | Input | Output | Review gate? |
 | --- | --- | --- | --- |
-| 1. Creative Discovery | natural-language idea | **Creative Brief** (topic, audience, platform, style, duration, tone, narration, aspect ratio) | yes — user edits & approves brief |
-| 2. Research | approved brief | research packet: timeline, concepts, terminology, references, key events | yes — user approves before scripting |
-| 3. Script Writing | approved research | title, hook, introduction, body, conclusion, CTA | no — goes to review |
-| 4. Script Review | draft script | scores + suggested revisions (clarity, pacing, engagement, retention, redundancy, factual consistency) | yes — automated gate; user approves/edits |
+| 1. Creative Discovery | natural-language idea | **Creative Brief** (topic, audience, platform, style, duration, tone, narration, aspect ratio) | yes - user edits & approves brief |
+| 2. Research | approved brief | research packet: timeline, concepts, terminology, references, key events | yes - user approves before scripting |
+| 3. Script Writing | approved research | title, hook, introduction, body, conclusion, CTA | no - goes to review |
+| 4. Script Review | draft script | scores + suggested revisions (clarity, pacing, engagement, retention, redundancy, factual consistency) | yes - automated gate; user approves/edits |
 | 5. Storyboarding | approved script | structured scenes: narration, visual description, camera direction, duration, transition, music cue | yes (Phase 2+) |
 | 6. Prompt Engineering | scenes | optimized prompt packs: image, video, narration, music, SFX | no (Phase 2+) |
-| 7. Asset Generation | prompt packs | per scene: image/video, voiceover, subtitles, SFX, music | yes — per-scene (Phase 3+) |
-| 8. Quality Evaluation | generated assets | per-scene scores: prompt adherence, visual quality, continuity, narration timing, subtitle alignment, coherence | yes — flag weak scenes for regeneration |
+| 7. Asset Generation | prompt packs | per scene: image/video, voiceover, subtitles, SFX, music | yes - per-scene (Phase 3+) |
+| 8. Quality Evaluation | generated assets | per-scene scores: prompt adherence, visual quality, continuity, narration timing, subtitle alignment, coherence | yes - flag weak scenes for regeneration |
 | 9. Rendering | approved assets | MP4, captions, thumbnail, project package | final export (Phase 4+) |
 
 Phase 1 implements stages 1–4. The gate structure carries through to later phases unchanged.
@@ -42,16 +42,16 @@ output schema (validated with Zod before state is written).
 
 **Consistency mechanisms (the "secret sauce"):**
 
-- **Project Memory** — every project carries a structured context: brief, style, audience,
+- **Project Memory** - every project carries a structured context: brief, style, audience,
   characters, locations, approved assets. Every agent reads from this single source of truth.
-- **Versioning** — every script, storyboard, and prompt revision is saved; users compare and roll back.
-- **Model abstraction** — providers behind one interface (ADR-002).
-- **Quality gates** — no step silently continues on weak output; evaluate, surface, regenerate.
+- **Versioning** - every script, storyboard, and prompt revision is saved; users compare and roll back.
+- **Model abstraction** - providers behind one interface (ADR-002).
+- **Quality gates** - no step silently continues on weak output; evaluate, surface, regenerate.
 
 ## LangGraph mechanics
 
 - **Graph topology:** one node per stage. Nodes are sequential; review gates are interrupts.
-- **State schema:** typed channels — `brief`, `research`, `script`, `reviewScores`, `storyboard`,
+- **State schema:** typed channels - `brief`, `research`, `script`, `reviewScores`, `storyboard`,
   `scenes`, `prompts`, `assets`, `qualityScores`, plus workflow metadata (`status`, `version`).
 - **Checkpointer:** Postgres-backed checkpointer so the graph survives restarts and resumes per
   project (`thread_id = project id`).
@@ -72,7 +72,7 @@ output schema (validated with Zod before state is written).
 - **Routing:** per-agent model config (e.g., cheap-fast model for Script Reviewer, high-quality for
   Script Agent). Config lives in one place (`packages/ai/providers/config.ts`), never in agents.
 - **Resilience:** exponential backoff with jitter, automatic fallback on 429/5xx, and a **circuit
-  breaker** per provider. A generation job that exhausts retries fails visibly at the stage level —
+  breaker** per provider. A generation job that exhausts retries fails visibly at the stage level  - 
   it never silently proceeds.
 
 ## Prompt strategy

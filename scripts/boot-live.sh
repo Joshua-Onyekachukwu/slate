@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Boot the stack in LIVE auth mode (real Clerk) — enforced JWT verification,
+# Boot the stack in LIVE auth mode (real Clerk) - enforced JWT verification,
 # multi-user isolation, sign-up/sign-in via Clerk's hosted pages.
 #
 #   web  :3001   Clerk sign-in/up, bearer bridge to the API
@@ -28,7 +28,7 @@ if [ -f "$ROOT/.env" ]; then
   set +a
   echo "loaded $ROOT/.env"
 else
-  echo "ERROR: no $ROOT/.env — create it with your Clerk keys (see .env.example)." >&2
+  echo "ERROR: no $ROOT/.env - create it with your Clerk keys (see .env.example)." >&2
   exit 1
 fi
 
@@ -40,7 +40,7 @@ if [ -n "${NVIDIA_API_KEY:-}" ]; then
   echo "provider: NVIDIA (NVIDIA_API_KEY present)"
   unset FAKE_PROVIDER || true
 else
-  echo "provider: FAKE_PROVIDER=1 (no NVIDIA_API_KEY — auth is still real/enforced)"
+  echo "provider: FAKE_PROVIDER=1 (no NVIDIA_API_KEY - auth is still real/enforced)"
   export FAKE_PROVIDER=1
 fi
 
@@ -73,13 +73,13 @@ WEB_PID=$!
 
 API_UP=0
 for _ in $(seq 1 30); do
-  if curl -sf -m 2 "$API_URL/api/v1/health" >/dev/null 2>&1; then echo " — up"; API_UP=1; break; fi
+  if curl -sf -m 2 "$API_URL/api/v1/health" >/dev/null 2>&1; then echo " - up"; API_UP=1; break; fi
   echo -n "."
   sleep 1
 done
 if [ "$API_UP" != "1" ]; then
   echo
-  echo "API failed to start — see /tmp/slate-live-api.log" >&2
+  echo "API failed to start - see /tmp/slate-live-api.log" >&2
   tail -15 /tmp/slate-live-api.log >&2 || true
   exit 1
 fi
@@ -87,13 +87,13 @@ fi
 echo -n "waiting for web"
 WEB_UP=0
 for _ in $(seq 1 60); do
-  if curl -sf -m 2 "http://localhost:${WEB_PORT}" >/dev/null 2>&1; then echo " — up"; WEB_UP=1; break; fi
+  if curl -sf -m 2 "http://localhost:${WEB_PORT}" >/dev/null 2>&1; then echo " - up"; WEB_UP=1; break; fi
   echo -n "."
   sleep 1
 done
 if [ "$WEB_UP" != "1" ]; then
   echo
-  echo "web failed to start — see /tmp/slate-live-web.log" >&2
+  echo "web failed to start - see /tmp/slate-live-web.log" >&2
   tail -15 /tmp/slate-live-web.log >&2 || true
   exit 1
 fi
@@ -101,6 +101,6 @@ fi
 echo
 echo "live stack is up (real Clerk auth):"
 echo "  web  http://localhost:${WEB_PORT}"
-echo "  api  ${API_URL}  (enforced mode — every /api/v1 route requires a Clerk JWT)"
+echo "  api  ${API_URL}  (enforced mode - every /api/v1 route requires a Clerk JWT)"
 echo "  logs /tmp/slate-live-api.log  /tmp/slate-live-web.log"
 echo "  stop re-run the script (it frees stale listeners)"

@@ -1,10 +1,10 @@
-# Project Documentation — AI Video Studio ("Slate")
+# Project Documentation - AI Video Studio ("Slate")
 
-> **Status: DRAFTING** — All docs in this folder are written for your review. Nothing is implemented
+> **Status: DRAFTING** - All docs in this folder are written for your review. Nothing is implemented
 > until you approve. This README is the entry point and index for the whole suite.
 
 This folder is the **single source of truth** for what we are building and how we are building it.
-Whenever we need direction — during planning, implementation, or a disagreement about scope — we
+Whenever we need direction - during planning, implementation, or a disagreement about scope - we
 fall back to these docs.
 
 ## How to use this folder
@@ -14,7 +14,7 @@ fall back to these docs.
    → `api-design.md` → `ui-design.md`.
 3. **Read the process docs** when needed: `development-roadmap.md`, `decisions.md`,
    `quality-gates.md`, `testing-strategy.md`, `project-setup.md`.
-4. **Check the current spec** in `specs/` — that is the phase we are designing/building right now.
+4. **Check the current spec** in `specs/` - that is the phase we are designing/building right now.
 5. **When you approve a doc**, its status below changes from `Draft` to `Approved`. Once a phase is
    built and shipped, its status changes to `Implemented`.
 
@@ -27,8 +27,8 @@ fall back to these docs.
 | [ai-pipeline.md](./ai-pipeline.md) | The 9-stage AI workflow, agent design, LangGraph mechanics | Draft |
 | [database-schema.md](./database-schema.md) | PostgreSQL schema: tables, relationships, enums | Draft |
 | [api-design.md](./api-design.md) | REST API surface, streaming, error handling, jobs | Draft |
-| [ui-design.md](./ui-design.md) | UX principles, stage-flow UI, **"The Cutting Room"** design language (locked Final; prototype `prototypes/cutting-room-full.html` approved as-is) | **Final — locked** |
-| [openart-design-direction.md](./openart-design-direction.md) | OpenArt-inspired experience + interface evolution (ADR-020): directed-studio console, Director Bar, take log, asset tray — **in review** | Draft — in review |
+| [ui-design.md](./ui-design.md) | UX principles, stage-flow UI, **"The Cutting Room"** design language (locked Final; prototype `prototypes/cutting-room-full.html` approved as-is) | **Final - locked** |
+| [openart-design-direction.md](./openart-design-direction.md) | OpenArt-inspired experience + interface evolution (ADR-020): directed-studio console, Director Bar, take log, asset tray - **in review** | Draft - in review |
 | [development-roadmap.md](./development-roadmap.md) | Phases 1–6 with deliverables & success criteria | Draft |
 | [decisions.md](./decisions.md) | Architecture Decision Records + open decisions | Draft |
 | [quality-gates.md](./quality-gates.md) | Scoring rubrics, thresholds, regeneration rules | Draft |
@@ -36,8 +36,8 @@ fall back to these docs.
 | [project-setup.md](./project-setup.md) | Dev environment, env vars, run commands | Draft |
 | [glossary.md](./glossary.md) | Consistent vocabulary used across all docs | Draft |
 | [specs/](./specs/README.md) | Spec workflow + per-phase design specs | Draft |
-| [specs/phase-1a-vertical-slice-design.md](./specs/phase-1a-vertical-slice-design.md) | Vertical slice — idea → approved script (**implemented + E2E-verified, ADR-024**) | **Done** |
-| [specs/phase-1-foundation-design.md](./specs/phase-1-foundation-design.md) | Next build: Phase 1+2 — idea → editable production plan (auth in scope — Clerk, ADR-022/023; slice was built first as the foundation, ADR-024) | **Approved** |
+| [specs/phase-1a-vertical-slice-design.md](./specs/phase-1a-vertical-slice-design.md) | Vertical slice - idea → approved script (**implemented + E2E-verified, ADR-024**) | **Done** |
+| [specs/phase-1-foundation-design.md](./specs/phase-1-foundation-design.md) | Next build: Phase 1+2 - idea → editable production plan (auth in scope - Clerk, ADR-022/023; slice was built first as the foundation, ADR-024) | **Approved** |
 
 > **Note:** The originally requested "Kiwaski Design" was researched and found to be undefined; the
 > user requested a mature, non-template direction instead. UI now follows **"The Cutting Room"**
@@ -55,6 +55,6 @@ fall back to these docs.
 
 ## Current state
 
-- **Workspace:** empty (no code exists yet — verified).
+- **Workspace:** empty (no code exists yet - verified).
 - **In progress:** documentation review by the user.
 - **Next:** Phase 1 Foundation design spec approval → implementation plan → build.

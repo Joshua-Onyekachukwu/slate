@@ -8,18 +8,18 @@
   "typecheck + tests pass."
 - **The AI layer is deterministic in tests.** Real providers are never called in CI. All agent and
   workflow tests use a `FakeProvider` with scripted, canned responses (see below).
-- **The workflow engine is the crown jewel** — human-in-the-loop, interrupts, resume, and failure
+- **The workflow engine is the crown jewel** - human-in-the-loop, interrupts, resume, and failure
   paths get the most coverage.
 
 ## Test layers
 
 ### 1. Unit (Vitest)
 
-- **Providers:** request building, response parsing, error mapping, backoff/fallback logic — against
+- **Providers:** request building, response parsing, error mapping, backoff/fallback logic - against
   mocked HTTP (`nock` or fetch mock). Test 429 handling, malformed JSON, JSON-mode retry.
 - **Parsers:** Zod schema validation for every agent output; the two-step extract→validate→retry.
 - **Agents:** given a state snapshot + FakeProvider script, assert the output object and the prompts
-  it built (golden prompt snapshots — prompt changes are reviewed like code).
+  it built (golden prompt snapshots - prompt changes are reviewed like code).
 - **Pure utils:** timecode math, scoring aggregation, version diffing.
 
 ### 2. Integration (Vitest + Fastify `inject`)
@@ -47,7 +47,7 @@ The critical suite. Covers:
   review research → script editor renders, scores show, user edits → approve → storyboard reorder/
   edit → approve → production plan renders; a second account cannot see/open the first account's
   project.
-- The dev-server preview must render **without console or page errors** — a blank render or a console
+- The dev-server preview must render **without console or page errors** - a blank render or a console
   error is a defect regardless of how the code reads.
 
 ### 5. Golden-file (Phase 4+)
@@ -57,9 +57,9 @@ The critical suite. Covers:
 
 ## Fixtures
 
-- `packages/ai/test/fixtures/` — canned provider responses: a full happy-path brief, a research
+- `packages/ai/test/fixtures/` - canned provider responses: a full happy-path brief, a research
   packet, a draft script, a low-scoring script, a garbage-JSON response, a 429 sequence.
-- `FakeProvider` implements the same `Provider` interface (ADR-002) — which also proves the
+- `FakeProvider` implements the same `Provider` interface (ADR-002) - which also proves the
   abstraction works: the whole suite runs against a fake.
 
 ## CI
@@ -69,23 +69,23 @@ The critical suite. Covers:
 - E2E: on main / before phase sign-off.
 - Coverage target: agents + workflow ≥ 80%; API ≥ 70%; UI = smoke + critical flows.
 
-## Running tests (plan — finalized at scaffolding)
+## Running tests (plan - finalized at scaffolding)
 
 - `pnpm test` (unit+integration+workflow), `pnpm test:e2e` (Playwright), `pnpm typecheck`, `pnpm lint`.
 
-## E2E (Playwright, `tests/` — slice Task 10)
+## E2E (Playwright, `tests/` - slice Task 10)
 
 - **Prerequisite:** `pnpm --filter e2e exec playwright install chromium` (browsers are NOT checked
   in; the CI workflow installs them with `--with-deps`).
-- **Run:** `pnpm test:e2e` — Playwright boots both servers itself via `tests/playwright.config.ts`
+- **Run:** `pnpm test:e2e` - Playwright boots both servers itself via `tests/playwright.config.ts`
   (API on :4000 with `FAKE_PROVIDER=1` + `DATABASE_PATH=./data/e2e.db`, web on :3000).
 - **Note:** because `@slate/e2e` defines a `test` script, `pnpm test` (Turborepo) **also** runs the
-  E2E — so browsers are required for `pnpm test` too. Servers are never reused
+  E2E - so browsers are required for `pnpm test` too. Servers are never reused
   (`reuseExistingServer: false`): a stale server on :3000/:4000 would corrupt the run.
 - The spec asserts the idea → script gate → storyboard gate → approve flow **and** zero console/page/network errors.
 - `tests/e2e/responsive.spec.ts` renders the dashboard + workspace at 1440/834/390 and asserts **zero
   horizontal overflow** plus key-element visibility (it closes the gap the responsive pass left: the
   Electron preview can't be script-resized).
 - **Determinism:** the booted API serves ONE shared FakeProvider queue, so the config pins `workers: 1`
-  and `apps/api/src/provider.ts` lays out two (script-gate + storyboard) blocks — one per spec project.
+  and `apps/api/src/provider.ts` lays out two (script-gate + storyboard) blocks - one per spec project.
   Never add a third consuming spec without adding a third block.

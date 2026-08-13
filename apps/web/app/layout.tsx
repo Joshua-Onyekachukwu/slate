@@ -9,13 +9,13 @@ import { authEnabled } from "./lib/auth-enabled";
 // with no Clerk keys the app renders exactly as before (E2E + zero-key demo);
 // with BOTH keys present, Clerk owns identity, the middleware protects routes,
 // and the API runs in enforced mode. The gate lives in lib/auth-enabled.ts
-// (single source of truth) and is passed down — client components can't read
+// (single source of truth) and is passed down - client components can't read
 // CLERK_SECRET_KEY.
 
 export const metadata: Metadata = {
-  title: "Slate — The Cutting Room",
+  title: "Slate - The Cutting Room",
   description:
-    "AI creative studio — turn an idea into an approved, editable production plan.",
+    "AI creative studio - turn an idea into an approved, editable production plan.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

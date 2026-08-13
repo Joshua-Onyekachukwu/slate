@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Slate — The Cutting Room · Identity gate</title>
+<title>Slate - The Cutting Room · Identity gate</title>
 <link rel="preconnect" href="https://api.fontshare.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -91,7 +91,7 @@
     letter-spacing:-.04em;color:var(--surface);line-height:1;user-select:none;
   }
 
-  /* the call sheet — the auth card */
+  /* the call sheet - the auth card */
   .call-sheet{
     position:relative;width:100%;max-width:440px;
     background:var(--surface);border:1px solid var(--line-dark);border-radius:var(--radius);
@@ -274,7 +274,7 @@
         </div>
       </div>
       <div class="field">
-        <label for="pw-si">Password <span class="hint" onclick="toast('Reset link queued — check your inbox.')">Forgot?</span></label>
+        <label for="pw-si">Password <span class="hint" onclick="toast('Reset link queued - check your inbox.')">Forgot?</span></label>
         <div class="in-wrap">
           <input type="password" id="pw-si" placeholder="••••••••••••" autocomplete="current-password" aria-label="Password">
           <button type="button" class="eye" onclick="togglePw('pw-si',this)" aria-label="Show password">SHOW</button>
@@ -285,7 +285,7 @@
 
     <div class="retake" id="retakeSi">
       <span class="rec-dot"></span>
-      <span>RETAKE — <b>Sign-in failed.</b> The email or password didn't match. Two attempts remain before the gate holds for 60s.</span>
+      <span>RETAKE - <b>Sign-in failed.</b> The email or password didn't match. Two attempts remain before the gate holds for 60s.</span>
     </div>
 
     <div class="cs-verify" id="verifySi">
@@ -299,15 +299,15 @@
 
     <div class="divider">or continue with</div>
     <div class="providers">
-      <button class="provider" onclick="toast('Google OAuth — link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v3.6h5.4c-.6 2.5-2.6 4-5.4 4a6 6 0 1 1 4.1-10.4l2.7-2.7A10 10 0 1 0 12 22c5.5 0 9.4-3.9 9.4-9.4 0-.5 0-1-.1-1.5z"/></svg>Google</button>
-      <button class="provider" onclick="toast('GitHub OAuth — link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.9 10.9c.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0C17.3 4.9 18.3 5.2 18.3 5.2c.6 1.6.2 2.8.1 3.1.7.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5z"/></svg>GitHub</button>
-      <button class="provider" onclick="toast('Apple — link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.3 2.6 1.3 0 1.8-.8 3.4-.8s2  .8 3.4.8c1.4 0 2.3-1.3 3.2-2.5 1-1.5 1.4-2.9 1.5-3-.1 0-2.9-1.1-2.9-4.2zM13.9 5.1c.7-.9 1.2-2.1 1.1-3.3-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2.1-1.1 3.3 1.2.1 2.5-.6 3.2-1.6z"/></svg>Apple</button>
+      <button class="provider" onclick="toast('Google OAuth - link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v3.6h5.4c-.6 2.5-2.6 4-5.4 4a6 6 0 1 1 4.1-10.4l2.7-2.7A10 10 0 1 0 12 22c5.5 0 9.4-3.9 9.4-9.4 0-.5 0-1-.1-1.5z"/></svg>Google</button>
+      <button class="provider" onclick="toast('GitHub OAuth - link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.9 10.9c.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0C17.3 4.9 18.3 5.2 18.3 5.2c.6 1.6.2 2.8.1 3.1.7.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5z"/></svg>GitHub</button>
+      <button class="provider" onclick="toast('Apple - link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.3 2.6 1.3 0 1.8-.8 3.4-.8s2  .8 3.4.8c1.4 0 2.3-1.3 3.2-2.5 1-1.5 1.4-2.9 1.5-3-.1 0-2.9-1.1-2.9-4.2zM13.9 5.1c.7-.9 1.2-2.1 1.1-3.3-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2.1-1.1 3.3 1.2.1 2.5-.6 3.2-1.6z"/></svg>Apple</button>
     </div>
 
     <div class="switch">First time on this set? <button onclick="showView('signup')">Create an account</button></div>
 
     <div class="cs-foot">
-      <span class="tc">SESSION <b>—</b> · GATE 01</span>
+      <span class="tc">SESSION <b> - </b> · GATE 01</span>
       <span class="rec-live"><span class="rec-dot"></span> REC</span>
     </div>
   </div>
@@ -347,7 +347,7 @@
 
     <div class="retake" id="retakeSu">
       <span class="rec-dot"></span>
-      <span>RETAKE — <b>Sign-up incomplete.</b> That email is already rolling on this set. Try signing in instead.</span>
+      <span>RETAKE - <b>Sign-up incomplete.</b> That email is already rolling on this set. Try signing in instead.</span>
     </div>
 
     <div class="cs-verify" id="verifySu">
@@ -361,15 +361,15 @@
 
     <div class="divider">or continue with</div>
     <div class="providers">
-      <button class="provider" onclick="toast('Google OAuth — link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v3.6h5.4c-.6 2.5-2.6 4-5.4 4a6 6 0 1 1 4.1-10.4l2.7-2.7A10 10 0 1 0 12 22c5.5 0 9.4-3.9 9.4-9.4 0-.5 0-1-.1-1.5z"/></svg>Google</button>
-      <button class="provider" onclick="toast('GitHub OAuth — link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.9 10.9c.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0C17.3 4.9 18.3 5.2 18.3 5.2c.6 1.6.2 2.8.1 3.1.7.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5z"/></svg>GitHub</button>
-      <button class="provider" onclick="toast('Apple — link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.3 2.6 1.3 0 1.8-.8 3.4-.8s2  .8 3.4.8c1.4 0 2.3-1.3 3.2-2.5 1-1.5 1.4-2.9 1.5-3-.1 0-2.9-1.1-2.9-4.2zM13.9 5.1c.7-.9 1.2-2.1 1.1-3.3-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2.1-1.1 3.3 1.2.1 2.5-.6 3.2-1.6z"/></svg>Apple</button>
+      <button class="provider" onclick="toast('Google OAuth - link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v3.6h5.4c-.6 2.5-2.6 4-5.4 4a6 6 0 1 1 4.1-10.4l2.7-2.7A10 10 0 1 0 12 22c5.5 0 9.4-3.9 9.4-9.4 0-.5 0-1-.1-1.5z"/></svg>Google</button>
+      <button class="provider" onclick="toast('GitHub OAuth - link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.9 10.9c.6.1.8-.2.8-.5v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0C17.3 4.9 18.3 5.2 18.3 5.2c.6 1.6.2 2.8.1 3.1.7.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5z"/></svg>GitHub</button>
+      <button class="provider" onclick="toast('Apple - link opens (Clerk-hosted).')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.3 2.6 1.3 0 1.8-.8 3.4-.8s2  .8 3.4.8c1.4 0 2.3-1.3 3.2-2.5 1-1.5 1.4-2.9 1.5-3-.1 0-2.9-1.1-2.9-4.2zM13.9 5.1c.7-.9 1.2-2.1 1.1-3.3-1.1 0-2.4.7-3.2 1.6-.7.8-1.3 2.1-1.1 3.3 1.2.1 2.5-.6 3.2-1.6z"/></svg>Apple</button>
     </div>
 
     <div class="switch">Already rolling? <button onclick="showView('signin')">Sign in</button></div>
 
     <div class="cs-foot">
-      <span class="tc">SESSION <b>—</b> · GATE 00</span>
+      <span class="tc">SESSION <b> - </b> · GATE 00</span>
       <span class="rec-live"><span class="rec-dot"></span> REC</span>
     </div>
   </div>
@@ -441,13 +441,13 @@ function togglePw(id, btn){
 
 function submitSignin(e){
   e.preventDefault();
-  toast("Sign-in queued — verifying session with Clerk…");
+  toast("Sign-in queued - verifying session with Clerk…");
   showState("loading");
   return false;
 }
 function submitSignup(e){
   e.preventDefault();
-  toast("Account queued — spinning up your slate…");
+  toast("Account queued - spinning up your slate…");
   showState("loading");
   return false;
 }

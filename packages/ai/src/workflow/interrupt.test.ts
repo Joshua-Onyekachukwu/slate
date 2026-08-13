@@ -42,17 +42,17 @@ describe("interrupt persistence", () => {
     // graph instance 1: run to first interrupt (research gate)
     const g1 = buildWorkflow(new FakeProvider(scripted), fakeDeps(), checkpointer);
     await g1.invoke({ projectId: "p1" }, { configurable: { thread_id: "p1" } });
-    // Prove the pause actually happened at the gate before rebuilding — makes the
+    // Prove the pause actually happened at the gate before rebuilding - makes the
     // "survives rebuild" claim explicit instead of relying on resume-without-interrupt
     // erroring (langgraph-internal behavior that could change).
     const paused = await g1.getState({ configurable: { thread_id: "p1" } });
     const pending = (paused.tasks ?? []).flatMap((t) => (t as { interrupts?: { value?: unknown }[] }).interrupts ?? []);
     expect(pending.map((i) => i.value)).toContain("research_review");
     // graph instance 2: resume with the SAME checkpointer (new process = new graph object).
-    // The queue is minimal — brief/script/scores were consumed by g1's queue and
+    // The queue is minimal - brief/script/scores were consumed by g1's queue and
     // their state (script content) must survive in the checkpoint for the
     // storyboard pass to produce scenes; an empty queue here would throw loudly.
-    // g2 resumes the RESEARCH gate first — approving it re-runs write_script +
+    // g2 resumes the RESEARCH gate first - approving it re-runs write_script +
     // review, so g2's queue must supply script + scores again (checkpoint state
     // preserves them, but the agents re-run on this path).
     const g2 = buildWorkflow(new FakeProvider([

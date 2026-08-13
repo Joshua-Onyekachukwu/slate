@@ -14,10 +14,10 @@ import type { AppDeps } from "../app";
 // the slice's proven version-rows model (edit/reorder): one atomic transaction
 // bumps the WHOLE storyboard version and rewrites every scene row at the new
 // version, swapping in the regenerated pack for the target scene and carrying
-// content/order/other packs — keeping "latest (storyboard_id, order) is the
+// content/order/other packs - keeping "latest (storyboard_id, order) is the
 // current scene" (spec §12.9). The pack comes from promptAgent threaded with the
 // project's stored characters/locations (same inputs as the workflow's prompt_gen
-// node, so continuity holds). Direct-DB write, outside the gate path — the plan's
+// node, so continuity holds). Direct-DB write, outside the gate path - the plan's
 // one-mutation-path guarantee explicitly doesn't apply to per-scene writes.
 export async function promptRoutes(app: FastifyInstance, deps: AppDeps) {
   app.post("/api/v1/projects/:id/scenes/:sceneId/prompts/regenerate", async (req, reply) => {
@@ -65,14 +65,14 @@ export async function promptRoutes(app: FastifyInstance, deps: AppDeps) {
 
   // Manual prompt-pack edit (plan Task 10 contract: PUT
   // /projects/:id/scenes/:sceneId/prompts with { promptPack } → NEW VERSION
-  // ROW). Identical version-rows model to the regenerate endpoint above — one
+  // ROW). Identical version-rows model to the regenerate endpoint above - one
   // atomic transaction bumps the WHOLE storyboard version and rewrites every
   // scene row at the new version, swapping in the user's edited pack for the
   // target scene and carrying content/order/other packs. (The plan's sketch
   // inserted a single row at the same storyboardId, which would DUPLICATE the
-  // scene in loadStoryboard — it selects by storyboardId only; the shipped
+  // scene in loadStoryboard - it selects by storyboardId only; the shipped
   // full-bump keeps "latest (storyboard_id, order) is the current scene".)
-  // Direct-DB write, outside the gate path — the plan's one-mutation-path
+  // Direct-DB write, outside the gate path - the plan's one-mutation-path
   // guarantee explicitly doesn't apply to per-scene writes.
   app.put("/api/v1/projects/:id/scenes/:sceneId/prompts", async (req, reply) => {
     const { id, sceneId } = req.params as { id: string; sceneId: string };

@@ -8,7 +8,7 @@ on:
 concurrency:
   # Branch-protection friendly: one live run per ref (branch or PR merge ref),
   # so a new push cancels the in-flight run instead of queueing a redundant
-  # one — the required CI check always reflects the freshest commit.
+  # one - the required CI check always reflects the freshest commit.
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
@@ -16,7 +16,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     # Task 10 (Drizzle Postgres): every test suite boots against its own
-    # Postgres DB — db schema tests (slate_test_schema), api tests
+    # Postgres DB - db schema tests (slate_test_schema), api tests
     # (slate_test_api / slate_test_auth), and the E2E (slate_test_e2e). The
     # service below is the single Postgres the tests all create their DBs in.
     services:
@@ -42,7 +42,7 @@ jobs:
       # which breaks the Node-20 runtime of the v4 actions.
       - uses: actions/checkout@v5
 
-      # NO `version:` pin — pinning 9.15.0 here while package.json declares
+      # NO `version:` pin - pinning 9.15.0 here while package.json declares
       # "packageManager": "pnpm@9.15.9" made the action fail with
       # "Error: Multiple versions of pnpm specified" (see run 31063527747).
       # The action reads the version from package.json instead.

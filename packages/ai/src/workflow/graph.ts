@@ -58,7 +58,7 @@ export function buildWorkflow(provider: Provider, deps: WorkflowDeps, checkpoint
       await deps.saveProject(state.projectId, { researchStatus: "approved" });
       return { researchApproved: true };
     })
-    // Node name can't be "script" — it collides with the `script` state channel.
+    // Node name can't be "script" - it collides with the `script` state channel.
     .addNode("write_script", async (state) => {
       const content = await scriptAgent(provider, state.brief as Brief, state.feedback);
       await deps.saveScript(state.projectId, content);
@@ -73,7 +73,7 @@ export function buildWorkflow(provider: Provider, deps: WorkflowDeps, checkpoint
       if (!decision?.approved) {
         return { feedback: decision?.feedback ?? "revise", stage: "script" };
       }
-      // Approving the script moves into the storyboard stage — NOT straight to
+      // Approving the script moves into the storyboard stage - NOT straight to
       // done. The scriptApproved channel is the routing signal (a crash between
       // here and write_storyboard must NOT leave a premature "done" checkpoint);
       // write_storyboard overwrites stage with "storyboard" immediately after.
@@ -90,7 +90,7 @@ export function buildWorkflow(provider: Provider, deps: WorkflowDeps, checkpoint
       await deps.saveProject(state.projectId, { characters, locations });
       return { characters, locations };
     })
-    // Node name can't be "storyboard" — it collides with the storyboard state
+    // Node name can't be "storyboard" - it collides with the storyboard state
     // channel (same reason the script node is "write_script").
     .addNode("write_storyboard", async (state) => {
       // Storyboard → Editor (per-scene transition/music) run back-to-back as one
@@ -117,7 +117,7 @@ export function buildWorkflow(provider: Provider, deps: WorkflowDeps, checkpoint
       // Approving the storyboard locks the production plan: persist "ready" on
       // the project row (the consolidated production-plan endpoint reads it
       // there, per Task 9/10) and carry it on the state. Note: stage stays in
-      // the CHECKPOINT only (the projects.stage column is deliberately stale —
+      // the CHECKPOINT only (the projects.stage column is deliberately stale  - 
       // "engine writes stage status" is a banned phrase in check-docs.sh). The
       // state return below is what routes the conditional edge to END.
       await deps.saveProject(state.projectId, { productionPlanStatus: "ready" });

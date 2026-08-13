@@ -16,7 +16,7 @@ edits, and exports a finished video with minimal manual work.
 2. **The AI collaborates rather than simply generates.** Every major step is reviewable, editable,
    and requires user approval before it moves forward.
 3. **Every major step is reviewable and editable.** Brief, research, script, storyboard, scenes,
-   assets — all editable, all versioned.
+   assets - all editable, all versioned.
 4. **Users should rarely need prompt engineering.** The system translates plain language into
    model-optimized prompts internally.
 5. **The workflow is model-agnostic.** Providers can be swapped or added without touching the
@@ -32,7 +32,7 @@ edits, and exports a finished video with minimal manual work.
 ## What "done" looks like (overall)
 
 - A user can go from a one-line idea to a **downloadable MP4** with captions, narration, music, and a
-  thumbnail — through a guided, reviewable workflow.
+  thumbnail - through a guided, reviewable workflow.
 - Weak outputs are **caught before export** (quality gates), not discovered after.
 - Regenerating a single weak scene doesn't restart the whole project.
 - Switching the AI provider behind the scenes changes nothing visible to the user.
@@ -48,7 +48,7 @@ Idea → Brief → Research → Script → Storyboard → Scenes → Generation 
 
 ## Scope
 
-### In scope (the full vision, built phase by phase — see `development-roadmap.md`)
+### In scope (the full vision, built phase by phase - see `development-roadmap.md`)
 
 - Conversational idea capture, creative briefs, research, script writing & review
 - Storyboarding, scene planning, prompt optimization
@@ -68,4 +68,4 @@ Idea → Brief → Research → Script → Storyboard → Scenes → Generation 
 ## Product name
 
 **TBD.** The repo/working title is `Slate`. Product naming is an open decision
-(see `decisions.md` — Open decisions). We will not invent a brand name without your approval.
+(see `decisions.md` - Open decisions). We will not invent a brand name without your approval.

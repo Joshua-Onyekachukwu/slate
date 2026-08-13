@@ -3,12 +3,12 @@ import { randomUUID } from "node:crypto";
 import { eq, and, desc } from "drizzle-orm";
 import { db, storyboards, scenes, assets } from "@slate/db";
 import { AssetKind, type AssetKind as AssetKindType } from "@slate/shared";
-import { ProviderError, type Provider, type MediaArtifact } from "@slate/ai";
+import { ProviderError, type Provider, type MediaArtifact, type VoiceSynth } from "@slate/ai";
 import { getOwnedProject, UUID_RE } from "../hooks";
 import { sendError, ERROR_CODES } from "../error";
 import type { AppDeps } from "../app";
 
-// Phase 3 Block 1 — per-scene media generation. A scene's prompt pack drives
+// Phase 3 Block 1 - per-scene media generation. A scene's prompt pack drives
 // every kind: image → imagePrompt, video → videoPrompt (+ duration), voice →
 // the narration TEXT with the narrationPrompt as style, music → musicPrompt
 // (+ duration). Generation is synchronous in the MVP (fake provider returns
@@ -24,7 +24,7 @@ const KINDS = Object.values(AssetKind) as AssetKindType[];
 async function locateScene(projectId: string, sceneId: string) {
   // Check order matters (matches the prompts routes): 409 no-storyboard FIRST
   // (before validating the scene id), then a garbage (non-uuid) scene id must
-  // 404 like any other missing scene — a raw eq() would hit Postgres' uuid
+  // 404 like any other missing scene - a raw eq() would hit Postgres' uuid
   // type-cast and 500 (same trap hooks.ts guards).
   const [sb] = await db.select().from(storyboards)
     .where(eq(storyboards.projectId, projectId)).orderBy(desc(storyboards.version)).limit(1);
@@ -35,12 +35,16 @@ async function locateScene(projectId: string, sceneId: string) {
   return { noStoryboard: false, scene: scene ?? null };
 }
 
-async function generate(provider: Provider, kind: AssetKindType, scene: typeof scenes.$inferSelect): Promise<MediaArtifact> {
+// The voice kind comes from the dedicated narration backend (deps.voice -
+// ElevenLabs / edge-tts / Windows SAPI) when one is wired; otherwise it falls
+// back to the provider's own generateVoiceover (the fake provider supports it;
+// NVIDIA's does not). The other three kinds stay on the main provider.
+async function generate(provider: Provider, voice: VoiceSynth | undefined, kind: AssetKindType, scene: typeof scenes.$inferSelect): Promise<MediaArtifact> {
   const pack = scene.promptPack!;
   switch (kind) {
     case "image": return provider.generateImage({ prompt: pack.imagePrompt });
     case "video": return provider.generateVideo({ prompt: pack.videoPrompt, durationSeconds: scene.content.durationSeconds });
-    case "voice": return provider.generateVoiceover({ text: scene.content.narration, style: pack.narrationPrompt });
+    case "voice": return (voice ?? provider).generateVoiceover({ text: scene.content.narration, style: pack.narrationPrompt });
     case "music": return provider.generateMusic({ prompt: pack.musicPrompt, durationSeconds: scene.content.durationSeconds });
   }
 }
@@ -71,16 +75,16 @@ export async function assetRoutes(app: FastifyInstance, deps: AppDeps) {
     }
     const kind = body.kind as AssetKindType;
     if (!scene.promptPack) {
-      return sendError(reply, ERROR_CODES.CONFLICT, 409, "no prompt pack yet — generate the scene's prompts first");
+      return sendError(reply, ERROR_CODES.CONFLICT, 409, "no prompt pack yet - generate the scene's prompts first");
     }
 
     const assetId = randomUUID();
-    const base = { id: assetId, sceneId, kind, provider: deps.provider.name };
+    const base = { id: assetId, sceneId, kind, provider: kind === "voice" && deps.voice ? deps.voice.name : deps.provider.name };
     try {
-      const artifact = await generate(deps.provider, kind, scene);
+      const artifact = await generate(deps.provider, deps.voice, kind, scene);
       await db.insert(assets).values({
         ...base, status: "ready", url: artifact.url, mimeType: artifact.mimeType,
-        // Block 2 — the per-asset quality gate: the provider's eval rides in
+        // Block 2 - the per-asset quality gate: the provider's eval rides in
         // meta.quality; the UI flags score < 3 for regeneration.
         meta: {
           width: artifact.width ?? null,
@@ -92,7 +96,7 @@ export async function assetRoutes(app: FastifyInstance, deps: AppDeps) {
       return reply.code(201).send({ asset: saved });
     } catch (e) {
       // Persist the FAILED row so the failure is visible in the scene and the
-      // UI can offer a retry — never a silent 500 with no trace.
+      // UI can offer a retry - never a silent 500 with no trace.
       const message = e instanceof ProviderError ? e.message : "generation failed";
       await db.insert(assets).values({ ...base, status: "failed", error: message });
       const [saved] = await db.select().from(assets).where(eq(assets.id, assetId)).limit(1);

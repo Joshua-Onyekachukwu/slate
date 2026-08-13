@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useClerk, useUser } from "@clerk/nextjs";
 
 // Env-gated like the layout/middleware (Task 2, ADR-022/023): the SERVER decides
-// authEnabled (both Clerk keys present, layout.tsx) and passes it down — client
+// authEnabled (both Clerk keys present, layout.tsx) and passes it down - client
 // components can't read CLERK_SECRET_KEY. False → static local avatar, nothing
 // Clerk mounted; true → signed-in avatar + sign out / sign-in link.
 //

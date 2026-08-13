@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock pg entirely so the pool test asserts construction WITHOUT a network
-// connection — the contract is "lazy pool from the URL", not "connect now".
+// connection - the contract is "lazy pool from the URL", not "connect now".
 const poolCtor = vi.hoisted(() => vi.fn());
 vi.mock("pg", () => ({ default: { Pool: poolCtor } }));
 
@@ -57,7 +57,7 @@ describe("DATABASE_URL contract (Phase 1+2, ADR-011/013)", () => {
     expect(resolveDatabaseUrl(LOCAL_URL + "\n")).toBe(LOCAL_URL);
   });
 
-  it("builds a lazy pg.Pool from the URL — no connection is opened", () => {
+  it("builds a lazy pg.Pool from the URL - no connection is opened", () => {
     const pool = createPgPool(LOCAL_URL);
     expect(poolCtor).toHaveBeenCalledWith({ connectionString: LOCAL_URL });
     expect(pool).toBeDefined();

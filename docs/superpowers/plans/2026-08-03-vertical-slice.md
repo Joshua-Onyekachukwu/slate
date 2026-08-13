@@ -2,23 +2,23 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Prove the idea → approved-script loop end-to-end: a user types an idea, the studio interviews them, produces an editable brief and a quality-scored script with a review gate — running locally with 2 database tables and no auth.
+**Goal:** Prove the idea → approved-script loop end-to-end: a user types an idea, the studio interviews them, produces an editable brief and a quality-scored script with a review gate - running locally with 2 database tables and no auth.
 
-**Architecture:** pnpm+Turborepo monorepo (`apps/web` Next.js, `apps/api` Fastify, `packages/ai`, `packages/db` Drizzle, `packages/shared`). LangGraph.js graph per project with a SQLite checkpointer (`SqliteSaver`); review gates via `interrupt()`; approval endpoints resume with `Command(resume=...)`. All AI calls through a `Provider` interface — NVIDIA Build (OpenAI-compatible) in prod, `FakeProvider` in tests. No queue, no auth, no media in this slice. **Zero containers:** the slice persists to a local SQLite file via better-sqlite3 (ADR-014).
+**Architecture:** pnpm+Turborepo monorepo (`apps/web` Next.js, `apps/api` Fastify, `packages/ai`, `packages/db` Drizzle, `packages/shared`). LangGraph.js graph per project with a SQLite checkpointer (`SqliteSaver`); review gates via `interrupt()`; approval endpoints resume with `Command(resume=...)`. All AI calls through a `Provider` interface - NVIDIA Build (OpenAI-compatible) in prod, `FakeProvider` in tests. No queue, no auth, no media in this slice. **Zero containers:** the slice persists to a local SQLite file via better-sqlite3 (ADR-014).
 
 **Tech Stack:** Node 20+, pnpm 9+, TypeScript strict, Next.js 14 (App Router), Fastify, Drizzle ORM + `drizzle-kit` (SQLite dialect), SQLite via `better-sqlite3`, LangGraph.js (`@langchain/langgraph`, `@langchain/langgraph-checkpoint-sqlite`), Zod, Tailwind + the approved "The Cutting Room" token sheet, Vitest, Playwright.
 
 ## Global Constraints
 
 - **Repo:** pnpm workspace `apps/*` + `packages/*`; Turborepo pipelines for build/dev/typecheck/test (ADR-001).
-- **TypeScript:** `strict: true` everywhere; shared types/zod/enums live in `packages/shared` — no duplicated types across packages.
-- **DB:** SQLite via `better-sqlite3` (ADR-014 — slice-only, no containers; Postgres returns in full Phase 1+2); Drizzle ORM in its SQLite dialect (ADR-013); exactly 2 tables in this slice: `projects`, `scripts` (spec §6).
-- **AI:** every agent output is Zod-validated; all calls go through the `Provider` interface (ADR-002) — agents never import an SDK directly.
+- **TypeScript:** `strict: true` everywhere; shared types/zod/enums live in `packages/shared` - no duplicated types across packages.
+- **DB:** SQLite via `better-sqlite3` (ADR-014 - slice-only, no containers; Postgres returns in full Phase 1+2); Drizzle ORM in its SQLite dialect (ADR-013); exactly 2 tables in this slice: `projects`, `scripts` (spec §6).
+- **AI:** every agent output is Zod-validated; all calls go through the `Provider` interface (ADR-002) - agents never import an SDK directly.
 - **Workflow:** LangGraph.js, `thread_id` = project id; review gates persist + exit (no long-lived HTTP); resume via `Command(resume=...)` (ADR-003).
-- **Design:** only the approved token sheet (`ui-design.md`) — `--ink #141110`, `--surface #1E1A18`, `--paper #EDE6DA`, `--paper-dim #D9D0C0`, `--ash #8C8378`, `--line #2B2622`, `--rec #E04B3A`, `--tungsten #E2A85C`; fonts Cabinet Grotesk (display), General Sans (body), IBM Plex Mono (utility). Radius 2px. No ad-hoc colors.
+- **Design:** only the approved token sheet (`ui-design.md`) - `--ink #141110`, `--surface #1E1A18`, `--paper #EDE6DA`, `--paper-dim #D9D0C0`, `--ash #8C8378`, `--line #2B2622`, `--rec #E04B3A`, `--tungsten #E2A85C`; fonts Cabinet Grotesk (display), General Sans (body), IBM Plex Mono (utility). Radius 2px. No ad-hoc colors.
 - **API conventions:** `/api/v1`, JSON, single error shape `{ error: { code, message, details } }` (api-design.md).
 - **Tests:** FakeProvider for all agent/workflow tests; no real provider calls in CI (testing-strategy.md).
-- **Windows (Git Bash):** POSIX syntax; no Docker needed for the slice — the API boots and applies migrations itself.
+- **Windows (Git Bash):** POSIX syntax; no Docker needed for the slice - the API boots and applies migrations itself.
 
 ---
 
@@ -161,7 +161,7 @@ data/
 *.db-wal
 ```
 
-**SQLite note:** the slice persists to one local file (default `./data/slate.db`, override with `DATABASE_PATH`). No database server, no daemon, no container — better-sqlite3 opens the file synchronously on first use (ADR-014). Add `data/` to `.gitignore` (Step 3 does this).
+**SQLite note:** the slice persists to one local file (default `./data/slate.db`, override with `DATABASE_PATH`). No database server, no daemon, no container - better-sqlite3 opens the file synchronously on first use (ADR-014). Add `data/` to `.gitignore` (Step 3 does this).
 
 `.env.example`:
 ```
@@ -244,7 +244,7 @@ describe("ScriptContentSchema", () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `pnpm --filter shared test`
-Expected: FAIL — modules not found.
+Expected: FAIL - modules not found.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -440,7 +440,7 @@ describe("db schema", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter db test`
-Expected: FAIL — schema module missing / tables created by migration not by test. (Test creates tables inline for isolation; migration test comes later.)
+Expected: FAIL - schema module missing / tables created by migration not by test. (Test creates tables inline for isolation; migration test comes later.)
 
 - [ ] **Step 3: Write the schema**
 
@@ -544,7 +544,7 @@ export default defineConfig({
 ```
 
 > **Version note (2026-08-04, SQLite spike):** better-sqlite3 `^11.x` has **no prebuilt binary for
-> Node 24 (ABI 137)** — install falls back to `node-gyp`, which fails on Windows without Visual
+> Node 24 (ABI 137)** - install falls back to `node-gyp`, which fails on Windows without Visual
 > Studio Build Tools. The spike verified `v12.10.0` ships the `node-v137-win32-x64` prebuild
 > (HTTP 200) and the interrupt round-trip passes on it. Root `pnpm.overrides` forces `^12.10.0`
 > workspace-wide so `SqliteSaver`'s bundled `^11.7.0` range resolves to the working version.
@@ -647,7 +647,7 @@ describe("NvidiaProvider", () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `pnpm --filter ai test`
-Expected: FAIL — modules not found.
+Expected: FAIL - modules not found.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -841,7 +841,7 @@ describe("planningAgent", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter ai test`
-Expected: FAIL — module not found.
+Expected: FAIL - module not found.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -933,8 +933,8 @@ git commit -m "feat(ai): planning, script, and reviewer agents"
 - Consumes: agents (Task 5), `Provider`, `db` (Task 3), `@slate/shared` types.
 - Produces:
   - `type WorkflowState` (typed channels, below)
-  - `buildWorkflow(provider: Provider, deps: { getProject, saveProject, saveScript }, checkpointer?: unknown): CompiledGraph` — `checkpointer` is required for interrupt persistence (Task 9).
-  - `resumeWorkflow(graph, threadId: string, resume: { approved: boolean; feedback?: string } | string[]): Promise<Record<string, unknown>>` — returns the invoke result; a pending pause is detected via `graph.getState(thread)` → `tasks[].interrupts` (langgraph 0.2.x — NOT on the invoke result; verified by the sqlite spike).
+  - `buildWorkflow(provider: Provider, deps: { getProject, saveProject, saveScript }, checkpointer?: unknown): CompiledGraph` - `checkpointer` is required for interrupt persistence (Task 9).
+  - `resumeWorkflow(graph, threadId: string, resume: { approved: boolean; feedback?: string } | string[]): Promise<Record<string, unknown>>` - returns the invoke result; a pending pause is detected via `graph.getState(thread)` → `tasks[].interrupts` (langgraph 0.2.x - NOT on the invoke result; verified by the sqlite spike).
 
 - [ ] **Step 1: Write the failing workflow test**
 
@@ -1015,12 +1015,12 @@ describe("workflow reject loop", () => {
 });
 ```
 
-Note: this uses LangGraph's real HITL API — `interrupt()` inside the gate nodes, `Command(resume=...)` to resume, and a pending pause is detected on the state snapshot (`getState(thread)` → `tasks[].interrupts`). In langgraph 0.2.x the interrupt payload is NOT on the invoke result (verified by the sqlite spike). This is also exactly what the API (Task 7) needs, so the tests double as the integration spec for approve/resume.
+Note: this uses LangGraph's real HITL API - `interrupt()` inside the gate nodes, `Command(resume=...)` to resume, and a pending pause is detected on the state snapshot (`getState(thread)` → `tasks[].interrupts`). In langgraph 0.2.x the interrupt payload is NOT on the invoke result (verified by the sqlite spike). This is also exactly what the API (Task 7) needs, so the tests double as the integration spec for approve/resume.
 
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter ai test`
-Expected: FAIL — modules not found.
+Expected: FAIL - modules not found.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -1119,7 +1119,7 @@ export async function resumeWorkflow(
 }
 ```
 
-**Step 3 note (interrupt wiring):** `interrupt()` inside the gate nodes pauses the graph and persists state via the checkpointer; `resumeWorkflow` resumes with `Command(resume=...)`. The discovery interview pauses with `interrupt<string[]>` (answers), the script gate with `interrupt<{ approved, feedback? }>`. The API/UI detect a pending pause from `graph.getState(thread)` → `tasks[].interrupts` (langgraph 0.2.x; the payload is NOT on the invoke result — verified by the sqlite spike) — that is what shows the approval bar.
+**Step 3 note (interrupt wiring):** `interrupt()` inside the gate nodes pauses the graph and persists state via the checkpointer; `resumeWorkflow` resumes with `Command(resume=...)`. The discovery interview pauses with `interrupt<string[]>` (answers), the script gate with `interrupt<{ approved, feedback? }>`. The API/UI detect a pending pause from `graph.getState(thread)` → `tasks[].interrupts` (langgraph 0.2.x; the payload is NOT on the invoke result - verified by the sqlite spike) - that is what shows the approval bar.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
@@ -1189,8 +1189,8 @@ describe("api", () => {
     expect(body.project.id).toBeTruthy();
     // The workflow pauses at the script gate. project.stage must come from the
     // CHECKPOINT (getState().values.stage → "script_review"), not the projects
-    // column (discovery only ever patches it to "brief") — see api-design.md
-    // "Stage approve / regenerate — exact contract" for the authoritative shape.
+    // column (discovery only ever patches it to "brief") - see api-design.md
+    // "Stage approve / regenerate - exact contract" for the authoritative shape.
     expect(body.project.stage).toBe("script_review");
   });
 
@@ -1206,7 +1206,7 @@ describe("api", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter api test`
-Expected: FAIL — modules not found.
+Expected: FAIL - modules not found.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -1293,7 +1293,7 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
     if (!row) return reply.code(404).send({ error: { code: "NOT_FOUND", message: "project not found", details: {} } });
     // project.stage MUST be read from the checkpoint, not the row: the projects
     // column is only patched to "brief" by discovery and stays stale at the gate
-    // (see api-design.md "Stage approve / regenerate — exact contract").
+    // (see api-design.md "Stage approve / regenerate - exact contract").
     const checkpoint = await graph.getState({ configurable: { thread_id: id } });
     return reply.code(201).send({ project: { ...row, stage: checkpoint.values.stage } });
   });
@@ -1310,7 +1310,7 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
 }
 ```
 
-**Provider selection by env** — `apps/api/src/provider.ts`:
+**Provider selection by env** - `apps/api/src/provider.ts`:
 ```ts
 import { NvidiaProvider, FakeProvider, type Provider } from "@slate/ai";
 
@@ -1342,22 +1342,22 @@ await app.listen({ port: 4000, host: "0.0.0.0" });
 ```
 
 `apps/api/src/routes/stages.ts`, `scripts.ts`, `stream.ts`:
-- `stages.ts`: `GET /api/v1/projects/:id/stages` (stage cards derived from the **checkpoint** via `loadStageView` — gate/status/scores from `getState().tasks[].interrupts` + `values.scores`, never the project row), `GET /api/v1/projects/:id/stages/:stage`, `POST /api/v1/projects/:id/stages/:stage/approve` (resume workflow via `resumeWorkflow`), `POST /api/v1/projects/:id/stages/:stage/regenerate`.
+- `stages.ts`: `GET /api/v1/projects/:id/stages` (stage cards derived from the **checkpoint** via `loadStageView` - gate/status/scores from `getState().tasks[].interrupts` + `values.scores`, never the project row), `GET /api/v1/projects/:id/stages/:stage`, `POST /api/v1/projects/:id/stages/:stage/approve` (resume workflow via `resumeWorkflow`), `POST /api/v1/projects/:id/stages/:stage/regenerate`.
 
   **Request/response contract:** exact shapes for both routes (bodies, 200/400/404/409 semantics,
-  the `stage` payload the UI renders) live in **api-design.md → "Stage approve / regenerate — exact
+  the `stage` payload the UI renders) live in **api-design.md → "Stage approve / regenerate - exact
   contract"**. Implement to that contract, not to this sketch.
 
-  **Approve vs regenerate — one mutation path (no double-fire):** the script gate owns regeneration.
+  **Approve vs regenerate - one mutation path (no double-fire):** the script gate owns regeneration.
   `approve` resumes the thread with `{ approved: true }`; `regenerate` resumes the SAME gate with
   `{ approved: false, feedback }` (default feedback: `"regenerate"`), exactly like the reject loop in
-  Task 6's test. Both routes call `resumeWorkflow` on the persisted thread and nothing else — the graph
+  Task 6's test. Both routes call `resumeWorkflow` on the persisted thread and nothing else - the graph
   node is the only place a new script version is produced (`saveScript` in the `script` node), so a
   rejected resume and a regenerate can never race into two writes. A `regenerate` while the graph is
   still mid-run (not paused at a gate) returns `409` (matching the `CONFLICT` error code in api-design.md).
   This matches the Phase 1+2 plan's model (`research/regenerate → resume reject (retry)`).
 - `scripts.ts`: `PUT /api/v1/projects/:id/scripts/:scriptId/versions` (user edit → new row, `created_by: "user"`, `version = max+1`), `GET /api/v1/projects/:id/scripts/:scriptId/versions` (ordered desc).
-- `stream.ts`: SSE route — hold a connection, emit `stage:started | stage:awaiting_review | stage:done | stage:failed` based on checkpoint state changes (poll `getState()` every 500ms for the slice; replace with push later — the project row is deliberately stale, so never poll it). Keep it simple and correct: send a heartbeat comment every 15s to prevent idle disconnect.
+- `stream.ts`: SSE route - hold a connection, emit `stage:started | stage:awaiting_review | stage:done | stage:failed` based on checkpoint state changes (poll `getState()` every 500ms for the slice; replace with push later - the project row is deliberately stale, so never poll it). Keep it simple and correct: send a heartbeat comment every 15s to prevent idle disconnect.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
@@ -1368,7 +1368,7 @@ Expected: PASS. (Tests use an isolated sqlite file via `DATABASE_PATH` set in `a
 
 Run: `pnpm --filter db migrate && pnpm --filter api dev`
 Then: `curl -s -X POST localhost:4000/api/v1/projects -H 'content-type: application/json' -d '{"idea":"doc about the universe"}'`
-Expected: JSON project with stage `script_review` — read from the **checkpoint**
+Expected: JSON project with stage `script_review` - read from the **checkpoint**
 (`getState().values.stage`), per the create-route note above and api-design.md's exact contract.
 The raw `projects.stage` column is NOT the source of truth (it stays `brief`/stale after
 creation). Run with `FAKE_PROVIDER=1` for a deterministic scripted run, or a real
@@ -1383,7 +1383,7 @@ git commit -m "feat(api): fastify routes for projects, stages, scripts, and SSE"
 
 ---
 
-### Task 8: Next.js UI (`apps/web`) — Cutting Room
+### Task 8: Next.js UI (`apps/web`) - Cutting Room
 
 **Files:**
 - Create: `apps/web/package.json`, `apps/web/next.config.mjs`, `apps/web/tsconfig.json`, `apps/web/tailwind.config.ts`, `apps/web/postcss.config.mjs`, `apps/web/app/layout.tsx`, `apps/web/app/globals.css`, `apps/web/app/page.tsx`, `apps/web/app/projects/[id]/page.tsx`
@@ -1448,11 +1448,11 @@ export default {
 } satisfies Config;
 ```
 
-`apps/web/app/layout.tsx` — load fonts via `next/font/google` (IBM Plex Mono) + `next/font/local` or Fontshare CDN link for Cabinet Grotesk + General Sans; set CSS vars `--font-display`, `--font-body`, `--font-mono`.
+`apps/web/app/layout.tsx` - load fonts via `next/font/google` (IBM Plex Mono) + `next/font/local` or Fontshare CDN link for Cabinet Grotesk + General Sans; set CSS vars `--font-display`, `--font-body`, `--font-mono`.
 
 - [ ] **Step 4: Build the Dashboard**
 
-`apps/web/app/page.tsx`: hero ("What do you want to make?"), idea input (mono eyebrow, rec focus ring), "Begin production" button → `POST {NEXT_PUBLIC_API_URL}/api/v1/projects` → router.push to workspace; project grid using `GET /api/v1/projects` with slate cards (title, stage timecode, status chip, progress). Match the approved mockup (`prototypes/cutting-room.html`) — stepper strip, REC dot, brackets.
+`apps/web/app/page.tsx`: hero ("What do you want to make?"), idea input (mono eyebrow, rec focus ring), "Begin production" button → `POST {NEXT_PUBLIC_API_URL}/api/v1/projects` → router.push to workspace; project grid using `GET /api/v1/projects` with slate cards (title, stage timecode, status chip, progress). Match the approved mockup (`prototypes/cutting-room.html`) - stepper strip, REC dot, brackets.
 
 - [ ] **Step 5: Build the Workspace**
 
@@ -1527,12 +1527,12 @@ describe("interrupt persistence", () => {
   });
 });
 ```
-(The SQLite-backed checkpointer is what makes "survives rebuild" meaningful — graph instance 2 has no memory of instance 1 except what's persisted in the sqlite file.)
+(The SQLite-backed checkpointer is what makes "survives rebuild" meaningful - graph instance 2 has no memory of instance 1 except what's persisted in the sqlite file.)
 
 - [ ] **Step 2: Run test, fix, pass**
 
 Run: `pnpm --filter ai test`
-Expected: PASS (the `checkpointer` param from Task 6 is already wired here — this test proves a rebuilt graph instance resumes the same persisted thread).
+Expected: PASS (the `checkpointer` param from Task 6 is already wired here - this test proves a rebuilt graph instance resumes the same persisted thread).
 
 - [ ] **Step 3: Extend API tests for stage lifecycle**
 
@@ -1595,17 +1595,17 @@ export default defineConfig({
   ],
 });
 ```
-(The API must run with `FAKE_PROVIDER=1` so the scripted sequence in `createProvider()` (Task 7) drives the E2E deterministically; the web app needs `NEXT_PUBLIC_API_URL=http://localhost:4000` in its env. The API applies its sqlite migrations at boot and writes to `./data/e2e.db` — no Docker anywhere.)
+(The API must run with `FAKE_PROVIDER=1` so the scripted sequence in `createProvider()` (Task 7) drives the E2E deterministically; the web app needs `NEXT_PUBLIC_API_URL=http://localhost:4000` in its env. The API applies its sqlite migrations at boot and writes to `./data/e2e.db` - no Docker anywhere.)
 
 - [ ] **Step 2: Run E2E with FakeProvider**
 
 Run: `pnpm test:e2e`
-Expected: PASS — idea → brief → script with scores, no console errors. (Playwright boots both servers itself via the `webServer` array; the API runs with `FAKE_PROVIDER=1`.)
+Expected: PASS - idea → brief → script with scores, no console errors. (Playwright boots both servers itself via the `webServer` array; the API runs with `FAKE_PROVIDER=1`.)
 
 - [ ] **Step 3: Full gate**
 
 Run: `pnpm typecheck && pnpm test && pnpm test:e2e`
-Expected: all PASS. Then start `pnpm dev` and open `http://localhost:3000` — verify the dashboard renders, create a project, and confirm the workspace stepper shows and approves flow without console/page errors (per definition of done).
+Expected: all PASS. Then start `pnpm dev` and open `http://localhost:3000` - verify the dashboard renders, create a project, and confirm the workspace stepper shows and approves flow without console/page errors (per definition of done).
 
 - [ ] **Step 4: Update docs status + commit**
 

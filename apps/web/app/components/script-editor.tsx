@@ -33,18 +33,18 @@ export function ScriptEditor({
         next.has(fmt) ? next.delete(fmt) : next.add(fmt);
         return next;
       });
-      showToast(`${label ?? fmt} — applied to selection`);
+      showToast(`${label ?? fmt} - applied to selection`);
     } catch {
-      showToast(`${label ?? fmt} — routed to the studio for review`);
+      showToast(`${label ?? fmt} - routed to the studio for review`);
     }
   };
 
   const comment = () =>
     showToast(
-      `Comment pinned to paragraph ${activePara.toUpperCase()} — routed to the script reviewer`
+      `Comment pinned to paragraph ${activePara.toUpperCase()} - routed to the script reviewer`
     );
   const askStudio = () =>
-    showToast("Rewrite suggestion requested for this paragraph — agent will draft an alternative");
+    showToast("Rewrite suggestion requested for this paragraph - agent will draft an alternative");
 
   const recount = (e: React.FormEvent<HTMLDivElement>) => {
     setSaved(false);

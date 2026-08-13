@@ -79,8 +79,8 @@ export function StatePanel({
           agent writing<span className="caret"></span>
         </div>
         <p className="lead" style={{ marginTop: 16 }}>
-          The studio is drafting the first pass — the opening lands on the wonder of the first
-          three minutes<span className="caret"></span>
+          The studio is drafting the first pass - the opening lands on the start-line quiet
+          before the gun<span className="caret"></span>
         </p>
       </div>
     );
@@ -94,11 +94,11 @@ export function StatePanel({
         <h2>{name} needs a retake</h2>
         <div className="p-meta">provider 429 · retrying with backoff</div>
         <p className="lead" style={{ marginTop: 16 }}>
-          The studio hit a rate limit while generating. Nothing is lost — the partial draft is
+          The studio hit a rate limit while generating. Nothing is lost - the partial draft is
           saved and we will resume automatically.
         </p>
         <div className="retake">
-          RETAKE — rate limit hit (429) on provider call, retrying in 30s
+          RETAKE - rate limit hit (429) on provider call, retrying in 30s
           <button className="mini-btn solid" onClick={() => showToast("Retrying now…")}>
             Retry now
           </button>
@@ -112,7 +112,7 @@ export function StatePanel({
       <div className="p-eyebrow">No projects yet</div>
       <h2>Start with an idea</h2>
       <p className="lead" style={{ marginTop: 12 }}>
-        Type a one-line idea on the dashboard and the studio handles the rest — research, script,
+        Type a one-line idea on the dashboard and the studio handles the rest - research, script,
         storyboard, prompts.
       </p>
       <div style={{ marginTop: 20 }}>
@@ -135,27 +135,27 @@ function PanelIdea() {
       <div className="chat">
         <div className="msg user">
           <div className="who">You</div>
-          <div className="bubble">A documentary about the history of the universe.</div>
+          <div className="bubble">A documentary about a runner's first marathon.</div>
         </div>
         <div className="msg">
           <div className="who">Studio</div>
           <div className="bubble">
             Love it. A few questions before I draft the brief:
             <ul>
-              <li>Who is this for — general audience, students, or enthusiasts?</li>
-              <li>Where will it live — YouTube, a course, social?</li>
-              <li>How long — under 3 minutes, 4–5, or longer?</li>
-              <li>Any visual style you lean toward — archival, cinematic, animated diagrams?</li>
+              <li>Who is this for - first-time runners, fans, or general?</li>
+              <li>Where will it live - YouTube, a course, social?</li>
+              <li>How long - under 3 minutes, 4–5, or longer?</li>
+              <li>Any visual style you lean toward - vérité, cinematic, archival?</li>
             </ul>
           </div>
         </div>
         <div className="msg user">
           <div className="who">You</div>
-          <div className="bubble">General audience on YouTube. 4–5 minutes. Cinematic, with a little wonder.</div>
+          <div className="bubble">First-time runners and fans on YouTube. 4–5 minutes. Cinematic vérité, with a little joy.</div>
         </div>
         <div className="msg">
           <div className="who">Studio</div>
-          <div className="bubble">That gives me everything — drafting the brief now.</div>
+          <div className="bubble">That gives me everything - drafting the brief now.</div>
         </div>
       </div>
     </>
@@ -168,15 +168,15 @@ function PanelBrief() {
       <div className="p-eyebrow">
         Stage 02 · Creative brief <span className="stamp">approved 21:34</span>
       </div>
-      <h2>The History of the Universe</h2>
+      <h2>The First Marathon</h2>
       <div className="p-meta">v2 · generated 21:33 · 3.1k tokens · tap any value to edit</div>
       <div className="brief-grid">
-        <BriefCard k="Topic" v="The history of the universe" />
-        <BriefCard k="Audience" v="General, curious newcomers" />
+        <BriefCard k="Topic" v="A runner's first marathon" />
+        <BriefCard k="Audience" v="First-time runners and fans" />
         <BriefCard k="Platform" v="YouTube" />
         <BriefCard k="Style" v="Cinematic documentary" />
         <BriefCard k="Duration" v="00:04:30" tag="≈ 650 words" />
-        <BriefCard k="Tone" v="Wonder-driven, calm" />
+        <BriefCard k="Tone" v="Warm, intimate" />
         <BriefCard k="Narration" v="Female, warm documentary" />
         <BriefCard k="Aspect ratio" v="16:9" />
       </div>
@@ -202,41 +202,41 @@ function PanelResearch() {
       <div className="p-eyebrow">
         Stage 03 · Research packet <span className="stamp">approved 21:40</span>
       </div>
-      <h2>Grounding the timeline</h2>
+      <h2>Grounding the race</h2>
       <div className="p-meta">v3 · generated 21:39 · 14.2k tokens · 6 sources</div>
       <p className="lead" style={{ marginTop: 16 }}>
         The factual spine your script stands on. Drawn from the approved brief:{" "}
-        <em>documentary, general audience, 4:30, wonder-driven.</em>
+        <em>documentary, first-time runners, 4:30, warm.</em>
       </p>
       <h3>Timeline</h3>
       <ul className="tl">
-        <li><span className="t">13.8 bya</span>Big Bang — space and time begin</li>
-        <li><span className="t">13.5 bya</span>First stars ignite in dark hydrogen</li>
-        <li><span className="t">13.1 bya</span>Galaxies assemble; the Milky Way forms</li>
-        <li><span className="t">4.6 bya</span>Our solar system condenses from a dust disk</li>
-        <li><span className="t">3.8 bya</span>Life appears on Earth</li>
-        <li><span className="t">300 kya</span>Homo sapiens — the universe looks back at itself</li>
+        <li><span className="t">6:00 am</span>The start line - nerves and new shoes</li>
+        <li><span className="t">Mile 3</span>The first crowd wall, still grinning</li>
+        <li><span className="t">Mile 13.1</span>Halfway - the turnaround, where strangers laugh</li>
+        <li><span className="t">Mile 20</span>The wall - legs empty, mind loud</li>
+        <li><span className="t">Mile 26</span>The city roars as the line appears</li>
+        <li><span className="t">26.2</span>Arms up at the line - the crowd answers</li>
       </ul>
       <h3>Key concepts</h3>
       <div className="chip-row">
-        <span className="score-chip">Cosmic inflation</span>
-        <span className="score-chip">Dark matter</span>
-        <span className="score-chip">Dark energy</span>
-        <span className="score-chip">CMB radiation</span>
-        <span className="score-chip">Redshift</span>
-        <span className="score-chip">Observable universe</span>
+        <span className="score-chip">The runner's high</span>
+        <span className="score-chip">The wall</span>
+        <span className="score-chip">Carb loading</span>
+        <span className="score-chip">Negative splits</span>
+        <span className="score-chip">Start corral</span>
+        <span className="score-chip">Chasing times</span>
       </div>
       <h3>Terminology</h3>
       <table className="term-table">
         <tbody>
-          <tr><td>redshift</td><td>light stretched by expanding space — a cosmic yardstick</td></tr>
-          <tr><td>CMB</td><td>the afterglow of the Big Bang, detected 1965</td></tr>
-          <tr><td>inflation</td><td>the universe's brief, violent expansion in its first instant</td></tr>
+          <tr><td>bonk</td><td>the wall - legs empty, mind loud</td></tr>
+          <tr><td>negative split</td><td>running the second half faster than the first</td></tr>
+          <tr><td>PR</td><td>personal record - a first marathon is always one</td></tr>
         </tbody>
       </table>
       <h3>References</h3>
       <p>
-        NASA WMAP/Planck data · "A Brief History of Time" (Hawking) · PBS Space Time. Claims
+        Marathon training guides · "26.2" (first-marathon docs) · race-day footage. Claims
         without a source are marked <em>unverified</em> and cap the script's factual score.
       </p>
     </>
@@ -257,7 +257,7 @@ function PanelScript({
       <div className="p-eyebrow">
         Stage 04 · Script <span className="stamp">approved 21:47</span>
       </div>
-      <h2>The First Three Minutes</h2>
+      <h2>The First Marathon</h2>
       <div className="p-meta">v3 · revised after review · 00:04:12 read · editor: TipTap</div>
       <ScriptEditor activePara={activePara} onActivePara={onActivePara} showToast={showToast} />
     </>
@@ -276,8 +276,8 @@ function PanelStoryboard({
       <div className="p-eyebrow">
         Stage 05 · Storyboard <span className="stamp">approved 21:52</span>
       </div>
-      <h2>Six scenes, one throughline</h2>
-      <div className="p-meta">v2 · 6 scenes · 00:04:30 · drag to reorder</div>
+      <h2>Three scenes, one race</h2>
+      <div className="p-meta">v2 · 3 scenes · 00:01:36 · drag to reorder</div>
       <div className="scene-list" id="sceneList">
         {scenes.map((s, i) => (
           <SceneCard

@@ -10,9 +10,9 @@ export function ProductionPlan({ scenes, embedded }: { scenes: Scene[]; embedded
           <div className="p-eyebrow">
             Ready · Production plan <span className="stamp">awaiting your approval</span>
           </div>
-          <h2>The First Three Minutes</h2>
+          <h2>The First Marathon</h2>
           <div className="p-meta">
-            plan v1 · {scenes.length} scenes · 00:04:30 · {scenes.length} prompt packs
+            plan v1 · {scenes.length} scenes · 00:01:36 · {scenes.length} prompt packs
           </div>
         </>
       )}
@@ -20,9 +20,9 @@ export function ProductionPlan({ scenes, embedded }: { scenes: Scene[]; embedded
       <div className="plan-section">
         <h3>Script</h3>
         <p className="lead">
-          Every atom in your body was forged inside a star. Before that — nothing we can picture.
-          This is the story of how the universe began, in the time it takes a kettle to boil… the
-          universe, briefly, came to know itself.
+          Every marathon starts with a single step - hers came before the gun, on a quiet street
+          at dawn. The start line, the wall at mile 20, and finally the line: arms up, the crowd
+          answers.
         </p>
       </div>
 
@@ -40,17 +40,17 @@ export function ProductionPlan({ scenes, embedded }: { scenes: Scene[]; embedded
       </div>
 
       <div className="plan-section">
-        <h3>Crew sheet — consistency</h3>
+        <h3>Crew sheet - consistency</h3>
         <div className="crew-grid">
           <div className="crew-card">
             <div className="k">Characters</div>
             <div className="v">
-              Narrator — unnamed, omniscient <small>· consistent voice</small>
+              Narrator - unnamed, omniscient <small>· consistent voice</small>
             </div>
           </div>
           <div className="crew-card">
             <div className="k">Locations</div>
-            <div className="v">Deep space (void), galaxy web, solar system, Earth at night</div>
+            <div className="v">City streets at dawn, the turnaround, the finish line</div>
           </div>
           <div className="crew-card">
             <div className="k">Editor</div>

@@ -69,7 +69,7 @@ export type Character = z.infer<typeof CharacterSchema>;
 export const LocationSchema = z.object({ id: z.string().min(1), name: z.string().min(1), description: z.string().min(1) });
 export type Location = z.infer<typeof LocationSchema>;
 
-// Phase 3 Block 1 — a generated media asset row (mirrors the db `assets`
+// Phase 3 Block 1 - a generated media asset row (mirrors the db `assets`
 // table; the API returns it verbatim so the web client types against this).
 export interface Asset {
   id: string;

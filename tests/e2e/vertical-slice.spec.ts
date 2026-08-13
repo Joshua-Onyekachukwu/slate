@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 
-// Task 8 Step 1 — executed in Task 10 (E2E + full verification).
+// Task 8 Step 1 - executed in Task 10 (E2E + full verification).
 // Playwright boots the API (:4000, FAKE_PROVIDER=1, fresh data/e2e.db) and web (:3000)
 // via the webServer array in tests/playwright.config.ts.
 // Full journey: idea → research gate → approve → script gate → approve →
@@ -13,15 +13,15 @@ async function trackErrors(page: Page) {
     if (msg.type() === "error") errors.push(`console.error: ${msg.text()}`);
   });
   page.on("pageerror", (err) => errors.push(`pageerror: ${err.message}`));
-  // Network failures the app might swallow without console.error — plus 4xx/5xx
+  // Network failures the app might swallow without console.error - plus 4xx/5xx
   // responses (Next dev 404s /favicon.ico benignly; allowlist it). Aborted
-  // requests (ERR_ABORTED) are benign — React StrictMode double-effects abort the
+  // requests (ERR_ABORTED) are benign - React StrictMode double-effects abort the
   // first EventSource on cleanup, and navigation cancels in-flight fetches.
   page.on("requestfailed", (req) => {
     const errText = req.failure()?.errorText ?? "";
     // ERR_ABORTED is benign (StrictMode/navigation). Any network-class failure
     // on the external font CDNs (DNS resolution, timeout, blocked-by-orb, CORS
-    // rejection) is also benign — a third-party response the app can't control,
+    // rejection) is also benign - a third-party response the app can't control,
     // and the app falls back to system fonts when they're unreachable.
     if (errText.includes("ERR_ABORTED")) return;
     if (/fontshare|fonts\.googleapis/.test(req.url())) return;
@@ -29,6 +29,11 @@ async function trackErrors(page: Page) {
   });
   page.on("response", (res) => {
     if (res.status() >= 400 && !res.url().includes("/favicon")) {
+      // The workspace auto-renders the first cut when the plan locks; without
+      // FFmpeg installed the render route 501s (RENDER_UNAVAILABLE) by contract
+      // and the film panel surfaces it as a failed take - a benign, expected
+      // demo-state error, not a journey defect.
+      if (res.status() === 501 && res.url().includes("/render")) return;
       errors.push(`http ${res.status()}: ${res.url()}`);
     }
   });
@@ -38,8 +43,8 @@ async function trackErrors(page: Page) {
 test("idea → script gate → storyboard gate (regenerate + edit + drag-reorder) → approve (no console errors)", async ({ page }) => {
   const errors = await trackErrors(page);
 
-  await page.goto("/studio"); // the studio (dashboard) moved from / to /studio — / is the public landing
-  await page.getByLabel("Describe your video idea").fill("A documentary about the history of the universe");
+  await page.goto("/studio"); // the studio (dashboard) moved from / to /studio - / is the public landing
+  await page.getByLabel("Describe your video idea").fill("A documentary about a runner's first marathon");
   await page.getByRole("button", { name: /begin production/i }).click();
   await page.waitForURL(/\/projects\//);
   // The API base the web boots against (playwright.config webServer env).
@@ -51,8 +56,8 @@ test("idea → script gate → storyboard gate (regenerate + edit + drag-reorder
   // → research_review). The packet renders in the workspace; approve it to reach
   // the script gate.
   await expect(page.getByText(/research · awaiting review/i)).toBeVisible();
-  await expect(page.getByText(/13\.8 bya: Big Bang/i)).toBeVisible();
-  await expect(page.getByText(/nasa · esa/i)).toBeVisible(); // references
+  await expect(page.getByText(/6:00 am: the start line/i)).toBeVisible();
+  await expect(page.getByText(/marathon training guides/i)).toBeVisible(); // references
   await page.getByRole("button", { name: /approve & continue/i }).click();
 
   // Research approved → the script gate (FakeProvider scripted sequence:
@@ -68,16 +73,16 @@ test("idea → script gate → storyboard gate (regenerate + edit + drag-reorder
   await expect(page.getByText(/scenes storyboarded/i)).toBeVisible();
 
   // The crew sheet ALSO renders in the coverage rail during storyboard review
-  // (prototype's Consistency-records card) — not just at the locked plan. The
+  // (prototype's Consistency-records card) - not just at the locked plan. The
   // characters/locations persist on the project row when the script is
   // approved (queue: CHARACTERS/LOCATIONS), so they show at the gate.
   await expect(page.getByText(/consistency records/i)).toBeVisible();
-  await expect(page.getByText(/the narrator/i)).toBeVisible();
-  await expect(page.getByText(/the observable universe/i)).toBeVisible();
+  await expect(page.getByText(/maya/i)).toBeVisible();
+  await expect(page.getByText(/the start line/i)).toBeVisible();
 
-  // Phase 3 Block 2 — per-scene ASSET generation through the real UI. Scene 1
+  // Phase 3 Block 2 - per-scene ASSET generation through the real UI. Scene 1
   // has a prompt pack at the gate, so the IMG button is enabled. Generation
-  // uses the provider's MEDIA methods (not the scripted chat queue — media is
+  // uses the provider's MEDIA methods (not the scripted chat queue - media is
   // deterministic from the prompt seed), so nothing is consumed. Once ready the
   // button becomes the quality chip "IMG · X/5" (the per-asset quality gate
   // riding in meta.quality). Assert BEFORE any version bump: assets belong to
@@ -94,11 +99,11 @@ test("idea → script gate → storyboard gate (regenerate + edit + drag-reorder
   await page.getByRole("button", { name: /^regenerate$/i }).click();
   // v2 lands at the gate: rev titles + the version chip (rail/call sheet also
   // show "sb v2", but the rev title is the unique content proof).
-  await expect(page.getByTestId("scene-card-1")).toContainText("Scene 1 (rev)");
+  await expect(page.getByTestId("scene-card-1")).toContainText("The cold open (rev)");
   await expect(page.getByText(/scenes · sb v2/i)).toBeVisible();
 
   // Per-scene edit through the real UI: edit scene 1's narration and save. This
-  // is ALSO the regression guard for the @fastify/cors@11 PUT-preflight fix —
+  // is ALSO the regression guard for the @fastify/cors@11 PUT-preflight fix  - 
   // before it, the browser save would fail with "Method PUT is not allowed" and
   // the strict error gate below would catch the console error. The edit bumps
   // the storyboard version (direct-DB write, no provider queue consumed).
@@ -116,9 +121,9 @@ test("idea → script gate → storyboard gate (regenerate + edit + drag-reorder
   // pack ("Prompt pack queued."), so regenerate just that pack from the Advanced
   // panel → whole-storyboard version bump (v4) with the fresh pack restored.
   // This is ALSO the regression guard for the POST preflight (same class as the
-  // PUT CORS fix — POST is allowed by default, but the version-rows round-trip
+  // PUT CORS fix - POST is allowed by default, but the version-rows round-trip
   // and response-replaces-state wiring are the real assertions).
-  await page.getByRole("button", { name: /advanced — prompt packs/i }).click();
+  await page.getByRole("button", { name: /advanced - prompt packs/i }).click();
   await expect(page.getByText(/prompt pack queued/i)).toBeVisible();
   await page.getByRole("button", { name: /regenerate prompts for scene 1/i }).click();
   await expect(page.getByText(/regenerated pack for scene 1/i)).toBeVisible();
@@ -135,18 +140,18 @@ test("idea → script gate → storyboard gate (regenerate + edit + drag-reorder
   await expect(page.getByText(/MANUAL EDIT: tungsten-lit nebula, no text/i)).toBeVisible();
   await expect(page.getByText(/scenes · sb v5/i)).toBeVisible();
 
-  // DRAG-TO-REORDER through the real UI — closes the drag-only-verified-via-curl
+  // DRAG-TO-REORDER through the real UI - closes the drag-only-verified-via-curl
   // gap (the reorder endpoint had E2E coverage only through the API inject/curl
   // tests, never through the browser gesture). Scene 1 (index 0) is dragged
   // BELOW scene 3 (drop in scene 3's bottom half → moveScene(0, 2) →
   // [S2, S3, S1]). Like the edit, this is a direct-DB write, so it consumes NO
-  // provider queue — the 28-entry exhaustion contract is untouched. It bumps the
+  // provider queue - the 28-entry exhaustion contract is untouched. It bumps the
   // whole storyboard version v5 → v6 (new version rows, per spec §12.9).
   //
   // HTML5 DnD: SceneCard is `draggable` and reads dataTransfer.getData in its
   // onDrop. Playwright's locator.dragTo does not reliably round-trip the
   // dataTransfer through React's synthetic events, so dispatch the native drag
-  // sequence with a REAL DataTransfer — the exact handlers a user drag fires.
+  // sequence with a REAL DataTransfer - the exact handlers a user drag fires.
   const dragScene1BelowScene3 = () =>
     page.evaluate(() => {
       const source = document.querySelector("[data-testid=\"scene-card-1\"]");
@@ -163,42 +168,42 @@ test("idea → script gate → storyboard gate (regenerate + edit + drag-reorder
     });
 
   // Sanity: the gate holds the storyboard at v5 with (rev) titles in order.
-  await expect(page.getByTestId("scene-card-1")).toContainText("Scene 1 (rev)");
-  await expect(page.getByTestId("scene-card-3")).toContainText("Scene 3 (rev)");
+  await expect(page.getByTestId("scene-card-1")).toContainText("The cold open (rev)");
+  await expect(page.getByTestId("scene-card-3")).toContainText("The finish (rev)");
   await dragScene1BelowScene3();
   // Optimistic move + PUT round-trip → new version rows; card ORDER follows the
   // scene order prop, so scene-card-1 now holds the former Scene 2.
   await expect(page.getByText(/scenes · sb v6/i)).toBeVisible();
-  await expect(page.getByTestId("scene-card-1")).toContainText("Scene 2 (rev)");
-  await expect(page.getByTestId("scene-card-3")).toContainText("Scene 1 (rev)");
+  await expect(page.getByTestId("scene-card-1")).toContainText("The moment (rev)");
+  await expect(page.getByTestId("scene-card-3")).toContainText("The cold open (rev)");
 
   // RELOAD: the reorder must come back from the DB (new version rows), not from
-  // client state — the whole point of the version-rows persistence contract.
+  // client state - the whole point of the version-rows persistence contract.
   await page.reload();
   await expect(page.getByText(/scenes · sb v6/i)).toBeVisible();
-  await expect(page.getByTestId("scene-card-1")).toContainText("Scene 2 (rev)");
-  await expect(page.getByTestId("scene-card-3")).toContainText("Scene 1 (rev)");
+  await expect(page.getByTestId("scene-card-1")).toContainText("The moment (rev)");
+  await expect(page.getByTestId("scene-card-3")).toContainText("The cold open (rev)");
 
   // Approve the storyboard → production plan locked (done).
   await page.getByRole("button", { name: /approve & continue/i }).click();
   await expect(page.getByText(/production plan locked/i)).toBeVisible();
 
   // Third persistence proof: the approved production plan's "Scenes in order"
-  // section reflects the DRAGGED sequence (SC 01 = the former Scene 2) — the
+  // section reflects the DRAGGED sequence (SC 01 = the former Scene 2) - the
   // reorder survives all the way into the locked plan, not just the storyboard
   // view and the reload.
-  await expect(page.locator(".plan-section .plan-row").first()).toContainText("Scene 2 (rev)");
-  await expect(page.locator(".plan-section .plan-row").nth(2)).toContainText("Scene 1 (rev)");
+  await expect(page.locator(".plan-section .plan-row").first()).toContainText("The moment (rev)");
+  await expect(page.locator(".plan-section .plan-row").nth(2)).toContainText("The cold open (rev)");
 
   // The crew sheet renders the consistency records extracted after script
-  // approval (queue: CHARACTERS/LOCATIONS) — the done view's source of truth.
+  // approval (queue: CHARACTERS/LOCATIONS) - the done view's source of truth.
   // Scoped to the crew-sheet section: the coverage rail now ALSO shows the
   // Consistency records card (same names), so an unscoped getByText would hit
   // two elements (strict-mode violation).
-  const crewSheet = page.locator(".plan-section", { hasText: /crew sheet — consistency/i });
+  const crewSheet = page.locator(".plan-section", { hasText: /crew sheet - consistency/i });
   await expect(crewSheet).toBeVisible();
-  await expect(crewSheet.getByText(/the narrator/i)).toBeVisible();
-  await expect(crewSheet.getByText(/the observable universe/i)).toBeVisible();
+  await expect(crewSheet.getByText(/maya/i)).toBeVisible();
+  await expect(crewSheet.getByText(/the start line/i)).toBeVisible();
 
   // Consolidated production-plan payload after storyboard approve: the done
   // view's single source of truth (Task 10 contract). Assert the checkpoint
@@ -210,10 +215,10 @@ test("idea → script gate → storyboard gate (regenerate + edit + drag-reorder
   expect(plan.stage).toBe("done"); // checkpoint-derived (not the stale column)
   expect(plan.productionPlanStatus).toBe("ready");
   expect(plan.scenes.map((s: { content: { title: string } }) => s.content.title)).toEqual([
-    "Scene 2 (rev)", "Scene 3 (rev)", "Scene 1 (rev)", // dragged order survives into the plan
+    "The moment (rev)", "The finish (rev)", "The cold open (rev)", // dragged order survives into the plan
   ]);
-  expect(plan.characters.map((c: { name: string }) => c.name)).toContain("The Narrator");
-  expect(plan.locations.map((l: { name: string }) => l.name)).toContain("The Observable Universe");
+  expect(plan.characters.map((c: { name: string }) => c.name)).toContain("Maya");
+  expect(plan.locations.map((l: { name: string }) => l.name)).toContain("The Start Line");
 
   // Definition of done: no console/page errors anywhere in the flow.
   expect(errors).toEqual([]);

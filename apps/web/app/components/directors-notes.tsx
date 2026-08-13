@@ -25,7 +25,7 @@ export function DirectorsNotes({
             </div>
             <div className="cov-item">
               <p>
-                Planning agent on <b>nvidia-llama-3.3-70b</b> — drafting {STAGES[stage]?.name.toLowerCase()}.
+                Planning agent on <b>nvidia-llama-3.3-70b</b> - drafting {STAGES[stage]?.name.toLowerCase()}.
               </p>
             </div>
           </div>
@@ -38,7 +38,7 @@ export function DirectorsNotes({
             <div className="cov-item">
               <p>Streaming output to the canvas. You can interrupt any time.</p>
               <div className="cov-actions">
-                <button className="mini-btn solid" onClick={() => showToast("Generation interrupted — partial saved")}>
+                <button className="mini-btn solid" onClick={() => showToast("Generation interrupted - partial saved")}>
                   Interrupt
                 </button>
               </div>
@@ -99,7 +99,7 @@ function StageCoverage({
               <b>any visual references</b>.
             </p>
             <div className="cov-actions">
-              <button className="mini-btn solid" onClick={() => showToast("Note applied — drafting brief")}>
+              <button className="mini-btn solid" onClick={() => showToast("Note applied - drafting brief")}>
                 Apply
               </button>
               <button className="mini-btn">Dismiss</button>
@@ -116,7 +116,7 @@ function StageCoverage({
               A <b>female narration</b> pairs well with a wonder-driven tone for general audiences.
             </p>
             <div className="cov-actions">
-              <button className="mini-btn solid" onClick={() => showToast("Applied — narration locked")}>
+              <button className="mini-btn solid" onClick={() => showToast("Applied - narration locked")}>
                 Apply
               </button>
               <button className="mini-btn">Dismiss</button>
@@ -127,7 +127,7 @@ function StageCoverage({
               4:30 is the sweet spot for YouTube retention; <b>consider a cold open</b>.
             </p>
             <div className="cov-actions">
-              <button className="mini-btn solid" onClick={() => showToast("Applied — cold open noted")}>
+              <button className="mini-btn solid" onClick={() => showToast("Applied - cold open noted")}>
                 Apply
               </button>
               <button className="mini-btn">Dismiss</button>
@@ -212,12 +212,12 @@ function StageCoverage({
           <div className="c-t">Consistency records</div>
           <div className="cov-item">
             <p>
-              <b>Characters:</b> 1 (Narrator) — consistent across scenes.
+              <b>Characters:</b> 1 (Narrator) - consistent across scenes.
             </p>
           </div>
           <div className="cov-item">
             <p>
-              <b>Locations:</b> void → galaxy web → solar system → Earth — continuity held.
+              <b>Locations:</b> start line → turnaround → finish line - continuity held.
             </p>
           </div>
           <div className="cov-item">

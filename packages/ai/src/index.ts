@@ -1,6 +1,7 @@
 export * from "./providers/types";
 export * from "./providers/nvidia";
 export * from "./providers/fake";
+export * from "./providers/voice";
 export * from "./agents/planning";
 export * from "./agents/script";
 export * from "./agents/reviewer";

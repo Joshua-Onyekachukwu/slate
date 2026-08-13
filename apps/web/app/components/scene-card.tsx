@@ -38,7 +38,7 @@ export function SceneCard({
   saving?: boolean;
 }) {
   const [over, setOver] = useState<"top" | "bottom" | null>(null);
-  const depthRef = useRef(0); // dragenter/dragleave depth — prevents child-element flicker
+  const depthRef = useRef(0); // dragenter/dragleave depth - prevents child-element flicker
   const [draft, setDraft] = useState<SceneContent | null>(null);
 
   const computeHalf = (e: React.DragEvent<HTMLDivElement>): "top" | "bottom" => {
@@ -51,7 +51,7 @@ export function SceneCard({
     const raw = e.dataTransfer.getData("text/plain");
     depthRef.current = 0;
     setOver(null);
-    if (!raw) return; // non-card drag (e.g. selected text) — ignore
+    if (!raw) return; // non-card drag (e.g. selected text) - ignore
     const from = Number(raw);
     if (!Number.isInteger(from) || from < 0) return;
     const below = computeHalf(e) === "bottom";
@@ -120,7 +120,7 @@ export function SceneCard({
             <button
               className="btn btn-ghost"
               onClick={() => {
-                setDraft(null); // discard unsaved edits — reopening must show server truth
+                setDraft(null); // discard unsaved edits - reopening must show server truth
                 onCancel();
               }}
               disabled={saving}

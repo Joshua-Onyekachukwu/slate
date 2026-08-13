@@ -7,7 +7,7 @@ import type { Provider } from "@slate/ai";
 
 // The review gates. The route param is the PRODUCING stage ("script" /
 // "storyboard"); gate.value is the interrupt payload ("script_review" /
-// "storyboard_review") — see api-design.md "Stage approve / regenerate — exact contract".
+// "storyboard_review") - see api-design.md "Stage approve / regenerate - exact contract".
 export const GATE_VALUE_BY_STAGE: Record<string, string> = {
   research: "research_review",
   script: "script_review",
@@ -84,7 +84,7 @@ export interface CheckpointView {
 // project.stage MUST come from the checkpoint, not the projects column (the
 // column is only lazily patched to "brief" by discovery). The pending gates
 // come from getState().tasks[].interrupts (langgraph 0.2.x, per the spike).
-// Review scores live on the checkpoint's `scores` channel — the scripts row's
+// Review scores live on the checkpoint's `scores` channel - the scripts row's
 // review_scores column is never written, so read them here, not from the row.
 export async function readCheckpoint(graph: WorkflowGraph, threadId: string): Promise<CheckpointView> {
   const snapshot = await graph.getState({ configurable: { thread_id: threadId } });

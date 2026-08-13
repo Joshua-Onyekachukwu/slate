@@ -3,7 +3,7 @@
 > Status: **Draft** · Last updated: 2026-08-03 · Companion: `ai-pipeline.md` (stages 4, 8).
 
 **Principle:** no step silently continues on weak output. Evaluate, surface issues, allow targeted
-regeneration. Scores are **advisory** — the user can always override, because the creative director
+regeneration. Scores are **advisory** - the user can always override, because the creative director
 works for the user, not the other way around.
 
 ## Scoring model
@@ -15,11 +15,11 @@ works for the user, not the other way around.
 
 | Overall score | Result |
 | --- | --- |
-| ≥ threshold | Stage ready — AI recommends "Approve & continue" |
+| ≥ threshold | Stage ready - AI recommends "Approve & continue" |
 | below threshold, ≥ 3.0 | AI proposes specific revisions + regenerates with feedback |
 | < 3.0 | AI flags the stage as weak, explains why, offers "Revise guidance" or "Start over" |
 
-## Phase 1 — Script review dimensions
+## Phase 1 - Script review dimensions
 
 Weights in parentheses.
 
@@ -43,11 +43,11 @@ reviewer marks the claim `unverified` and the script can't score above 4.0 on th
    repeats the hook; cut to the timeline here").
 3. Workflow re-runs the Script Agent with the draft + revision notes as context.
 4. Max **2 auto-revisions**; if still below threshold, surface to the user with the scores and
-   revision history — the user edits, regenerates, or overrides.
+   revision history - the user edits, regenerates, or overrides.
 
 ## Later-phase gates (reserved)
 
-- **Scene quality (Phase 3):** per-scene — prompt adherence, visual quality, continuity, narration
+- **Scene quality (Phase 3):** per-scene - prompt adherence, visual quality, continuity, narration
   timing, subtitle alignment, overall coherence. Low-scoring scenes are flagged for **targeted
   regeneration** (only that scene, never the whole project).
 - **Continuity (Phase 5):** cross-scene character/environment consistency checks against the
@@ -57,8 +57,8 @@ reviewer marks the claim `unverified` and the script can't score above 4.0 on th
 
 ## Recording & measurement
 
-- Scores persist in the versioned artifacts: `scripts.review_scores` (script gate, Phase 1+2 —
+- Scores persist in the versioned artifacts: `scripts.review_scores` (script gate, Phase 1+2  - 
   version rows live on `scripts` itself; there is no `script_versions` table). Per-scene quality
   scoring lands on `scenes` with Phase 5's quality evaluator (development-roadmap.md).
-- Every run logs: model route used, latency, token counts, score vector — for provider comparison
+- Every run logs: model route used, latency, token counts, score vector - for provider comparison
   and drift detection later (a quiet Phase 5+ win).

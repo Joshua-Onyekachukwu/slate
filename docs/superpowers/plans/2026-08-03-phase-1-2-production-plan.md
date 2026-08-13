@@ -1,23 +1,23 @@
-# Phase 1+2 — Production Plan Implementation Plan
+# Phase 1+2 - Production Plan Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the **first** release of Slate: idea → **approved, editable production plan** (quality-scored script → ordered storyboard of scenes → per-scene prompt packs), running locally on Postgres via Docker, **multi-user with Clerk-managed auth isolation from day one (ADR-022/023)**, with "The Cutting Room" UI.
 
-**Architecture:** Fresh pnpm+Turborepo monorepo (the vertical slice is **skipped**, ADR-018). `apps/web` (Next.js), `apps/api` (Fastify), `packages/shared` (zod/enums), `packages/db` (Drizzle + Postgres), `packages/ai` (LangGraph workflow + provider abstraction). Per project: a LangGraph graph runs discovery → brief → research → script → review → storyboard → editor → prompts, pausing at human-review gates (`interrupt()` + `Command(resume=...)`) for research, script, and storyboard; approvals persist via a Postgres checkpointer. All AI calls go through the `Provider` interface (ADR-002) — NVIDIA Build in prod, `FakeProvider` in tests.
+**Architecture:** Fresh pnpm+Turborepo monorepo (the vertical slice is **skipped**, ADR-018). `apps/web` (Next.js), `apps/api` (Fastify), `packages/shared` (zod/enums), `packages/db` (Drizzle + Postgres), `packages/ai` (LangGraph workflow + provider abstraction). Per project: a LangGraph graph runs discovery → brief → research → script → review → storyboard → editor → prompts, pausing at human-review gates (`interrupt()` + `Command(resume=...)`) for research, script, and storyboard; approvals persist via a Postgres checkpointer. All AI calls go through the `Provider` interface (ADR-002) - NVIDIA Build in prod, `FakeProvider` in tests.
 
 **Tech Stack:** Next.js 14+ (App Router) + React 18 + TS strict · Fastify + TS · Drizzle ORM (`node-postgres`) · Postgres 16 via Docker · LangGraph.js (`@langchain/langgraph`) + `@langchain/langgraph-checkpoint-postgres` · Zod · Tailwind (token sheet only) · Vitest · Playwright.
 
 ## Global Constraints
 
-- **Repo:** pnpm workspace `apps/*` + `packages/*`; Turborepo pipelines (ADR-001). Scaffolded from scratch in Task 1 — no prior codebase exists.
-- **TypeScript:** `strict: true` everywhere; shared types/zod/enums live in `packages/shared` — no duplicated types.
-- **DB:** **Postgres 16 via Docker** (ADR-004/011) + Drizzle ORM (ADR-013); tables: `projects`, `scripts`, `storyboards`, `scenes` — **no local auth tables (ADR-023)**. No SQLite anywhere (ADR-014 superseded by ADR-018).
-- **Auth:** **Clerk in scope (ADR-022/023)** — multi-user from day one. Clerk owns identity; `projects.owner_id` stores Clerk's user id (`user_...`) as **`text NOT NULL`, indexed**; every `/api/v1` route requires a valid Clerk session JWT (verified in a `requireUser` hook) and scopes by `owner_id`; cross-user access → `404`.
+- **Repo:** pnpm workspace `apps/*` + `packages/*`; Turborepo pipelines (ADR-001). Scaffolded from scratch in Task 1 - no prior codebase exists.
+- **TypeScript:** `strict: true` everywhere; shared types/zod/enums live in `packages/shared` - no duplicated types.
+- **DB:** **Postgres 16 via Docker** (ADR-004/011) + Drizzle ORM (ADR-013); tables: `projects`, `scripts`, `storyboards`, `scenes` - **no local auth tables (ADR-023)**. No SQLite anywhere (ADR-014 superseded by ADR-018).
+- **Auth:** **Clerk in scope (ADR-022/023)** - multi-user from day one. Clerk owns identity; `projects.owner_id` stores Clerk's user id (`user_...`) as **`text NOT NULL`, indexed**; every `/api/v1` route requires a valid Clerk session JWT (verified in a `requireUser` hook) and scopes by `owner_id`; cross-user access → `404`.
 - **AI:** every agent output is Zod-validated; all calls through `Provider` (ADR-002).
-- **Workflow:** LangGraph.js, `thread_id` = project id; gates persist + exit; resume via `Command(resume=...)` (ADR-003). Gates: **research, script, storyboard** — each approve/reject-with-feedback.
-- **Design:** only the approved token sheet (`ui-design.md`) — `--ink #141110`, `--surface #1E1A18`, `--paper #EDE6DA`, `--paper-dim #D9D0C0`, `--ash #8C8378`, `--line #2B2622`, `--rec #E04B3A`, `--tungsten #E2A85C`; Cabinet Grotesk / General Sans / IBM Plex Mono; radius 2px. **Prompt packs render behind an "Advanced" toggle** (§7); **drag-to-reorder** scenes (§7). **The full-system frontend prototype (`prototypes/cutting-room-full.html`) is approved as-is and is the visual source of truth — Task 11 ports it (spec §7, ADR-010).**
-- **Agents:** Planning, Research, Script, Script Reviewer, Storyboard, Cinematography (folded into Storyboard output), Prompt, Character, Environment, and **Editor Agent** (per-scene transition + music cue fields only, written into each scene's content) — the full crew minus Voice Director (cut 2026-08-03, spec §12.7).
+- **Workflow:** LangGraph.js, `thread_id` = project id; gates persist + exit; resume via `Command(resume=...)` (ADR-003). Gates: **research, script, storyboard** - each approve/reject-with-feedback.
+- **Design:** only the approved token sheet (`ui-design.md`) - `--ink #141110`, `--surface #1E1A18`, `--paper #EDE6DA`, `--paper-dim #D9D0C0`, `--ash #8C8378`, `--line #2B2622`, `--rec #E04B3A`, `--tungsten #E2A85C`; Cabinet Grotesk / General Sans / IBM Plex Mono; radius 2px. **Prompt packs render behind an "Advanced" toggle** (§7); **drag-to-reorder** scenes (§7). **The full-system frontend prototype (`prototypes/cutting-room-full.html`) is approved as-is and is the visual source of truth - Task 11 ports it (spec §7, ADR-010).**
+- **Agents:** Planning, Research, Script, Script Reviewer, Storyboard, Cinematography (folded into Storyboard output), Prompt, Character, Environment, and **Editor Agent** (per-scene transition + music cue fields only, written into each scene's content) - the full crew minus Voice Director (cut 2026-08-03, spec §12.7).
 - **API conventions:** `/api/v1`, JSON, single error shape `{ error: { code, message, details } }` (api-design.md).
 - **Tests:** FakeProvider for all agent/workflow tests; no real provider calls in CI.
 - **Windows (Git Bash):** POSIX syntax; Docker Desktop must be running (Postgres).
@@ -191,12 +191,12 @@ git commit -m "chore: scaffold pnpm+turbo monorepo with docker postgres"
 
 ---
 
-### Task 2: Clerk — managed auth, JWT verification, and the `requireUser` hook (ADR-022/023)
+### Task 2: Clerk - managed auth, JWT verification, and the `requireUser` hook (ADR-022/023)
 
 **Files:**
 - Create: `apps/api/src/auth.ts` (Clerk backend client + injectable verifier), `apps/api/src/hooks.ts`, `apps/web/app/layout.tsx` (`<ClerkProvider>`), `apps/web/app/sign-in/[[...sign-in]]/page.tsx`, `apps/web/app/sign-up/[[...sign-up]]/page.tsx`, `apps/web/middleware.ts` (route protection)
 - Test: `apps/api/src/auth.test.ts`
-- **No local auth tables** (ADR-023) — Clerk owns identity; `owner_id` stores Clerk user ids.
+- **No local auth tables** (ADR-023) - Clerk owns identity; `owner_id` stores Clerk user ids.
 
 **Interfaces:**
 - Consumes: Postgres (Task 1), `packages/db` schema, Clerk dev instance keys.
@@ -249,7 +249,7 @@ describe("auth", () => {
     const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" }, headers: bearer("tok-a") });
     const pid = created.json().project.id;
     const res = await app.inject({ method: "GET", url: `/api/v1/projects/${pid}`, headers: bearer("tok-b") });
-    expect(res.statusCode).toBe(404); // never 403 — avoids leaking existence
+    expect(res.statusCode).toBe(404); // never 403 - avoids leaking existence
   });
 });
 ```
@@ -257,11 +257,11 @@ describe("auth", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter api test`
-Expected: FAIL — no auth module, routes 404, no `requireUser`.
+Expected: FAIL - no auth module, routes 404, no `requireUser`.
 
 - [ ] **Step 3: Implement Clerk verification + hooks**
 
-`apps/api/src/auth.ts` — Clerk backend client with an injectable verifier (the fake replaces it in tests):
+`apps/api/src/auth.ts` - Clerk backend client with an injectable verifier (the fake replaces it in tests):
 ```ts
 import { createClerkClient } from "@clerk/backend";
 
@@ -276,7 +276,7 @@ export function makeVerifyToken(secretKey = process.env.CLERK_SECRET_KEY): Token
 }
 ```
 
-`apps/api/src/hooks.ts` — the owner-scoping gate every route uses:
+`apps/api/src/hooks.ts` - the owner-scoping gate every route uses:
 ```ts
 import type { FastifyRequest } from "fastify";
 import { db, projects } from "@slate/db";
@@ -300,7 +300,7 @@ export async function getOwnedProject(userId: string, id: string) {
 }
 ```
 
-`apps/api/src/app.ts` — wire the verifier + preHandler hook (no `/api/auth/*` routes — Clerk hosts auth):
+`apps/api/src/app.ts` - wire the verifier + preHandler hook (no `/api/auth/*` routes - Clerk hosts auth):
 ```ts
 app.addHook("preHandler", (req, _reply, done) => {
   if (req.url.startsWith("/api/v1")) { requireUser(deps.verifyToken)(req).then(() => done()).catch((e) => done(e)); }
@@ -308,7 +308,7 @@ app.addHook("preHandler", (req, _reply, done) => {
 });
 ```
 
-`apps/web/app/layout.tsx` — wrap the app in Clerk:
+`apps/web/app/layout.tsx` - wrap the app in Clerk:
 ```tsx
 import { ClerkProvider } from "@clerk/nextjs";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -316,7 +316,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 ```
 
-`apps/web/middleware.ts` — protect routes (dashboard + workspace):
+`apps/web/middleware.ts` - protect routes (dashboard + workspace):
 ```ts
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 const isProtected = createRouteMatcher(["/", "/projects(.*)"]);
@@ -324,12 +324,12 @@ export default clerkMiddleware((auth, req) => { if (isProtected(req)) auth().pro
 export const config = { matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"] };
 ```
 
-`apps/web/app/sign-in/[[...sign-in]]/page.tsx` + `sign-up/[[...sign-up]]/page.tsx` — Clerk-hosted catch-all routes (or embed `<SignIn />` / `<SignUp />`).
+`apps/web/app/sign-in/[[...sign-in]]/page.tsx` + `sign-up/[[...sign-up]]/page.tsx` - Clerk-hosted catch-all routes (or embed `<SignIn />` / `<SignUp />`).
 
 - [x] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm --filter api test`
-Expected: PASS — token/owned-project, 401 without token, 404 cross-user (all against the fake verifier).
+Expected: PASS - token/owned-project, 401 without token, 404 cross-user (all against the fake verifier).
 
 - [ ] **Step 5: Commit**
 
@@ -391,7 +391,7 @@ describe("PromptPackSchema", () => {
 - [x] **Step 2: Run tests to verify they fail**
 
 Run: `pnpm --filter shared test`
-Expected: FAIL — modules not found.
+Expected: FAIL - modules not found.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -573,7 +573,7 @@ describe("db schema", () => {
     await pool.query(`
       CREATE TABLE projects (
         id uuid PRIMARY KEY,
-        owner_id text NOT NULL, -- Clerk user id (user_...) — no local users table (ADR-023)
+        owner_id text NOT NULL, -- Clerk user id (user_...) - no local users table (ADR-023)
         idea text NOT NULL,
         title text,
         stage text NOT NULL DEFAULT 'discovery',
@@ -669,7 +669,7 @@ describe("db schema", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter db test`
-Expected: FAIL — schema module missing.
+Expected: FAIL - schema module missing.
 
 - [ ] **Step 3: Write the Postgres schema**
 
@@ -678,7 +678,7 @@ Expected: FAIL — schema module missing.
 import { pgTable, uuid, text, jsonb, integer, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import type { Brief, ResearchPacket, ScriptContent, ReviewScores, SceneContent, PromptPack, Character, Location } from "@slate/shared";
 
-// No local `users` table (ADR-023) — Clerk owns identity; `owner_id` stores Clerk's `user_...` id.
+// No local `users` table (ADR-023) - Clerk owns identity; `owner_id` stores Clerk's `user_...` id.
 export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
   ownerId: text("owner_id").notNull().index(), // Clerk user id (ADR-023)
@@ -731,7 +731,7 @@ export const scenes = pgTable("scenes", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [uniqueIndex("scenes_storyboard_order_version").on(t.storyboardId, t.order, t.version)]);
 ```
-(Scene edits and prompt regenerations create **new version rows** — spec §12.9. The latest version per `(storyboard_id, order)` is the current scene.)
+(Scene edits and prompt regenerations create **new version rows** - spec §12.9. The latest version per `(storyboard_id, order)` is the current scene.)
 
 `packages/db/src/client.ts`:
 ```ts
@@ -867,7 +867,7 @@ describe("NvidiaProvider", () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `pnpm --filter ai test`
-Expected: FAIL — modules not found.
+Expected: FAIL - modules not found.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -1001,7 +1001,7 @@ git commit -m "feat(ai): provider interface with nvidia and fake implementations
 
 ---
 
-### Task 6: Core agents — planning, script, reviewer (`packages/ai` agents)
+### Task 6: Core agents - planning, script, reviewer (`packages/ai` agents)
 
 **Files:**
 - Create: `packages/ai/src/agents/planning.ts`, `packages/ai/src/agents/script.ts`, `packages/ai/src/agents/reviewer.ts`
@@ -1040,7 +1040,7 @@ describe("planningAgent", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter ai test`
-Expected: FAIL — module not found.
+Expected: FAIL - module not found.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -1108,7 +1108,7 @@ export async function reviewerAgent(provider: Provider, script: ScriptContent) {
 }
 ```
 
-Update `packages/ai/src/index.ts` — add:
+Update `packages/ai/src/index.ts` - add:
 ```ts
 export * from "./agents/planning";
 export * from "./agents/script";
@@ -1202,7 +1202,7 @@ describe("consistency agents", () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `pnpm --filter ai test`
-Expected: FAIL — modules not found.
+Expected: FAIL - modules not found.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -1253,7 +1253,7 @@ export async function environmentAgent(provider: Provider, brief: Brief, script:
 }
 ```
 
-Update `packages/ai/src/index.ts` — add:
+Update `packages/ai/src/index.ts` - add:
 ```ts
 export * from "./agents/research";
 export * from "./agents/consistency";
@@ -1283,8 +1283,8 @@ git commit -m "feat(ai): research and consistency (character/environment) agents
 **Interfaces:**
 - Consumes: `Provider`, shared schemas (Task 3).
 - Produces:
-  - `storyboardAgent(provider, script, characters, locations, feedback?): Promise<SceneContent[]>` (Cinematography folds into each scene's `cameraDirection` — spec §4)
-  - `editorAgent(provider, scenes): Promise<SceneContent[]>` — fills each scene's per-scene `transition` + `musicCue` fields only (spec §4, §12.8)
+  - `storyboardAgent(provider, script, characters, locations, feedback?): Promise<SceneContent[]>` (Cinematography folds into each scene's `cameraDirection` - spec §4)
+  - `editorAgent(provider, scenes): Promise<SceneContent[]>` - fills each scene's per-scene `transition` + `musicCue` fields only (spec §4, §12.8)
   - `promptAgent(provider, scene, characters, locations): Promise<PromptPack>`
 
 - [ ] **Step 1: Write the failing tests**
@@ -1350,7 +1350,7 @@ describe("promptAgent", () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `pnpm --filter ai test`
-Expected: FAIL — modules not found.
+Expected: FAIL - modules not found.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -1382,7 +1382,7 @@ import { system } from "./planning";
 export async function editorAgent(provider: Provider, scenes: SceneContent[]) {
   const res = await provider.complete({
     messages: [
-      system("You are the Editor Agent. For each scene, set the per-scene transition into the next shot and the music cue only — no cross-scene plan."),
+      system("You are the Editor Agent. For each scene, set the per-scene transition into the next shot and the music cue only - no cross-scene plan."),
       { role: "user", content: `Scenes: ${JSON.stringify(scenes)}` },
     ],
     schema: SceneContentSchema.array(),
@@ -1409,7 +1409,7 @@ export async function promptAgent(provider: Provider, scene: SceneContent, chara
 }
 ```
 
-Update `packages/ai/src/index.ts` — add:
+Update `packages/ai/src/index.ts` - add:
 ```ts
 export * from "./agents/storyboard";
 export * from "./agents/editor";
@@ -1430,7 +1430,7 @@ git commit -m "feat(ai): storyboard, editor, and per-scene prompt agents"
 
 ---
 
-### Task 9: LangGraph workflow — 3 gates to the production plan (`packages/ai` workflow)
+### Task 9: LangGraph workflow - 3 gates to the production plan (`packages/ai` workflow)
 
 **Files:**
 - Create: `packages/ai/src/workflow/state.ts`, `packages/ai/src/workflow/graph.ts`, `packages/ai/src/workflow/resume.ts`
@@ -1440,9 +1440,9 @@ git commit -m "feat(ai): storyboard, editor, and per-scene prompt agents"
 - Consumes: agents (Tasks 6–8), `Provider` (Task 5), `db` (Task 4), shared types.
 - Produces:
   - `type WorkflowState` (typed channels, below)
-  - `buildWorkflow(provider, deps: WorkflowDeps, checkpointer?): CompiledGraph` — `checkpointer` required for interrupt persistence
-  - `resumeWorkflow(graph, threadId, resume: { approved: boolean; feedback?: string } | string[]): Promise<Record<string, unknown>>` — returns the invoke result; detect a pending pause via `graph.getState(thread)` → `tasks[].interrupts` (langgraph 0.2.x, per the slice spike)
-  - Graph topology: `discovery → brief → research → research_gate [interrupt] → script → review → script_gate [interrupt] → consistency → storyboard → editor → prompt_gen → storyboard_gate [interrupt] → done` (Editor runs after the storyboard, feeding the prompt generator — spec §4)
+  - `buildWorkflow(provider, deps: WorkflowDeps, checkpointer?): CompiledGraph` - `checkpointer` required for interrupt persistence
+  - `resumeWorkflow(graph, threadId, resume: { approved: boolean; feedback?: string } | string[]): Promise<Record<string, unknown>>` - returns the invoke result; detect a pending pause via `graph.getState(thread)` → `tasks[].interrupts` (langgraph 0.2.x, per the slice spike)
+  - Graph topology: `discovery → brief → research → research_gate [interrupt] → script → review → script_gate [interrupt] → consistency → storyboard → editor → prompt_gen → storyboard_gate [interrupt] → done` (Editor runs after the storyboard, feeding the prompt generator - spec §4)
 
 - [ ] **Step 1: Write the failing workflow test**
 
@@ -1515,7 +1515,7 @@ describe("workflow to production plan", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter ai test`
-Expected: FAIL — `saveStoryboard` not in `WorkflowDeps`, state channels missing, graph edges unchanged.
+Expected: FAIL - `saveStoryboard` not in `WorkflowDeps`, state channels missing, graph edges unchanged.
 
 - [ ] **Step 3: Extend state and graph**
 
@@ -1688,14 +1688,14 @@ export async function resumeWorkflow(
 }
 ```
 
-Update `packages/ai/src/index.ts` — add:
+Update `packages/ai/src/index.ts` - add:
 ```ts
 export * from "./workflow/state";
 export * from "./workflow/graph";
 export * from "./workflow/resume";
 ```
 
-**interrupt wiring note:** `interrupt()` inside the gate nodes pauses the graph and persists state via the checkpointer; `resumeWorkflow` resumes with `Command(resume=...)`. The discovery interview pauses with `interrupt<string[]>` (answers), each gate with `interrupt<{ approved, feedback? }>`. The API/UI detect a pending pause from `graph.getState(thread)` → `tasks[].interrupts` (langgraph 0.2.x; the payload is NOT on the invoke result — verified by the slice spike) — that is what shows the approval bar.
+**interrupt wiring note:** `interrupt()` inside the gate nodes pauses the graph and persists state via the checkpointer; `resumeWorkflow` resumes with `Command(resume=...)`. The discovery interview pauses with `interrupt<string[]>` (answers), each gate with `interrupt<{ approved, feedback? }>`. The API/UI detect a pending pause from `graph.getState(thread)` → `tasks[].interrupts` (langgraph 0.2.x; the payload is NOT on the invoke result - verified by the slice spike) - that is what shows the approval bar.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
@@ -1711,7 +1711,7 @@ git commit -m "feat(ai): workflow with research, script, and storyboard gates to
 
 ---
 
-### Task 10: Fastify API — auth, projects, stages, storyboard, scenes, prompts, production plan (`apps/api`)
+### Task 10: Fastify API - auth, projects, stages, storyboard, scenes, prompts, production plan (`apps/api`)
 
 **Files:**
 - Create: `apps/api/package.json`, `apps/api/tsconfig.json`, `apps/api/vitest.config.ts`, `apps/api/src/app.ts`, `apps/api/src/index.ts`, `apps/api/src/provider.ts`, `apps/api/src/workflow.ts`, `apps/api/src/events.ts`, `apps/api/src/routes/projects.ts`, `apps/api/src/routes/storyboard.ts`, `apps/api/src/routes/scenes.ts`, `apps/api/src/routes/prompts.ts`, `apps/api/src/routes/stream.ts`
@@ -1720,28 +1720,28 @@ git commit -m "feat(ai): workflow with research, script, and storyboard gates to
 **Interfaces:**
 - Consumes: `@slate/shared`, `@slate/db`, `@slate/ai` (workflow + agents), `resumeWorkflow`.
 - Produces routes:
-  - `POST /api/v1/projects` — create from an idea → kicks off the workflow (thread_id = project id)
-  - `GET /api/v1/projects` — list
-  - `GET /api/v1/projects/:id` — project + stage statuses
-  - `POST /api/v1/projects/:id/messages` — answer discovery questions → resume with string[]
+  - `POST /api/v1/projects` - create from an idea → kicks off the workflow (thread_id = project id)
+  - `GET /api/v1/projects` - list
+  - `GET /api/v1/projects/:id` - project + stage statuses
+  - `POST /api/v1/projects/:id/messages` - answer discovery questions → resume with string[]
   - `POST /api/v1/projects/:id/stages/research/approve` → resume `{ approved, feedback? }`
   - `POST /api/v1/projects/:id/stages/research/regenerate` → resume reject (retry)
   - `POST /api/v1/projects/:id/stages/script/approve` + `regenerate`
   - `POST /api/v1/projects/:id/stages/storyboard/approve` + `regenerate`
 
-  **Approve vs regenerate — one mutation path (no double-fire):** each gate (research, script,
+  **Approve vs regenerate - one mutation path (no double-fire):** each gate (research, script,
   storyboard) owns its regeneration. `approve` resumes the thread with `{ approved: true }`;
   `regenerate` resumes the **SAME gate** with `{ approved: false, feedback }` (default feedback:
   `"regenerate"`), exactly like the reject loop in the Task 9 workflow test. Both routes call
-  `resumeWorkflow` on the persisted thread and nothing else — the graph node is the only place a new
+  `resumeWorkflow` on the persisted thread and nothing else - the graph node is the only place a new
   version (script or storyboard) is produced, so a rejected resume and a regenerate can never race
-  into two writes. A `regenerate` (or `approve`) while the graph is still mid-run — not paused at
-  that gate — returns `409 CONFLICT` (matching the slice plan's note and api-design.md). This is the
+  into two writes. A `regenerate` (or `approve`) while the graph is still mid-run - not paused at
+  that gate - returns `409 CONFLICT` (matching the slice plan's note and api-design.md). This is the
   same model the vertical-slice plan documents for its single script gate.
 
   **Scope:** the "one mutation path" guarantee covers **stage-gate** regeneration only. Per-scene
   `prompts/regenerate` and user-edited `PUT .../versions` rows are separate direct-DB writes (new
-  scene/script version) that do **not** go through the workflow gate — they can't double-fire with a
+  scene/script version) that do **not** go through the workflow gate - they can't double-fire with a
   gate resume, so the guarantee intentionally doesn't apply to them.
   - `GET /api/v1/projects/:id/storyboard` → `{ storyboard: { version, status, scenes } }`
   - `PUT /api/v1/projects/:id/scenes/:sceneId` → `{ content, title }` → new version row
@@ -1751,7 +1751,7 @@ git commit -m "feat(ai): workflow with research, script, and storyboard gates to
   - `GET /api/v1/projects/:id/production-plan` → consolidated view
   - `GET /api/v1/projects/:id/stream` → SSE stage progress (spec §2, api-design.md §SSE; owner-scoped)
   - **All `/api/v1` routes are session-required (Task 2 `requireUser`) and owner-scoped via
-    `getOwnedProject(userId, id)` — cross-user access returns `404` (ADR-023).**
+    `getOwnedProject(userId, id)` - cross-user access returns `404` (ADR-023).**
 
 - [x] **Step 1: Write the failing integration tests**
 
@@ -1850,7 +1850,7 @@ describe("production plan API", () => {
   it("rejects storyboard with feedback and regenerates", async () => {
     const withRegen = [...scriptedHappyPath,
       { content: '[{"title":"S1-short","narration":"n","visualDescription":"v","cameraDirection":"c","durationSeconds":4,"transition":"CUT","musicCue":"m"}]' },
-      { content: '[{"title":"S1","narration":"n","visualDescription":"v","cameraDirection":"c","durationSeconds":8,"transition":"DISSOLVE","musicCue":"strings swell"}]' }, // editor — per-scene fields only (spec §12.8)
+      { content: '[{"title":"S1","narration":"n","visualDescription":"v","cameraDirection":"c","durationSeconds":8,"transition":"DISSOLVE","musicCue":"strings swell"}]' }, // editor - per-scene fields only (spec §12.8)
       { content: '{"imagePrompt":"i","videoPrompt":"v","narrationPrompt":"n","musicPrompt":"m","sfxPrompt":"s"}' },
     ];
     const app = buildApp({ provider: new FakeProvider(withRegen), checkpointer, verifyToken: fakeVerify({ "tok-user_a": "user_a", "tok-user_b": "user_b" }) });
@@ -1884,7 +1884,7 @@ describe("production plan API", () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `pnpm --filter api test`
-Expected: FAIL — app module missing, routes 404.
+Expected: FAIL - app module missing, routes 404.
 
 - [x] **Step 3: Write the app, provider, workflow deps, and routes**
 
@@ -1900,7 +1900,7 @@ export function createProvider(): Provider {
 }
 ```
 
-`apps/api/src/workflow.ts` — API-side deps backed by the DB:
+`apps/api/src/workflow.ts` - API-side deps backed by the DB:
 ```ts
 import { randomUUID } from "node:crypto";
 import { db, projects, scripts, storyboards, scenes } from "@slate/db";
@@ -1962,11 +1962,11 @@ import { desc, sql } from "drizzle-orm";
 import { db, projects, scripts, storyboards, scenes } from "@slate/db";
 import { buildApiWorkflow } from "../workflow";
 import { resumeWorkflow } from "@slate/ai";
-import { getOwnedProject } from "../hooks"; // Task 2 — owner-scoped 404
+import { getOwnedProject } from "../hooks"; // Task 2 - owner-scoped 404
 import type { AppDeps } from "../app";
 
 export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
-  // requireUser (Task 2) already ran as a preHandler on /api/v1 — req.userId is set.
+  // requireUser (Task 2) already ran as a preHandler on /api/v1 - req.userId is set.
   app.post("/api/v1/projects", async (req, reply) => {
     const body = (req.body ?? {}) as { idea?: string };
     if (!body.idea?.trim()) return reply.code(400).send({ error: { code: "VALIDATION_ERROR", message: "idea required", details: {} } });
@@ -1979,13 +1979,13 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
   });
 
   // Stage ALWAYS comes from the checkpoint, never the projects.stage column (saveProject
-  // only patches it lazily during discovery) — api-design.md "exact contract". Same trap the
+  // only patches it lazily during discovery) - api-design.md "exact contract". Same trap the
   // slice hit in Task 8; the column is stale the moment the workflow advances past discovery.
   const checkpointStage = async (graph: ReturnType<typeof buildApiWorkflow>, id: string) => {
     const snapshot = await graph.getState({ configurable: { thread_id: id } });
     return snapshot.values.stage as string;
   };
-  // Stage payload returned by approve/regenerate (and GET .../stages/:stage) — api-design.md.
+  // Stage payload returned by approve/regenerate (and GET .../stages/:stage) - api-design.md.
   const stageView = async (graph: ReturnType<typeof buildApiWorkflow>, id: string, key: string) => {
     const snapshot = await graph.getState({ configurable: { thread_id: id } });
     const pending = (snapshot.tasks ?? [])
@@ -1994,7 +1994,7 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
     return {
       key,
       status: snapshot.values.stage === "done" ? "approved" : pending.length ? "awaiting_review" : "idle",
-      version: 1, // latest script/storyboard version — read from the versioned tables in the real impl
+      version: 1, // latest script/storyboard version - read from the versioned tables in the real impl
       updatedAt: new Date().toISOString(),
       gate: pending.length ? { value: pending[0] } : null,
     };
@@ -2002,7 +2002,7 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
 
   app.get("/api/v1/projects", async (req) => {
     const rows = await db.select().from(projects).where(sql`owner_id = ${req.userId}`).orderBy(desc(projects.updatedAt));
-    // checkpoint-derived stage per project (N+1 getState is fine at this scale — see the slice fix)
+    // checkpoint-derived stage per project (N+1 getState is fine at this scale - see the slice fix)
     const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
     const projectRows = await Promise.all(rows.map(async (row) => ({ ...row, stage: await checkpointStage(graph, row.id) })));
     return { projects: projectRows }; // only my projects
@@ -2027,7 +2027,7 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
 
   const stageApprove = async (stage: "research" | "script" | "storyboard") => {
     const gateValue = `${stage}_review`; // matches the interrupt() payloads in Task 9
-    // 409 unless THIS gate is the one paused — getState().tasks[].interrupts is the
+    // 409 unless THIS gate is the one paused - getState().tasks[].interrupts is the
     // reliable check (slice spike); resuming while a different gate is paused would
     // silently apply this gate's decision to the wrong stage.
     const assertGate = async (graph: ReturnType<typeof buildApiWorkflow>, id: string, reply: FastifyReply) => {
@@ -2089,7 +2089,7 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
 import type { FastifyInstance } from "fastify";
 import { desc, sql } from "drizzle-orm";
 import { db, storyboards, scenes } from "@slate/db";
-import { getOwnedProject } from "../hooks"; // Task 2 — owner-scoped 404
+import { getOwnedProject } from "../hooks"; // Task 2 - owner-scoped 404
 import type { AppDeps } from "../app";
 
 export async function storyboardRoutes(app: FastifyInstance, _deps: AppDeps) {
@@ -2112,12 +2112,12 @@ export async function storyboardRoutes(app: FastifyInstance, _deps: AppDeps) {
 import type { FastifyInstance } from "fastify";
 import { desc, eq, sql } from "drizzle-orm";
 import { db, scenes, storyboards } from "@slate/db";
-import { getOwnedProject } from "../hooks"; // Task 2 — owner-scoped 404
+import { getOwnedProject } from "../hooks"; // Task 2 - owner-scoped 404
 import type { AppDeps } from "../app";
 
 export async function sceneRoutes(app: FastifyInstance, _deps: AppDeps) {
   // Edit a scene → insert a new version row (spec §12.9). body: { title, content }
-  // Owner gate: the project must belong to req.userId (ADR-023) — else 404.
+  // Owner gate: the project must belong to req.userId (ADR-023) - else 404.
   app.put("/api/v1/projects/:id/scenes/:sceneId", async (req, reply) => {
     const { id, sceneId } = req.params as { id: string; sceneId: string };
     await getOwnedProject(req.userId, id); // 404 if not mine
@@ -2169,7 +2169,7 @@ export async function sceneRoutes(app: FastifyInstance, _deps: AppDeps) {
 import type { FastifyInstance } from "fastify";
 import { desc, eq, sql } from "drizzle-orm";
 import { db, projects, scenes } from "@slate/db";
-import { getOwnedProject } from "../hooks"; // Task 2 — owner-scoped 404
+import { getOwnedProject } from "../hooks"; // Task 2 - owner-scoped 404
 import { promptAgent } from "@slate/ai";
 import type { AppDeps } from "../app";
 
@@ -2227,7 +2227,7 @@ import type { TokenVerifier } from "./auth"; // Task 2
 export interface AppDeps {
   provider: Provider;
   checkpointer: unknown;
-  verifyToken: TokenVerifier; // Task 2 — Clerk JWT verification (injectable; fake in tests)
+  verifyToken: TokenVerifier; // Task 2 - Clerk JWT verification (injectable; fake in tests)
 }
 
 export function buildApp(deps: AppDeps): FastifyInstance {
@@ -2246,7 +2246,7 @@ import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import { runMigrations } from "@slate/db";
 import { buildApp } from "./app";
 import { createProvider } from "./provider";
-import { makeVerifyToken } from "./auth"; // Task 2 — Clerk JWT verification
+import { makeVerifyToken } from "./auth"; // Task 2 - Clerk JWT verification
 
 await runMigrations();
 const checkpointer = await PostgresSaver.fromConnString(process.env.DATABASE_URL!);
@@ -2279,7 +2279,7 @@ await app.listen({ port: 4000, host: "0.0.0.0" });
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pnpm --filter api test`
-Expected: PASS. Then smoke: `docker compose up -d && pnpm --filter db migrate && pnpm --filter api dev`; create a project via curl with `FAKE_PROVIDER=1` (FakeProvider queue injected in tests only — for the smoke, set `FAKE_PROVIDER=1` and drive stages by hand or accept the error path).
+Expected: PASS. Then smoke: `docker compose up -d && pnpm --filter db migrate && pnpm --filter api dev`; create a project via curl with `FAKE_PROVIDER=1` (FakeProvider queue injected in tests only - for the smoke, set `FAKE_PROVIDER=1` and drive stages by hand or accept the error path).
 
 - [ ] **Step 5: Commit**
 
@@ -2290,7 +2290,7 @@ git commit -m "feat(api): projects, stage gates, storyboard, scene edit/reorder,
 
 ---
 
-### Task 11: Next.js UI — auth pages + Cutting Room (`apps/web`)
+### Task 11: Next.js UI - auth pages + Cutting Room (`apps/web`)
 
 **Files:**
 - Create: `apps/web/package.json`, `apps/web/tsconfig.json`, `apps/web/next.config.mjs`, `apps/web/app/layout.tsx`, `apps/web/app/globals.css`, `apps/web/app/page.tsx`, `apps/web/app/projects/[id]/page.tsx`, `apps/web/app/components/stage-stepper.tsx`, `apps/web/app/components/scene-card.tsx`, `apps/web/app/components/scene-editor.tsx`, `apps/web/app/components/prompts-panel.tsx`, `apps/web/app/components/production-plan.tsx`
@@ -2300,11 +2300,11 @@ git commit -m "feat(api): projects, stage gates, storyboard, scene edit/reorder,
 **Interfaces:**
 - Consumes: API at `NEXT_PUBLIC_API_URL` (Task 10 routes); Clerk session (Task 2).
 
-**Visual source of truth:** `prototypes/cutting-room-full.html` (approved as-is, ADR-010) shows every screen, stage, state, and micro-interaction this task builds — port it, do not redesign. Walk it before starting: dashboard hero + slate grid, the 8-stage timecode stepper with REC dot and corner brackets, discovery conversation, brief cards, research packet, script editor with score bars, storyboard scene cards (`SC 01 · 00:42 · CUT`) with drag-to-reorder, scene editor with the Advanced toggle + prompt tabs, and the production-plan view with crew sheet. Each component below maps 1:1 to a prototype block; the states (loading skeleton, streaming caret, retake error, empty) are the same ones Task 13's E2E must not trip over.
+**Visual source of truth:** `prototypes/cutting-room-full.html` (approved as-is, ADR-010) shows every screen, stage, state, and micro-interaction this task builds - port it, do not redesign. Walk it before starting: dashboard hero + slate grid, the 8-stage timecode stepper with REC dot and corner brackets, discovery conversation, brief cards, research packet, script editor with score bars, storyboard scene cards (`SC 01 · 00:42 · CUT`) with drag-to-reorder, scene editor with the Advanced toggle + prompt tabs, and the production-plan view with crew sheet. Each component below maps 1:1 to a prototype block; the states (loading skeleton, streaming caret, retake error, empty) are the same ones Task 13's E2E must not trip over.
 
 - [ ] **Step 1: Extend the stepper**
 
-`apps/web/app/components/stage-stepper.tsx` — stages `Idea → Brief → Research → Script → Storyboard → Scenes → Prompts → Ready`, timecode + REC dot per the token sheet:
+`apps/web/app/components/stage-stepper.tsx` - stages `Idea → Brief → Research → Script → Storyboard → Scenes → Prompts → Ready`, timecode + REC dot per the token sheet:
 ```tsx
 const STAGES = ["idea", "brief", "research", "script", "storyboard", "scenes", "prompts", "ready"] as const;
 ```
@@ -2312,7 +2312,7 @@ Active stage = the one whose index matches the project stage (map `done` → `re
 
 - [ ] **Step 2: Build the scene card + drag-to-reorder**
 
-`apps/web/app/components/scene-card.tsx` — a slate-line card (`SC 01 · 04.2s · CUT`) showing title, duration, transition, status chip; `draggable`, with `onDragStart`/`onDragOver`/`onDrop` handlers that call `onReorder(fromIndex, toIndex)`. **Must render `data-testid="scene-card-{order}"`** (the E2E drag assertion in Task 13 depends on it):
+`apps/web/app/components/scene-card.tsx` - a slate-line card (`SC 01 · 04.2s · CUT`) showing title, duration, transition, status chip; `draggable`, with `onDragStart`/`onDragOver`/`onDrop` handlers that call `onReorder(fromIndex, toIndex)`. **Must render `data-testid="scene-card-{order}"`** (the E2E drag assertion in Task 13 depends on it):
 ```tsx
 export function SceneCard({ order, title, durationSeconds, transition, status, onReorder, index }: {
   order: number; title: string; durationSeconds: number; transition: string; status: string;
@@ -2334,11 +2334,11 @@ export function SceneCard({ order, title, durationSeconds, transition, status, o
 }
 ```
 
-`apps/web/app/components/scene-editor.tsx` — per-scene fields (narration, visual description, camera direction, duration, transition, music cue) + a toggle:
+`apps/web/app/components/scene-editor.tsx` - per-scene fields (narration, visual description, camera direction, duration, transition, music cue) + a toggle:
 ```tsx
 const [showAdvanced, setShowAdvanced] = useState(false);
 // default view: narration + visual + camera + duration + transition + music cue (spec §7)
-// showAdvanced: renders the prompt pack tabs via PromptsPanel — spec §12.10
+// showAdvanced: renders the prompt pack tabs via PromptsPanel - spec §12.10
 type SceneEditorProps = {
   scene: SceneRow;
   onSave: (patch: { title?: string; content?: SceneContent }) => void;
@@ -2346,23 +2346,23 @@ type SceneEditorProps = {
   onSavePrompts: (pack: PromptPack) => void;
 };
 ```
-The "Advanced" toggle reveals the prompt pack tabs (image/video/narration/music/SFX) — spec §12.10. Regenerate calls `POST .../scenes/:id/prompts/regenerate`; save calls `PUT .../scenes/:id/prompts`.
+The "Advanced" toggle reveals the prompt pack tabs (image/video/narration/music/SFX) - spec §12.10. Regenerate calls `POST .../scenes/:id/prompts/regenerate`; save calls `PUT .../scenes/:id/prompts`.
 
 - [ ] **Step 3: Build the production-plan view**
 
-`apps/web/app/components/production-plan.tsx` — reads `GET .../production-plan`; renders script (read-only), ordered scenes with their per-scene transitions/music cues and prompt packs, characters, locations, and an "Approve plan" action that is visible only when a storyboard gate is pending.
+`apps/web/app/components/production-plan.tsx` - reads `GET .../production-plan`; renders script (read-only), ordered scenes with their per-scene transitions/music cues and prompt packs, characters, locations, and an "Approve plan" action that is visible only when a storyboard gate is pending.
 
 - [ ] **Step 4: Session-guarded shell (ADR-023)**
 
-Auth UI is Clerk-hosted from Task 2: `apps/web/app/sign-in/[[...sign-in]]/page.tsx` + `sign-up/[[...sign-up]]/page.tsx` render Clerk's `<SignIn />` / `<SignUp />` components; `apps/web/middleware.ts` protects `/` and `/projects(.*)`. No custom forms to build — verify the catch-all routes render the token-sheet-styled paper panel.
+Auth UI is Clerk-hosted from Task 2: `apps/web/app/sign-in/[[...sign-in]]/page.tsx` + `sign-up/[[...sign-up]]/page.tsx` render Clerk's `<SignIn />` / `<SignUp />` components; `apps/web/middleware.ts` protects `/` and `/projects(.*)`. No custom forms to build - verify the catch-all routes render the token-sheet-styled paper panel.
 
-`apps/web/app/page.tsx` (dashboard) and `apps/web/app/projects/[id]/page.tsx` (workspace) — **session-guarded**: use `@clerk/nextjs` `auth()` (server) / `useUser()` (client) from Task 2; while loading, render the agent-running skeleton; unauthenticated → redirect to `/sign-in`. The dashboard fetches `GET /api/v1/projects` (already owner-scoped server-side — only my projects).
+`apps/web/app/page.tsx` (dashboard) and `apps/web/app/projects/[id]/page.tsx` (workspace) - **session-guarded**: use `@clerk/nextjs` `auth()` (server) / `useUser()` (client) from Task 2; while loading, render the agent-running skeleton; unauthenticated → redirect to `/sign-in`. The dashboard fetches `GET /api/v1/projects` (already owner-scoped server-side - only my projects).
 
 - [ ] **Step 5: Wire the dashboard + workspace**
 
-`apps/web/app/page.tsx` — idea input hero ("Describe your video idea" label + "Begin production" button → `POST /api/v1/projects` → redirect to `/projects/[id]`); project slate grid from `GET /api/v1/projects`.
+`apps/web/app/page.tsx` - idea input hero ("Describe your video idea" label + "Begin production" button → `POST /api/v1/projects` → redirect to `/projects/[id]`); project slate grid from `GET /api/v1/projects`.
 
-`apps/web/app/projects/[id]/page.tsx` — stepper at top; below it, render by stage: brief review card, research packet, script (TipTap read-only + approve bar), and after the script gate is approved the storyboard section: scene list (drag-to-reorder → `PUT .../storyboard/order`, optimistic UI + refetch on `409`), scene editor (tap a scene to expand), prompt packs behind the Advanced toggle, and the approve bar with `POST .../stages/storyboard/approve`. When `productionPlanStatus === "ready"`, render `<ProductionPlan />`.
+`apps/web/app/projects/[id]/page.tsx` - stepper at top; below it, render by stage: brief review card, research packet, script (TipTap read-only + approve bar), and after the script gate is approved the storyboard section: scene list (drag-to-reorder → `PUT .../storyboard/order`, optimistic UI + refetch on `409`), scene editor (tap a scene to expand), prompt packs behind the Advanced toggle, and the approve bar with `POST .../stages/storyboard/approve`. When `productionPlanStatus === "ready"`, render `<ProductionPlan />`.
 
 Apply the token sheet in `globals.css`:
 ```css
@@ -2387,7 +2387,7 @@ git commit -m "feat(web): auth pages, session-guarded cutting room dashboard, st
 
 ---
 
-### Task 12: Test hardening — auth isolation, storyboard gates, reorder atomicity, scene versions (`packages/ai` + `apps/api`)
+### Task 12: Test hardening - auth isolation, storyboard gates, reorder atomicity, scene versions (`packages/ai` + `apps/api`)
 
 **Files:**
 - Create: `packages/ai/src/workflow/production-plan.test.ts`
@@ -2437,10 +2437,10 @@ describe("storyboard gate reject loop + persistence", () => {
     const scripted = [
       ...base,
       { content: '[{"title":"S1","narration":"n","visualDescription":"v","cameraDirection":"c","durationSeconds":30,"transition":"CUT","musicCue":"m"}]' }, // too long
-      { content: '[{"title":"S1","narration":"n","visualDescription":"v","cameraDirection":"c","durationSeconds":8,"transition":"DISSOLVE","musicCue":"strings swell"}]' }, // editor — per-scene fields only (spec §12.8)
+      { content: '[{"title":"S1","narration":"n","visualDescription":"v","cameraDirection":"c","durationSeconds":8,"transition":"DISSOLVE","musicCue":"strings swell"}]' }, // editor - per-scene fields only (spec §12.8)
       { content: '{"imagePrompt":"i","videoPrompt":"v","narrationPrompt":"n","musicPrompt":"m","sfxPrompt":"s"}' },
       { content: '[{"title":"S1","narration":"n","visualDescription":"v","cameraDirection":"c","durationSeconds":8,"transition":"CUT","musicCue":"m"}]' }, // fixed
-      { content: '[{"title":"S1","narration":"n","visualDescription":"v","cameraDirection":"c","durationSeconds":8,"transition":"DISSOLVE","musicCue":"strings swell"}]' }, // editor — per-scene fields only (spec §12.8)
+      { content: '[{"title":"S1","narration":"n","visualDescription":"v","cameraDirection":"c","durationSeconds":8,"transition":"DISSOLVE","musicCue":"strings swell"}]' }, // editor - per-scene fields only (spec §12.8)
       { content: '{"imagePrompt":"i","videoPrompt":"v","narrationPrompt":"n","musicPrompt":"m","sfxPrompt":"s"}' },
     ];
     const graph = buildWorkflow(new FakeProvider(scripted), fakeDeps(), checkpointer);
@@ -2458,7 +2458,7 @@ describe("storyboard gate reject loop + persistence", () => {
   it("survives a graph rebuild between the script and storyboard gates", async () => {
     const scripted = [...base,
       { content: '[{"title":"S1","narration":"n","visualDescription":"v","cameraDirection":"c","durationSeconds":8,"transition":"CUT","musicCue":"m"}]' },
-      { content: '[{"title":"S1","narration":"n","visualDescription":"v","cameraDirection":"c","durationSeconds":8,"transition":"DISSOLVE","musicCue":"strings swell"}]' }, // editor — per-scene fields only (spec §12.8)
+      { content: '[{"title":"S1","narration":"n","visualDescription":"v","cameraDirection":"c","durationSeconds":8,"transition":"DISSOLVE","musicCue":"strings swell"}]' }, // editor - per-scene fields only (spec §12.8)
       { content: '{"imagePrompt":"i","videoPrompt":"v","narrationPrompt":"n","musicPrompt":"m","sfxPrompt":"s"}' },
     ];
     // g1 runs through the research + script gates (consumes items 0-3: brief, research, script, review)
@@ -2479,12 +2479,12 @@ describe("storyboard gate reject loop + persistence", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter ai test`
-Expected: FAIL — file missing (or graph edge errors if topology is wrong).
+Expected: FAIL - file missing (or graph edge errors if topology is wrong).
 
 - [ ] **Step 3: Extend API tests for auth isolation + reorder conflicts + version rows**
 
 Append to `apps/api/src/app.test.ts`:
-- **Auth isolation (ADR-023):** user A creates a project and drives it to a storyboard; user B (separate bearer token via the Task 2 fake verifier) gets **`404` on every owner-scoped route** — `GET /projects/:id`, `GET /projects/:id/storyboard`, `PUT /projects/:id/scenes/:sceneId`, `PUT /projects/:id/storyboard/order`, `POST /projects/:id/scenes/:sceneId/prompts/regenerate`, `POST /projects/:id/stages/storyboard/approve`, `GET /projects/:id/production-plan` — and user B's `GET /projects` list does **not** include user A's project.
+- **Auth isolation (ADR-023):** user A creates a project and drives it to a storyboard; user B (separate bearer token via the Task 2 fake verifier) gets **`404` on every owner-scoped route** - `GET /projects/:id`, `GET /projects/:id/storyboard`, `PUT /projects/:id/scenes/:sceneId`, `PUT /projects/:id/storyboard/order`, `POST /projects/:id/scenes/:sceneId/prompts/regenerate`, `POST /projects/:id/stages/storyboard/approve`, `GET /projects/:id/production-plan` - and user B's `GET /projects` list does **not** include user A's project.
 - **Reorder 409:** drive to a storyboard, then send `PUT .../order` with a `scene_ids` list that doesn't match the server set → `409 CONFLICT`.
 - **Scene version rows:** drive to a storyboard, `PUT .../scenes/:id { title: "v2" }`, then assert `GET .../storyboard` returns the latest title, and a direct DB count shows both versions for that `(storyboard_id, order)`.
 - **Prompt regenerate:** drive to a storyboard, `POST .../scenes/:id/prompts/regenerate` (script an extra prompt call in FakeProvider), assert a new version row carries the new pack.
@@ -2514,7 +2514,7 @@ git commit -m "test(ai,api): auth isolation 404s, storyboard gate loops, reorder
 
 - [ ] **Step 1: Extend the E2E FakeProvider queue + write the spec**
 
-`apps/api/src/provider.ts` — when `FAKE_PROVIDER=1`, use the full 10-call queue for E2E:
+`apps/api/src/provider.ts` - when `FAKE_PROVIDER=1`, use the full 10-call queue for E2E:
 ```ts
 if (process.env.FAKE_PROVIDER === "1") {
   return new FakeProvider([
@@ -2532,7 +2532,7 @@ if (process.env.FAKE_PROVIDER === "1") {
 }
 ```
 
-`tests/e2e/production-plan.spec.ts` — **signs up first, then runs the flow**:
+`tests/e2e/production-plan.spec.ts` - **signs up first, then runs the flow**:
 ```ts
 import { test, expect } from "@playwright/test";
 
@@ -2571,7 +2571,7 @@ test("sign up → idea → approved production plan", async ({ page }) => {
 });
 ```
 
-`tests/e2e/auth.spec.ts` — **multi-user isolation (ADR-023)**:
+`tests/e2e/auth.spec.ts` - **multi-user isolation (ADR-023)**:
 ```ts
 import { test, expect } from "@playwright/test";
 
@@ -2622,7 +2622,7 @@ export default defineConfig({
 - [ ] **Step 2: Run E2E**
 
 Run: `pnpm test:e2e`
-Expected: PASS — sign up → idea → approved production plan, and `auth.spec.ts` proves a second account can't see/open the first account's project. No console errors.
+Expected: PASS - sign up → idea → approved production plan, and `auth.spec.ts` proves a second account can't see/open the first account's project. No console errors.
 
 - [ ] **Step 3: Full gate + demo check**
 

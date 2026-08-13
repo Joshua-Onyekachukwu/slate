@@ -17,7 +17,7 @@ export function AssetTray({ stage, showToast }: { stage: number; showToast: (msg
       {assets.length === 0 ? (
         <div className="cov-item">
           <p>
-            Generated assets appear here — images, video, voice, music, SFX — and flow forward into
+            Generated assets appear here - images, video, voice, music, SFX - and flow forward into
             later stages automatically.
           </p>
         </div>
@@ -38,7 +38,7 @@ export function AssetTray({ stage, showToast }: { stage: number; showToast: (msg
                 </button>
                 <button
                   className="mini-btn"
-                  onClick={() => showToast(`${a.name} approved — added to master`)}
+                  onClick={() => showToast(`${a.name} approved - added to master`)}
                   aria-label={`Approve ${a.name}`}
                 >
                   ✓

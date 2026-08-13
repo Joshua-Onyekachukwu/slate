@@ -21,7 +21,7 @@ interface StoryboardView {
 }
 
 // Latest storyboard + its scene rows for a project (version rows model: the
-// latest (storyboard_id, order) is the current scene — spec §12.9).
+// latest (storyboard_id, order) is the current scene - spec §12.9).
 export async function loadStoryboard(id: string): Promise<StoryboardView | null> {
   const [sb] = await db.select().from(storyboards)
     .where(eq(storyboards.projectId, id)).orderBy(desc(storyboards.version)).limit(1);
@@ -56,7 +56,7 @@ export async function storyboardRoutes(app: FastifyInstance, deps: AppDeps) {
 
   // Atomic reorder: validate scene_ids is a permutation of the current scenes,
   // then insert a NEW storyboard version + scene rows (content + prompt pack
-  // carried into the new rows). Direct-DB write, outside the gate path — the
+  // carried into the new rows). Direct-DB write, outside the gate path - the
   // plan's Task 12 reorder-atomicity requirement.
   app.put("/api/v1/projects/:id/storyboard/order", async (req, reply) => {
     const { id } = req.params as { id: string };
@@ -77,7 +77,7 @@ export async function storyboardRoutes(app: FastifyInstance, deps: AppDeps) {
     if (!validPermutation) {
       // Plan Task 12: a well-formed but MISMATCHED scene_ids set means the
       // client is reordering against a STALE storyboard version (its ids are
-      // from an old version-row set) — a conflict, not malformed input. 409
+      // from an old version-row set) - a conflict, not malformed input. 409
       // is what the UI refetches on (plan Task 11: "optimistic UI + refetch
       // on 409"). Structural validation (not an array / not strings) stays
       // 400 above.
@@ -88,7 +88,7 @@ export async function storyboardRoutes(app: FastifyInstance, deps: AppDeps) {
     const version = sb.version + 1;
     const newSbId = randomUUID();
     // Atomic reorder (plan Task 12): drizzle's async db.transaction() with the
-    // node-postgres driver — auto-rollback on throw, nested-transaction-safe.
+    // node-postgres driver - auto-rollback on throw, nested-transaction-safe.
     await db.transaction(async (tx) => {
       await tx.insert(storyboards).values({ id: newSbId, projectId: id, version });
       await tx.insert(scenes).values(

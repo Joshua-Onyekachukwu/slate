@@ -55,7 +55,7 @@ describe("api", () => {
     const body = res.json();
     expect(body.project.id).toBeTruthy();
     // project.stage comes from the workflow CHECKPOINT (research at the gate),
-    // NOT the projects column — per the api-design contract.
+    // NOT the projects column - per the api-design contract.
     expect(body.project.stage).toBe("research");
 
     // Research stage view: awaiting review with the packet.
@@ -72,6 +72,36 @@ describe("api", () => {
     expect(approved.statusCode).toBe(200);
     expect(approved.json().project.stage).toBe("script_review");
     expect(approved.json().stage.status).toBe("approved");
+  });
+
+  it("composes the selected production mode into the project idea", async () => {
+    // Case-insensitive on the way in; canonical label on the way out. The
+    // create route runs the workflow to the research gate, so the fake queue
+    // needs BRIEF + RESEARCH (same contract as the create test above).
+    const app = buildApp({
+      provider: new FakeProvider([{ content: BRIEF }, { content: RESEARCH }]),
+      checkpointer,
+    });
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects",
+      payload: { idea: "why coffee changed the world", mode: "essay" },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().project.idea).toBe("Essay: why coffee changed the world");
+
+    // Unknown modes are ignored; the idea stays untouched.
+    const plain = buildApp({
+      provider: new FakeProvider([{ content: BRIEF }, { content: RESEARCH }]),
+      checkpointer,
+    });
+    const res2 = await plain.inject({
+      method: "POST",
+      url: "/api/v1/projects",
+      payload: { idea: "a short film", mode: "Reel" },
+    });
+    expect(res2.statusCode).toBe(201);
+    expect(res2.json().project.idea).toBe("a short film");
   });
 
   it("returns a single error shape on validation failure", async () => {
@@ -152,7 +182,7 @@ describe("api", () => {
     await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
     await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/script/approve`, payload: { approved: true } });
     await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/storyboard/approve`, payload: { approved: true } });
-    // Already done — no pending interrupt for the storyboard gate anymore.
+    // Already done - no pending interrupt for the storyboard gate anymore.
     const res = await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/storyboard/approve`, payload: { approved: true } });
     expect(res.statusCode).toBe(409);
     expect(res.json().error.code).toBe("CONFLICT");
@@ -228,7 +258,7 @@ describe("api", () => {
     expect(after.scenes[0].promptPack).not.toBeNull(); // pack carried into the new row
 
     // Not a permutation of the server set → 409 CONFLICT (plan Task 12: a
-    // mismatched scene_ids means the client is acting on a STALE version —
+    // mismatched scene_ids means the client is acting on a STALE version  - 
     // conflict, not malformed input; the UI refetches on 409).
     const bad = await app.inject({
       method: "PUT", url: `/api/v1/projects/${id}/storyboard/order`,
@@ -246,7 +276,7 @@ describe("api", () => {
     expect(malformed.json().error.code).toBe("VALIDATION_ERROR");
   });
 
-  it("reorders only while at the storyboard gate — 409 before it exists, 404 for missing project", async () => {
+  it("reorders only while at the storyboard gate - 409 before it exists, 404 for missing project", async () => {
     const app = buildApp({ provider: new FakeProvider([
       { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(),
     ]), checkpointer });
@@ -304,7 +334,7 @@ describe("api", () => {
     const editedRow = after.scenes.find((s: { order: number }) => s.order === target.order);
     expect(editedRow.content.narration).toBe("user edit: the bang was loud");
     expect(editedRow.content.durationSeconds).toBe(99);
-    // Other scenes untouched; packs carried EXCEPT the edited scene's — its
+    // Other scenes untouched; packs carried EXCEPT the edited scene's - its
     // content changed, so the pack is nulled ("Prompt pack queued." in the UI)
     // until the prompts/regenerate endpoint re-creates it.
     const otherRow = after.scenes.find((s: { order: number }) => s.order === other.order);
@@ -347,7 +377,7 @@ describe("api", () => {
     ]), checkpointer });
     const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
     const id = created.json().project.id as string;
-    // Still at the script gate — no storyboard yet.
+    // Still at the script gate - no storyboard yet.
     const early = await app.inject({
       method: "PUT", url: `/api/v1/projects/${id}/scenes/nope`,
       payload: { content: { title: "x" } },
@@ -553,7 +583,7 @@ describe("api", () => {
     const created = await app.inject({ method: "POST", url: "/api/v1/projects", payload: { idea: "doc" } });
     const id = created.json().project.id as string;
     await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
-    // Already past the research gate — no pending interrupt anymore.
+    // Already past the research gate - no pending interrupt anymore.
     const res = await app.inject({ method: "POST", url: `/api/v1/projects/${id}/stages/research/approve`, payload: { approved: true } });
     expect(res.statusCode).toBe(409);
     expect(res.json().error.code).toBe("CONFLICT");
@@ -580,7 +610,7 @@ describe("api", () => {
     expect(madeUp.statusCode).toBe(404);
   });
 
-  // ============ Phase 3 Block 1 — per-scene media assets ============
+  // ============ Phase 3 Block 1 - per-scene media assets ============
   it("generates a scene asset (fake provider) and lists it back", async () => {
     const app = buildApp({ provider: new FakeProvider([
       { content: BRIEF }, { content: RESEARCH }, { content: SCRIPT }, { content: SCORES_HIGH }, ...STORY_PASS(2),
@@ -602,7 +632,7 @@ describe("api", () => {
     expect(asset.status).toBe("ready");
     expect(asset.url).toMatch(/^fake:\/\/image\/[0-9a-f]{12}\.png$/);
     expect(asset.provider).toBe("fake");
-    // Block 2 — the quality gate rides in meta.quality (1–5 + notes).
+    // Block 2 - the quality gate rides in meta.quality (1–5 + notes).
     expect(asset.meta.quality.score).toBeGreaterThanOrEqual(1);
     expect(asset.meta.quality.score).toBeLessThanOrEqual(5);
     expect(asset.meta.quality.notes.length).toBeGreaterThan(0);

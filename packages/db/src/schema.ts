@@ -2,9 +2,9 @@ import { pgTable, uuid, text, jsonb, integer, timestamp, index, uniqueIndex } fr
 import type { Brief, ResearchPacket, ScriptContent, ReviewScores, SceneContent, PromptPack, Character, Location } from "@slate/shared";
 
 // Phase 1+2 Postgres schema (Task 4, ADR-011/013/022/023).
-// No local `users` table (ADR-023) — Clerk owns identity; `owner_id` stores Clerk's
+// No local `users` table (ADR-023) - Clerk owns identity; `owner_id` stores Clerk's
 // `user_...` id and is REQUIRED (multi-user isolation from day one).
-// Storyboard model (spec §12.9): storyboards + scenes carry VERSION ROWS — a
+// Storyboard model (spec §12.9): storyboards + scenes carry VERSION ROWS - a
 // reorder, edit, or prompt regeneration inserts new version rows; the latest
 // version per (storyboard_id, order) is the current scene.
 export const projects = pgTable("projects", {
@@ -59,12 +59,30 @@ export const scenes = pgTable("scenes", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [uniqueIndex("scenes_storyboard_order_version").on(t.storyboardId, t.order, t.version)]);
 
-// Phase 3 Block 1 — per-scene generated media assets. One row per generation
+// Phase 3 Block 1 - per-scene generated media assets. One row per generation
 // attempt; status moves pending → generating → ready | failed, so a failed
 // attempt stays visible and retryable (the UI's regenerate path reads it).
-// Assets hang off the SCENE row they were generated for — when a storyboard
+// Assets hang off the SCENE row they were generated for - when a storyboard
 // version bump mints new scene ids, the old rows' assets persist but the
 // current scene's list starts fresh (same version-rows philosophy).
+// Phase 3 Block 4 - render/export attempts. One row per render "take": the
+// route inserts pending, runs the FFmpeg pipeline into
+// <rendersDir>/<projectId>/<renderId>/, then updates to ready with the served
+// URLs (or failed with the error). Same version-row philosophy as scenes.
+export const renders = pgTable("renders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").notNull().references(() => projects.id),
+  status: text("status").notNull().default("pending"), // RenderStatus
+  mp4Url: text("mp4_url"),
+  thumbnailUrl: text("thumbnail_url"),
+  manifestUrl: text("manifest_url"),
+  packageUrl: text("package_url"),
+  error: text("error"),
+  meta: jsonb("meta").notNull().$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("renders_project_id").on(t.projectId)]);
+
 export const assets = pgTable("assets", {
   id: uuid("id").primaryKey().defaultRandom(),
   sceneId: uuid("scene_id").notNull().references(() => scenes.id),

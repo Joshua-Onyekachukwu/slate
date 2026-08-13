@@ -24,7 +24,7 @@ export async function scriptRoutes(app: FastifyInstance, _deps: AppDeps) {
     }
     const row = await getOwnedProject(req.userId, id);
     if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
-    // The edited script row must exist and belong to this project — a made-up
+    // The edited script row must exist and belong to this project - a made-up
     // scriptId should 404, not silently create a version under it. Postgres uuid
     // PK: garbage scriptId would be a cast error → 500 (same fix as getOwnedProject).
     if (!UUID_RE.test(scriptId)) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "script not found");

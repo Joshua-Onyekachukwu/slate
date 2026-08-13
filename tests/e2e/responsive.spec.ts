@@ -15,7 +15,7 @@ const API = "http://localhost:4000";
 // content pushed beyond the right edge; innerWidth is the full viewport incl.
 // the scrollbar gutter, so a vertical scrollbar alone never trips this.
 // Polls instead of a one-shot evaluate: the dashboard hydrates the project grid
-// and the workspace refreshes via SSE, so the layout can change after goto — a
+// and the workspace refreshes via SSE, so the layout can change after goto - a
 // single measure could pass before the populated layout settles.
 async function expectNoHorizontalOverflow(page: Page) {
   await expect
@@ -30,11 +30,11 @@ test.describe("landing page viewports", () => {
   // must hold the same zero-overflow contract at every breakpoint, with the
   // hero prompt + pipeline visible.
   for (const vp of VIEWPORTS) {
-    test(`${vp.name} (${vp.width}px) — hero + pipeline, no overflow`, async ({ page }) => {
+    test(`${vp.name} (${vp.width}px) - hero + pipeline, no overflow`, async ({ page }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto("/");
       await expectNoHorizontalOverflow(page);
-      await expect(page.getByRole("link", { name: "SLATE" })).toBeVisible();
+      await expect(page.getByRole("link", { name: /^slate$/i })).toBeVisible();
       await expect(page.getByRole("heading", { name: /type an idea/i })).toBeVisible();
       await expect(page.getByLabel("Type your video idea")).toBeVisible();
       await expect(page.getByText(/the production pipeline/i)).toBeVisible();
@@ -46,11 +46,11 @@ test.describe("dashboard viewports", () => {
   // The studio lives at /studio (protected when auth is configured; the main
   // E2E config boots without Clerk keys, so it renders directly).
   for (const vp of VIEWPORTS) {
-    test(`${vp.name} (${vp.width}px) — no overflow, key elements visible`, async ({ page }) => {
+    test(`${vp.name} (${vp.width}px) - no overflow, key elements visible`, async ({ page }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto("/studio");
       await expectNoHorizontalOverflow(page);
-      await expect(page.getByRole("link", { name: "SLATE" })).toBeVisible();
+      await expect(page.getByRole("link", { name: /^slate$/i })).toBeVisible();
       await expect(page.getByRole("heading", { name: /what do you want to make/i })).toBeVisible();
       await expect(page.getByLabel("Describe your video idea")).toBeVisible();
       await expect(page.getByRole("button", { name: /begin production/i })).toBeVisible();
@@ -65,7 +65,7 @@ test.describe("workspace viewports", () => {
   //   brief/research gate → [3 viewports] → approve research (SCRIPT + SCORES)
   //   → script editor → [3 viewports] → approve script (APPROVE_BLOCK)
   //   → storyboard → [mobile]. See provider.ts for the deterministic queue
-  //   contract — total stays GATE(4) + APPROVE(7) = 11.
+  //   contract - total stays GATE(4) + APPROVE(7) = 11.
   let projectId: string;
 
   test.beforeAll(async ({ playwright }) => {
@@ -79,27 +79,27 @@ test.describe("workspace viewports", () => {
     }
   });
 
-  // BRIEF + RESEARCH GATE — the workflow pauses here with the approved creative
+  // BRIEF + RESEARCH GATE - the workflow pauses here with the approved creative
   // brief cards and the research packet rendered (Block 2 stage). No queue
   // consumption beyond the create above.
   test.describe("brief + research gate", () => {
     for (const vp of VIEWPORTS) {
-      test(`${vp.name} (${vp.width}px) — brief cards + packet, no overflow`, async ({ page }) => {
+      test(`${vp.name} (${vp.width}px) - brief cards + packet, no overflow`, async ({ page }) => {
         await page.setViewportSize({ width: vp.width, height: vp.height });
         await page.goto(`/projects/${projectId}`);
         await expectNoHorizontalOverflow(page);
         await expect(page.getByRole("tablist", { name: "Production stages" })).toBeVisible();
         await expect(page.getByText(/CREATIVE BRIEF/i)).toBeVisible();
-        await expect(page.getByText("History of the universe")).toBeVisible(); // brief topic card
+        await expect(page.getByText("A runner's first marathon")).toBeVisible(); // brief topic card
         // exact: the ws-meta line also contains "16:9 · documentary · …"
         await expect(page.getByText("16:9", { exact: true })).toBeVisible(); // aspect ratio card
-        await expect(page.getByText(/13\.8 bya: Big Bang/i)).toBeVisible(); // research timeline
+        await expect(page.getByText(/6:00 am: the start line/i)).toBeVisible(); // research timeline
         await expect(page.getByRole("button", { name: /approve & continue/i })).toBeVisible();
       });
     }
   });
 
-  // SCRIPT EDITOR — approve the research gate once (consumes SCRIPT + SCORES),
+  // SCRIPT EDITOR - approve the research gate once (consumes SCRIPT + SCORES),
   // then the script renders on paper with review scores in the rail.
   test.describe("script editor", () => {
     test.beforeAll(async ({ playwright }) => {
@@ -115,21 +115,21 @@ test.describe("workspace viewports", () => {
     });
 
     for (const vp of VIEWPORTS) {
-      test(`${vp.name} (${vp.width}px) — script on paper + scores, no overflow`, async ({ page }) => {
+      test(`${vp.name} (${vp.width}px) - script on paper + scores, no overflow`, async ({ page }) => {
         await page.setViewportSize({ width: vp.width, height: vp.height });
         await page.goto(`/projects/${projectId}`);
         await expectNoHorizontalOverflow(page);
         await expect(page.getByRole("tablist", { name: "Production stages" })).toBeVisible();
-        await expect(page.getByText("The First Three Minutes")).toBeVisible(); // script title
+        await expect(page.getByText("The First Marathon")).toBeVisible(); // script title
         await expect(page.getByText(/overall/i)).toBeVisible(); // score chip on the script
         await expect(page.getByRole("button", { name: /approve & continue/i })).toBeVisible();
       });
     }
   });
 
-  // STORYBOARD — script already approved by the describe above; approve the
+  // STORYBOARD - script already approved by the describe above; approve the
   // script gate once (consumes APPROVE_BLOCK) so the storyboard pass runs.
-  test("mobile (390px) — storyboard view, no overflow, scene cards visible", async ({ page, playwright }) => {
+  test("mobile (390px) - storyboard view, no overflow, scene cards visible", async ({ page, playwright }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const req = await playwright.request.newContext({ baseURL: API });
     const res = await req.post(`/api/v1/projects/${projectId}/stages/script/approve`, {
@@ -142,6 +142,6 @@ test.describe("workspace viewports", () => {
     await expect(page.getByTestId("scene-card-1")).toBeVisible();
     await expectNoHorizontalOverflow(page);
     await expect(page.getByRole("button", { name: /approve & continue/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /advanced — prompt packs/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /advanced - prompt packs/i })).toBeVisible();
   });
 });

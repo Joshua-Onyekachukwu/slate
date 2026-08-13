@@ -11,7 +11,7 @@ import type { AppDeps } from "../app";
 // Per-scene editing (plan Task 10 contract: PUT /projects/:id/scenes/:sceneId
 // → { content } → NEW VERSION ROW). Same version-rows model as the reorder: a
 // scene edit bumps the whole storyboard version and rewrites every scene row at
-// the new version with the edited content swapped in — keeping the invariant
+// the new version with the edited content swapped in - keeping the invariant
 // "latest (storyboard_id, order) is the current scene" and preserving order,
 // other scenes, and prompt packs. Direct-DB write, outside the gate path.
 export async function sceneRoutes(app: FastifyInstance, _deps: AppDeps) {
@@ -44,7 +44,7 @@ export async function sceneRoutes(app: FastifyInstance, _deps: AppDeps) {
           version,
           title: (s.id === sceneId ? parsed.data : s.content).title,
           content: s.id === sceneId ? parsed.data : s.content,
-          // The edited scene's pack no longer matches its content — null it so
+          // The edited scene's pack no longer matches its content - null it so
           // the UI shows "Prompt pack queued." instead of stale prompts (the
           // prompts/regenerate endpoint re-creates it; spec §12.9).
           promptPack: s.id === sceneId ? null : s.promptPack,

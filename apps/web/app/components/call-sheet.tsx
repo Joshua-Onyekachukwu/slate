@@ -10,7 +10,7 @@ export function CallSheet({
   onJump: (index: number) => void;
 }) {
   return (
-    <aside className="csheet" aria-label="Call sheet — production stages">
+    <aside className="csheet" aria-label="Call sheet - production stages">
       <div className="csheet-title">
         <span className="lbl">Call sheet</span>
         <span className="tc">{STAGES[current]?.tc ?? "RDY"}</span>

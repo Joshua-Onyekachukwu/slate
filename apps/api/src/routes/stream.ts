@@ -14,7 +14,7 @@ export async function streamRoute(app: FastifyInstance, deps: AppDeps) {
     const row = await getOwnedProject(req.userId, id);
     if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
 
-    // @fastify/cors doesn't wrap raw reply.raw responses — set the header here
+    // @fastify/cors doesn't wrap raw reply.raw responses - set the header here
     // or the browser EventSource is blocked (no preflight for SSE).
     reply.raw.writeHead(200, {
       "content-type": "text/event-stream",
@@ -36,7 +36,7 @@ export async function streamRoute(app: FastifyInstance, deps: AppDeps) {
 
     const tick = async () => {
       // Never let a checkpoint error escape into setInterval (unhandled rejection
-      // would kill the stream silently) — surface stage:failed and end instead.
+      // would kill the stream silently) - surface stage:failed and end instead.
       try {
         const cp = await readCheckpoint(graph, id);
         if (cp.pendingGates.length > 0) send("stage:awaiting_review", { gates: cp.pendingGates });

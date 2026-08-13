@@ -10,10 +10,10 @@ export const WorkflowState = Annotation.Root({
   scores: Annotation<ReviewScores | null>({ reducer: (_, b) => b, default: () => null }),
   feedback: Annotation<string | undefined>({ reducer: (_, b) => b, default: () => undefined }),
   // Routing signal: set by the RESEARCH gate on approve (mirrors scriptApproved
-  // — research approve routes to write_script; reject loops back to research).
+  // - research approve routes to write_script; reject loops back to research).
   researchApproved: Annotation<boolean>({ reducer: (_, b) => b, default: () => false }),
   // Routing signal: set by the script gate on approve. Keeps the stage value
-  // clean (no premature "done" between the gate and write_storyboard — a crash
+  // clean (no premature "done" between the gate and write_storyboard - a crash
   // in that window would otherwise leave a "done" checkpoint with no storyboard).
   scriptApproved: Annotation<boolean>({ reducer: (_, b) => b, default: () => false }),
   storyboard: Annotation<SceneContent[] | null>({ reducer: (_, b) => b, default: () => null }),
@@ -24,7 +24,7 @@ export const WorkflowState = Annotation.Root({
   characters: Annotation<Character[]>({ reducer: (_, b) => b, default: () => [] }),
   locations: Annotation<Location[]>({ reducer: (_, b) => b, default: () => [] }),
   // Production plan lifecycle (Task 9): flips to "ready" when the storyboard
-  // gate approves — the consolidated production-plan endpoint reads it from
+  // gate approves - the consolidated production-plan endpoint reads it from
   // the project row (persisted by the gate's saveProject patch).
   productionPlanStatus: Annotation<string>({ reducer: (_, b) => b, default: () => "draft" }),
 });

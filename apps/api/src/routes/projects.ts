@@ -7,14 +7,26 @@ import { sendError, ApiError, ERROR_CODES } from "../error";
 import { getOwnedProject, ownerFor } from "../hooks";
 import type { AppDeps } from "../app";
 
+// Studio production modes (openart-design §4). The selected mode becomes part
+// of the creative direction handed to the planning agent: the stored idea reads
+// "Essay: …" so the brief, script, and plan all carry the mode for real
+// providers, and the project card shows it. Local demo mode (FakeProvider)
+// ignores the idea content by design, so the deterministic queue is unaffected.
+export const PRODUCTION_MODES = ["Film", "Essay", "Explainer", "Ad"] as const;
+
+function composeIdea(idea: string, mode?: string): string {
+  const label = PRODUCTION_MODES.find((m) => m.toLowerCase() === (mode ?? "").trim().toLowerCase());
+  return label ? `${label}: ${idea}` : idea;
+}
+
 export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
   app.post("/api/v1/projects", async (req, reply) => {
-    const { idea } = (req.body ?? {}) as { idea?: string };
+    const { idea, mode } = (req.body ?? {}) as { idea?: string; mode?: string };
     if (!idea || typeof idea !== "string" || idea.trim().length === 0) {
       return sendError(reply, ERROR_CODES.VALIDATION_ERROR, 400, "idea is required");
     }
     const id = randomUUID();
-    await db.insert(projects).values({ id, idea: idea.trim(), conversation: [], briefHistory: [], ownerId: ownerFor(req.userId) });
+    await db.insert(projects).values({ id, idea: composeIdea(idea.trim(), mode), conversation: [], briefHistory: [], ownerId: ownerFor(req.userId) });
     // Run the workflow synchronously to its first interrupt (the script gate).
     const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
     await graph.invoke({ projectId: id }, { configurable: { thread_id: id } });
@@ -48,7 +60,10 @@ export async function projectRoutes(app: FastifyInstance, deps: AppDeps) {
     if (!row) return sendError(reply, ERROR_CODES.NOT_FOUND, 404, "project not found");
     const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
     const cp = await readCheckpoint(graph, id);
-    return { project: { ...row, stage: cp.stage } };
+    // pendingGates lets the workspace render the creative-discovery chat: when
+    // the planning agent paused with "discovery_questions", the panel swaps to
+    // the interview view (the stage column is still undefined at that point).
+    return { project: { ...row, stage: cp.stage, pendingGates: cp.pendingGates } };
   });
 
   // Creative Discovery: answer the planning agent's interview questions.

@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-// Enforced-mode auth E2E (Task 2, ADR-022/023) — a sibling of the main
+// Enforced-mode auth E2E (Task 2, ADR-022/023) - a sibling of the main
 // playwright.config.ts that boots BOTH servers with auth ON:
 //
 //   - API on :4001 with STUB_AUTH=1  → index.ts installs makeStubVerifyToken():
@@ -17,13 +17,13 @@ import { defineConfig } from "@playwright/test";
 // E2E database or its FakeProvider queue position.
 const API_PORT = 4001;
 const AUTH_DATABASE_URL = "postgres://slate:slate@localhost:5432/slate_test_auth";
-// globalSetup reads E2E_DATABASE_URL (default slate_test_e2e) — point it at the
+// globalSetup reads E2E_DATABASE_URL (default slate_test_e2e) - point it at the
 // auth DB. globalSetup runs in this same process, after the config loads.
 process.env.E2E_DATABASE_URL = AUTH_DATABASE_URL;
 
-// v7 key format: pk_test_<unpadded base64(frontendApi + "$")> — validated by
+// v7 key format: pk_test_<unpadded base64(frontendApi + "$")> - validated by
 // @clerk/shared parsePublishableKey at middleware init (no "$" → boot fails).
-// Decodes to slate-stub.clerk.accounts.dev (never resolves — no network needed
+// Decodes to slate-stub.clerk.accounts.dev (never resolves - no network needed
 // for the no-session redirect). The secret key only needs to be non-empty
 // (assertValidSecretKey) and is never consulted without a session cookie.
 const FAKE_PK = "pk_test_c2xhdGUtc3R1Yi5jbGVyay5hY2NvdW50cy5kZXYk";

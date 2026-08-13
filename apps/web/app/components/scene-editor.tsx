@@ -80,7 +80,7 @@ export function SceneEditor({
         tabIndex={0}
         onClick={() => {
           setShowAdvanced((v) => !v);
-          if (!showAdvanced) showToast("Advanced — prompt packs revealed");
+          if (!showAdvanced) showToast("Advanced - prompt packs revealed");
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -90,7 +90,7 @@ export function SceneEditor({
         }}
       >
         <div className="sw"></div>
-        <div className="t">Advanced — prompt packs</div>
+        <div className="t">Advanced - prompt packs</div>
       </div>
 
       <div className="prompt-tabs">

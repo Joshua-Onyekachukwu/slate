@@ -2,14 +2,14 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
-  // auth.spec.ts is owned by playwright.auth.config.ts (testMatch — boots the
+  // auth.spec.ts is owned by playwright.auth.config.ts (testMatch - boots the
   // stack with STUB_AUTH=1 + fake Clerk keys) and demo-smoke.spec.ts is owned
-  // by playwright.demo.config.ts (testMatch — boots DEMO_QUEUE=1, a DIFFERENT
+  // by playwright.demo.config.ts (testMatch - boots DEMO_QUEUE=1, a DIFFERENT
   // scripted queue). Under this main config each would consume the E2E queue
   // out of sequence and break the deterministic contract, so exclude both.
   testIgnore: [/auth\.spec\.ts/, /demo-smoke\.spec\.ts/],
   // Creates the hermetic E2E database (slate_test_e2e) before the webServer
-  // array boots the API — Postgres boot requires the DB to exist. Also swaps
+  // array boots the API - Postgres boot requires the DB to exist. Also swaps
   // the old SQLite boot (DATABASE_PATH) for the Task 10 DATABASE_URL contract.
   globalSetup: "./global-setup.ts",
   // The booted API runs ONE FakeProvider queue shared by every spec file
@@ -24,7 +24,7 @@ export default defineConfig({
     expect: { timeout: 15_000 },
   },
   // Playwright boots both servers itself. Env vars go through the `env:` option
-  // (cross-platform) — NEVER inline bash syntax (`FAKE_PROVIDER=1 pnpm ...`),
+  // (cross-platform) - NEVER inline bash syntax (`FAKE_PROVIDER=1 pnpm ...`),
   // which Playwright's cmd.exe spawn can't parse on Windows.
   webServer: [
     {
@@ -36,7 +36,7 @@ export default defineConfig({
       timeout: 120_000,
       // PORT must be pinned: the ambient shell exports a PORT that the API would
       // otherwise inherit (process.env.PORT ?? 4000), breaking the health check.
-      // DATABASE_URL: Task 10 — the API boots PostgresSaver on its own hermetic
+      // DATABASE_URL: Task 10 - the API boots PostgresSaver on its own hermetic
       // DB, created by globalSetup above (NOT the shared slate / slate_test_*).
       env: {
         FAKE_PROVIDER: "1",
@@ -49,7 +49,7 @@ export default defineConfig({
       url: "http://localhost:3000",
       reuseExistingServer: false,
       timeout: 120_000,
-      // HOST pinned for symmetry with PORT — the ambient shell already exports a
+      // HOST pinned for symmetry with PORT - the ambient shell already exports a
       // surprising PORT, so don't trust it for the host either.
       env: { NEXT_PUBLIC_API_URL: "http://localhost:4000", HOST: "127.0.0.1" },
     },

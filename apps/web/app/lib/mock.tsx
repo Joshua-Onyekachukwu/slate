@@ -20,33 +20,33 @@ export const STAGES: StageDef[] = [
 export const APPROVE_NOTES: ReactNode[] = [
   (
     <>
-      <b>Discovery complete</b> — 3 clarifying questions answered. Approve to lock the creative
+      <b>Discovery complete</b> - 3 clarifying questions answered. Approve to lock the creative
       brief.
     </>
   ),
   (
     <>
-      <b>Brief ready</b> — topic, audience, style and runtime are set. Approve to begin research.
+      <b>Brief ready</b> - topic, audience, style and runtime are set. Approve to begin research.
     </>
   ),
   (
     <>
-      <b>Research packet ready</b> — timeline and sources compiled. Approve to move to the script.
+      <b>Research packet ready</b> - timeline and sources compiled. Approve to move to the script.
     </>
   ),
   (
     <>
-      <b>Script v3 scores 4.1</b> — above the 3.8 threshold. Approve to storyboard.
+      <b>Script v3 scores 4.1</b> - above the 3.8 threshold. Approve to storyboard.
     </>
   ),
   (
     <>
-      <b>6 scenes storyboarded</b> — drag to reorder, edit per scene. Approve to finalize scenes.
+      <b>3 scenes storyboarded</b> - drag to reorder, edit per scene. Approve to finalize scenes.
     </>
   ),
   (
     <>
-      <b>Production ready</b> — scenes finalized, prompt packs set, crew sheet locked. Approve to
+      <b>Production ready</b> - scenes finalized, prompt packs set, crew sheet locked. Approve to
       export.
     </>
   ),
@@ -67,7 +67,7 @@ export type Project = {
 export const PROJECTS: Project[] = [
   {
     id: "0042",
-    title: "The History of the Universe",
+    title: "The First Marathon",
     meta: "16:9 · 00:04:30 · doc · updated 21:40",
     chip: "Plan ready",
     chipTone: "rec",
@@ -152,163 +152,87 @@ export type Scene = SceneContent & {
   prompts: Record<PromptKind, string>;
 };
 
+// The demo film mirrors the landing and the demo queue: three shots of a
+// runner's first marathon (cold open / the moment / the finish).
 export const SCENES: Scene[] = [
   {
     id: 1,
-    title: "The Bang",
-    durationSeconds: 42,
+    title: "The cold open",
+    durationSeconds: 31,
     transition: "CUT",
-    meta: "Slow push-in · narration 00:38 · music: low drone",
+    meta: "Slow push-in · narration 00:28 · music: low drone",
     status: "Approved",
     tone: "default",
-    narration:
-      "Thirteen point eight billion years ago, all of it — every galaxy, every grain — was a point hotter than the sun's core.",
+    narration: "First steps into an empty street at dawn - she smiles before the gun.",
     visual:
-      "A single point of light blooming into expanding space — pure black giving way to a glowing nebula.",
-    camera: "Slow push-in from deep space",
-    duration: "00:00:42",
+      "A runner alone on an empty city street in morning light, breath visible in the cold air.",
+    camera: "Slow push-in from a wide street",
+    duration: "00:00:31",
     musicCue: "Low drone",
     prompts: {
       image:
-        "A point of blinding white light at the center of pure black, expanding ring of energy, single frame, photoreal, no text.",
+        "A woman runner alone on an empty city street at dawn, morning light on her face, photoreal documentary still, no text.",
       video:
-        "Static wide as a white point blooms and expands into a cooling nebula, 42s, 24fps, slow, no camera shake.",
+        "Static wide as a lone runner starts down an empty street, 31s, 24fps, slow push-in, no camera shake.",
       narration:
-        "Female, warm documentary register. Pace 140 wpm, hushed wonder. 38s. Emphasis: \u201cforged inside a star\u201d.",
-      music: "Low drone, sub-bass swell, sparse — no melody until the narration lands.",
-      sfx: "Deep, distant rumble under the opening; near-silence otherwise.",
+        "Female, warm documentary register. Pace 140 wpm, quiet anticipation. 28s. Emphasis: \u201csmiles before the gun\u201d.",
+      music: "Low drone, heartbeat pulse, sparse - no melody until the start gun.",
+      sfx: "Distant city hum, footsteps, near-silence otherwise.",
     },
   },
   {
     id: 2,
-    title: "The First Stars",
-    durationSeconds: 38,
+    title: "The moment",
+    durationSeconds: 32,
     transition: "DISSOLVE",
-    meta: "Whip-pan across dark hydrogen · strings enter",
+    meta: "Over-the-shoulder tracking · strings enter",
     status: "Approved",
     tone: "default",
-    narration: "Four hundred million years later, the first stars switched on in the dark.",
-    visual:
-      "Dark hydrogen clouds with stars flickering to life across the frame — small points of light through gas.",
-    camera: "Whip-pan across the hydrogen sea",
-    duration: "00:00:38",
+    narration: "Two runners share a laugh at the turnaround - the race's quiet best part.",
+    visual: "Two runners side by side at the turnaround, laughing mid-stride, water cups in hand.",
+    camera: "Over-the-shoulder tracking shot",
+    duration: "00:00:32",
     musicCue: "Strings enter",
     prompts: {
       image:
-        "First stars igniting in dark hydrogen clouds, small points of light through gas, cinematic, 16:9.",
+        "Two runners sharing a laugh at a race turnaround, golden hour, motion and joy, photoreal, 16:9.",
       video:
-        "Whip-pan across dark hydrogen as stars flicker on, 38s, 24fps, warm tungsten key, no shake.",
+        "Over-the-shoulder tracking as two runners laugh at the turnaround, 32s, 24fps, warm key, no shake.",
       narration:
-        "Female, warm. 142 wpm, steady wonder. 35s. Emphasis: \u201cswitched on in the dark\u201d.",
-      music: "Strings enter softly, rising major — the first warmth of the piece.",
-      sfx: "Soft crackle of ignition, almost subliminal.",
+        "Female, warm. 142 wpm, easy affection. 29s. Emphasis: \u201cthe race's quiet best part\u201d.",
+      music: "Strings enter softly, rising major - the warmth of the piece.",
+      sfx: "Footfall rhythm, distant crowd, cups landing.",
     },
   },
   {
     id: 3,
-    title: "Galaxies Assemble",
-    durationSeconds: 45,
-    transition: "DISSOLVE",
-    meta: "Orbital drift · timelapse feel · brass swell",
-    status: "Approved",
-    tone: "default",
-    narration:
-      "Four hundred million years after the Bang, gravity pulled the first gas into spinning cities of light.",
-    visual:
-      "Orbital drift over assembling galaxies — filaments of gas, then points of light switching on across a dark web.",
-    camera: "Slow orbital drift, 5° tilt",
-    duration: "00:00:45",
-    musicCue: "Brass swell, low strings under narration",
-    prompts: {
-      image:
-        "Filamentary galaxy web at z≈2, orbital camera drift, volumetric dust, warm tungsten key, 16:9, photoreal documentary grade — no text overlays.",
-      video:
-        "Slow orbital drift over assembling galaxies, 5° tilt, 45s, 24fps, depth-of-field pull from dust to light, no camera shake.",
-      narration:
-        "Female, warm documentary register. Pace 145 wpm, wonder + restraint. 38s. Emphasis: \u201ccities of light\u201d.",
-      music: "Brass swell, low strings under narration.",
-      sfx: "Low cosmic rumble, layered breath.",
-    },
-  },
-  {
-    id: 4,
-    title: "Our Solar System",
-    durationSeconds: 40,
+    title: "The finish",
+    durationSeconds: 33,
     transition: "CUT",
-    meta: "Tilt down from void to dust disk · piano",
-    status: "Approved",
-    tone: "default",
-    narration:
-      "Four point six billion years ago, our solar system condensed from a spinning disk of dust.",
-    visual: "Tilt down from the void to a glowing dust disk with planets condensing in orbit.",
-    camera: "Tilt down, 5°",
-    duration: "00:00:40",
-    musicCue: "Piano",
-    prompts: {
-      image:
-        "A young solar system — dust disk tilting, planets condensing, single star at center, cinematic grade.",
-      video:
-        "Tilt down from void to a glowing dust disk, planets forming, 40s, 24fps, gentle drift.",
-      narration:
-        "Female, warm. 140 wpm, intimate. 37s. Emphasis: \u201ccondenses from a dust disk\u201d.",
-      music: "Piano enters, single notes under narration.",
-      sfx: "Wind-like hiss, planetary hum.",
-    },
-  },
-  {
-    id: 5,
-    title: "Life Looks Back",
-    durationSeconds: 38,
-    transition: "DISSOLVE",
-    meta: "Slow zoom to an eye, then sky · choir",
-    status: "Approved",
-    tone: "default",
-    narration:
-      "Chemistry became biology, biology became awareness — and awareness turned back toward the sky.",
-    visual: "Macro on an eye reflecting stars, pulling out to the night sky.",
-    camera: "Slow zoom, then tilt to sky",
-    duration: "00:00:38",
-    musicCue: "Choir",
-    prompts: {
-      image:
-        "A human eye reflecting the night sky, macro, then the sky itself — wonder, photoreal.",
-      video:
-        "Slow zoom to an eye, then tilt to the sky, 38s, 24fps, shallow depth of field.",
-      narration: "Female, warm. 143 wpm, awe. 36s. Emphasis: \u201ccame to know itself\u201d.",
-      music: "Choir enters, hushed, resolving warmth.",
-      sfx: "Heartbeat under the first half, fading to air.",
-    },
-  },
-  {
-    id: 6,
-    title: "We Are Stardust",
-    durationSeconds: 37,
-    transition: "FADE",
-    meta: "Static wide · narration resolves · fade to paper",
-    status: "Retake — music overlap",
+    meta: "Wide crane-down · narration resolves · anthem swell",
+    status: "Retake - music overlap",
     tone: "rec",
-    narration:
-      "We are not observers of the cosmos. We are a part of it — the part that wonders.",
-    visual: "Static wide starfield, one warm planet glowing, slow fade to paper white.",
-    camera: "Static wide",
-    duration: "00:00:37",
-    musicCue: "Theme resolves, then fades",
+    narration: "Arms up at the line. The crowd answers.",
+    visual: "A runner crossing the finish line, arms raised, the crowd on its feet behind the tape.",
+    camera: "Wide crane-down over the finish line",
+    duration: "00:00:33",
+    musicCue: "Anthem swell",
     prompts: {
       image:
-        "A wide starfield at rest, one warm planet glowing, minimal, documentary still.",
+        "A runner crossing a finish line with arms raised, crowd on its feet, photoreal documentary grade, no text overlays.",
       video:
-        "Static wide, narration resolves, slow fade to paper white, 37s, 24fps.",
+        "Wide crane-down over the finish line as a runner crosses with arms up, 33s, 24fps, crowd energy, no shake.",
       narration:
-        "Female, warm. 138 wpm, final resolve. 34s. Emphasis: \u201cthe part that wonders\u201d.",
-      music: "Full theme resolves, then fades to silence.",
-      sfx: "Final inhale, held silence.",
+        "Female, warm. 138 wpm, final resolve. 30s. Emphasis: \u201cthe crowd answers\u201d.",
+      music: "Full theme resolves, then fades to the crowd.",
+      sfx: "Roar of the crowd, tape snapping, final breath.",
     },
   },
 ];
 
 /* ================= SCRIPT (TipTap editor) ================= */
 
-export const SCRIPT_TITLE = "The First Three Minutes";
+export const SCRIPT_TITLE = "The First Marathon";
 
 export type ScriptPara = {
   id: string;
@@ -321,39 +245,39 @@ export type ScriptPara = {
 export const SCRIPT_PARAGRAPHS: ScriptPara[] = [
   {
     id: "p1",
-    text: "Every atom in your body was forged inside a star. Before that — nothing we can picture. This is the story of how the universe began, in the time it takes a kettle to boil.",
-    note: "Hook lands in the first line — strong open. Consider a 4-second title card here.",
+    text: "Every marathon starts with a single step - hers came before the gun, on a quiet street at dawn. This is the story of 26.2 miles, and one first time.",
+    note: "Hook lands in the first line - strong open. Consider a 4-second title card here.",
     score: "4.4",
   },
   {
     id: "p2",
-    text: "Thirteen point eight billion years ago, all of it — every galaxy, every grain — was a point hotter than the sun's core. Then it expanded. Not an explosion into space: space itself stretching, cooling, becoming.",
-    note: "Pacing is deliberate; the dash rhythm carries it. Trim \u201cevery grain\u201d to cut 1.2s.",
+    text: "The start line at 6 a.m. is all nerves and new shoes. Thousands of runners, but for her the distance is private: the wall at mile 20, the empty stretch where the race truly begins.",
+    note: "Pacing is deliberate; the dash rhythm carries it. Trim \u201cnew shoes\u201d to cut 1.2s.",
     score: "4.2",
   },
   {
     id: "p3",
-    text: "For the first three minutes, the universe was a furnace. Hydrogen fused into helium. When it cooled enough, matter stopped annihilating and started assembling — stars, galaxies, planets, us.",
-    note: "Redundancy check: \u201cfurnace / hydrogen fused\u201d overlaps p2's heat imagery. Slight rewrite suggested.",
+    text: "At the turnaround, two strangers share a laugh over a cup of water. It lasts four seconds and stays with her for the next ten miles - the race's quiet best part.",
+    note: "Redundancy check: \u201cshare a laugh / cup of water\u201d overlaps p2's mile-20 imagery. Slight rewrite suggested.",
     score: "3.8",
     flagged: true,
   },
   {
     id: "p4",
-    text: "Four hundred million years later, the first stars switched on in the dark. Every heavy element in your coffee, your phone, your lungs — stardust, delivered by supernovae.",
-    note: "Factual check passed — 400 Myr post-Bang matches Planck-era estimates.",
+    text: "The wall is real. By mile 20 the legs are done and the mind is loud - every song, every doubt, every reason to stop. Runners call it bonking; she calls it mile 20.",
+    note: "Factual check passed - the mile-20 wall matches first-marathon literature.",
     score: "4.6",
   },
   {
     id: "p5",
-    text: "On one rocky world, chemistry became biology, biology became awareness, and awareness turned back toward the sky. The universe, briefly, came to know itself.",
-    note: "The turn is the emotional peak — retention high here. No change.",
+    text: "Then the course turns toward the city and the crowd is a wall of sound. Strangers shout her name from the paper bib. She stops looking at the distance and starts looking at the line.",
+    note: "The turn is the emotional peak - retention high here. No change.",
     score: "4.5",
   },
   {
     id: "p6",
-    text: "We are not observers of the cosmos. We are a part of it — the part that wonders.",
-    note: "Close is two clauses long; the script reviewer suggests ending on \u201cthe part that wonders.\u201d",
+    text: "Arms up at the line. The crowd answers. Every marathon is a first marathon - even hers.",
+    note: "Close is two clauses long; the script reviewer suggests ending on \u201cthe crowd answers.\u201d",
     score: "4.0",
   },
 ];
@@ -361,50 +285,6 @@ export const SCRIPT_PARAGRAPHS: ScriptPara[] = [
 /* ================= STUDIO HOME (launchpad) ================= */
 
 export const PRODUCTION_MODES = ["Film", "Essay", "Explainer", "Ad"] as const;
-
-export type RecentTake = {
-  id: string;
-  projectId: string;
-  projectTitle: string;
-  artifact: string;
-  time: string;
-  stage: number;
-};
-
-export const RECENT_TAKES: RecentTake[] = [
-  {
-    id: "rt1",
-    projectId: "0042",
-    projectTitle: "The History of the Universe",
-    artifact: "Production plan v1 · 6 scenes",
-    time: "21:58",
-    stage: 5,
-  },
-  {
-    id: "rt2",
-    projectId: "0042",
-    projectTitle: "The History of the Universe",
-    artifact: "Script v3 · scored 4.1",
-    time: "21:47",
-    stage: 3,
-  },
-  {
-    id: "rt3",
-    projectId: "0041",
-    projectTitle: "How Coffee Changed the World",
-    artifact: "Storyboard v2 · 6 scenes",
-    time: "19:12",
-    stage: 4,
-  },
-  {
-    id: "rt4",
-    projectId: "0038",
-    projectTitle: "Why Deep Sea Creatures Glow",
-    artifact: "Research packet v1",
-    time: "Aug 02",
-    stage: 2,
-  },
-];
 
 /* ================= TAKE LOG ================= */
 
@@ -444,9 +324,9 @@ export const ASSET_KIND_LABEL: Record<AssetKind, string> = {
 
 export const STAGE_ASSETS: Record<number, Asset[]> = {
   4: [
-    { id: "a1", name: "SC 01 still · The Bang", kind: "image", status: "approved" },
-    { id: "a2", name: "SC 02 still · First Stars", kind: "image", status: "approved" },
-    { id: "a3", name: "SC 03 still · Galaxies", kind: "image", status: "draft" },
+    { id: "a1", name: "SC 01 still · The cold open", kind: "image", status: "approved" },
+    { id: "a2", name: "SC 02 still · The moment", kind: "image", status: "approved" },
+    { id: "a3", name: "SC 03 still · The finish", kind: "image", status: "draft" },
   ],
   5: [
     { id: "a4", name: "SC 03 keyframe", kind: "image", status: "approved" },
@@ -466,7 +346,7 @@ export const DIRECTOR_SUGGESTIONS: string[] = [
   "Make scene 3 more dramatic",
   "Tighten the intro to 20s",
   "Use a warmer narrator",
-  "Regenerate the title image with @galaxy-web",
+  "Regenerate the title image with @start-line",
 ];
 
 /* ================= HELPERS ================= */

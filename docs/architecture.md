@@ -11,19 +11,19 @@
 └──────┬───────┘
        │ HTTPS / SSE
 ┌──────▼─────────────────────────────────────────────────────────┐
-│  Frontend — Next.js (App Router) + React + TypeScript          │
+│  Frontend - Next.js (App Router) + React + TypeScript          │
 │  Tailwind CSS · shadcn/ui · Framer Motion · TanStack Query     │
 │  React Hook Form · Zod · TipTap (script editor)                │
 └──────┬─────────────────────────────────────────────────────────┘
        │ REST (Fastify) + SSE progress
 ┌──────▼─────────────────────────────────────────────────────────┐
-│  Backend — Node.js + Fastify + TypeScript                      │
+│  Backend - Node.js + Fastify + TypeScript                      │
 │  REST API · project/version CRUD (Clerk JWT, ADR-023)          │
 │  SSE: agent progress + streaming text                          │
 └──────┬───────────────┬───────────────────────────┬─────────────┘
        │               │                           │
 ┌──────▼──────────┐  ┌─▼────────────────────────┐ ┌▼──────────────┐
-│ Workflow Engine │  │ Queue — BullMQ + Redis   │ │ Object Store  │
+│ Workflow Engine │  │ Queue - BullMQ + Redis   │ │ Object Store  │
 │ LangGraph.js    │  │ research · script ·      │ │ Cloudflare R2 │
 │ agents + review │  │ storyboard · media ·     │ │ images ·      │
 │ gates (HITL)    │  │ render · export          │ │ videos ·      │
@@ -60,7 +60,7 @@
 | Object storage | Cloudflare R2 | Generated assets + exports |
 | Video processing | FFmpeg | Scene stitching, captions, transitions, audio, export |
 
-## Monorepo layout (recommended — see decisions.md ADR-001)
+## Monorepo layout (recommended - see decisions.md ADR-001)
 
 ```
 Slate/
@@ -76,7 +76,7 @@ Slate/
 └── package.json      # pnpm workspace root
 ```
 
-## Data flow — the core loop
+## Data flow - the core loop
 
 1. **Frontend** sends the user's idea to `POST /api/projects` (creates project + conversation).
 2. **API** creates a workflow run: inserts a `Jobs` row, enqueues `research`/`script` jobs, and
@@ -101,7 +101,7 @@ Slate/
 
 - **Error handling:** agents can fail (rate limits, timeouts, malformed output). Every failure
   surfaces in the stage UI as a retryable action; workflow state must survive partial progress.
-- **Rate limits:** NVIDIA Build dev tier is ~40 RPM — strict exponential backoff + fallback providers
+- **Rate limits:** NVIDIA Build dev tier is ~40 RPM - strict exponential backoff + fallback providers
   required (see `ai-pipeline.md`).
 - **Security:** Clerk session JWTs verified on every `/api/v1` route, owner-scoped queries, `404` on
   cross-user access (ADR-023); R2 presigned URLs for downloads (Phase 3+); no secrets in the client.
@@ -109,8 +109,8 @@ Slate/
 
 ## Decisions (see decisions.md for ADRs)
 
-Decided 2026-08-03: **vertical slice skipped — Phase
+Decided 2026-08-03: **vertical slice skipped - Phase
 1+2 is the first build** (ADR-018), **Drizzle ORM** (ADR-013), **local-first deployment, deployable
-later** (ADR-011), **"The Cutting Room" design** (locked Final 2026-08-03, ADR-010 — prototype `prototypes/cutting-room-full.html` approved as-is), **NVIDIA key available**. **Auth: in scope —
-multi-user isolation from day one** (ADR-012/023; Clerk — managed provider; restores ADR-019). Remaining open:
+later** (ADR-011), **"The Cutting Room" design** (locked Final 2026-08-03, ADR-010 - prototype `prototypes/cutting-room-full.html` approved as-is), **NVIDIA key available**. **Auth: in scope  - 
+multi-user isolation from day one** (ADR-012/023; Clerk - managed provider; restores ADR-019). Remaining open:
 product name.

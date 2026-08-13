@@ -1,7 +1,7 @@
 import pg from "pg";
 
 // Phase 1+2 Postgres contract (ADR-011/013): DATABASE_URL is the single
-// connection-string source of truth for Postgres — Docker Compose locally
+// connection-string source of truth for Postgres - Docker Compose locally
 // (postgres://slate:slate@localhost:5432/slate) or Neon in the cloud
 // (postgresql://…-pooler.…neon.tech/db?sslmode=require, see neon skill:
 // pooled for the app, direct for migrations).
@@ -14,7 +14,7 @@ export function resolveDatabaseUrl(raw?: string): string {
   const url = raw ?? process.env.DATABASE_URL;
   if (!url) {
     throw new Error(
-      "DATABASE_URL is required for the Postgres path — set it in .env " +
+      "DATABASE_URL is required for the Postgres path - set it in .env " +
         "(e.g. postgres://slate:slate@localhost:5432/slate for Docker, or a Neon pooled URL).",
     );
   }
@@ -26,11 +26,11 @@ export function resolveDatabaseUrl(raw?: string): string {
   }
   if (parsed.protocol !== "postgres:" && parsed.protocol !== "postgresql:") {
     throw new Error(
-      `DATABASE_URL must use the postgres:// or postgresql:// scheme — got ${parsed.protocol}`,
+      `DATABASE_URL must use the postgres:// or postgresql:// scheme - got ${parsed.protocol}`,
     );
   }
   if (!parsed.hostname) {
-    throw new Error(`DATABASE_URL is missing a host — got ${url}`);
+    throw new Error(`DATABASE_URL is missing a host - got ${url}`);
   }
   // .env files often carry trailing whitespace/newlines; hand the pool a clean string.
   return url.trim();
@@ -43,7 +43,7 @@ export function createPgPool(url: string = resolveDatabaseUrl()): pg.Pool {
 // Create a database on demand if it doesn't exist yet (test suites + E2E each
 // get a hermetic DB: slate_test_schema / slate_test_api / slate_test_auth /
 // slate_test_e2e). Connects to the always-present `postgres` maintenance DB
-// to run CREATE DATABASE — you can't create a database while connected to it.
+// to run CREATE DATABASE - you can't create a database while connected to it.
 // Postgres has no CREATE DATABASE IF NOT EXISTS, so check pg_database first.
 export async function ensureDatabase(url: string): Promise<void> {
   const target = new URL(url);

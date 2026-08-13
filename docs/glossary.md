@@ -24,4 +24,4 @@
 | **Quality Score** | 1–5 rubric score per dimension (see quality-gates.md). Advisory; user can override. |
 | **Job** | A durable background unit of work (BullMQ): research, script, storyboard, image, video, voice, render, export. |
 | **Export** | The final deliverable(s): MP4, captions, thumbnail, project package. |
-| **Kiwaski Design** | The user's originally specified visual style. Unresolved — superseded by the design direction in ui-design.md unless the user defines Kiwaski specifics. |
+| **Kiwaski Design** | The user's originally specified visual style. Unresolved - superseded by the design direction in ui-design.md unless the user defines Kiwaski specifics. |

@@ -140,7 +140,7 @@ describe("workflow happy path", () => {
     expect(atGate.values.characters).toEqual([{ id: "char-1", name: "The Narrator", description: "A calm voice guiding the journey" }]);
     expect(atGate.values.locations).toEqual([{ id: "loc-1", name: "The Observable Universe", description: "Vast and dark" }]);
     // The storyboard agent's prompt must carry the records (lastInput is the
-    // final call — promptAgent — whose content embeds Characters + Locations).
+    // final call - promptAgent - whose content embeds Characters + Locations).
     const last = p.lastInput.messages[p.lastInput.messages.length - 1].content;
     expect(last).toContain("The Narrator");
     expect(last).toContain("The Observable Universe");
@@ -286,7 +286,7 @@ describe("workflow discovery interview", () => {
     await graph.invoke({ projectId: threadId }, { configurable: { thread_id: threadId } });
 
     // Paused at the discovery interview, not the script gate. The node pauses
-    // INSIDE the interrupt() call, so stage is not yet set — the interrupt value
+    // INSIDE the interrupt() call, so stage is not yet set - the interrupt value
     // and the next node are the reliable signals.
     const paused = await graph.getState({ configurable: { thread_id: threadId } });
     const interruptValues = (paused.tasks ?? []).flatMap((t: { interrupts?: { value?: unknown }[] }) =>

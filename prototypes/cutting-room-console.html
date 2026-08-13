@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Slate — Cutting Room · prototype</title>
+<title>Slate - Cutting Room · prototype</title>
 <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
 <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700&f[]=general-sans@400,500,600&display=swap" rel="stylesheet" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -74,7 +74,7 @@ input, textarea, [contenteditable] { font-family: inherit; }
 .chip { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; border: 1px solid var(--line-paper); color: #5c554a; border-radius: 999px; padding: 2px 9px; }
 .chip.rec { border-color: var(--rec); color: var(--rec); }
 
-/* ============ DASHBOARD — STUDIO LAUNCHPAD ============ */
+/* ============ DASHBOARD - STUDIO LAUNCHPAD ============ */
 .hero { padding: 72px 0 40px; text-align: center; }
 .hero h1 { font-family: var(--font-display); font-size: 44px; font-weight: 500; letter-spacing: -0.02em; }
 .hero .sub { color: var(--ash); margin-top: 10px; font-size: 16px; }
@@ -122,7 +122,7 @@ input, textarea, [contenteditable] { font-family: inherit; }
 .ws-title { font-family: var(--font-display); font-weight: 500; font-size: 30px; letter-spacing: -0.015em; }
 .ws-meta { font-family: var(--font-mono); font-size: 11px; color: var(--ash); letter-spacing: 0.08em; margin-top: 6px; }
 
-/* demo bar — prototype controls */
+/* demo bar - prototype controls */
 .demo-bar {
   position: sticky; top: 56px; z-index: 55;
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
@@ -135,7 +135,7 @@ input, textarea, [contenteditable] { font-family: inherit; }
 .demo-btn:hover { color: var(--paper); }
 .demo-btn.active { color: var(--ink); background: var(--paper); }
 
-/* horizontal stepper — narrow screens only */
+/* horizontal stepper - narrow screens only */
 .stepper { margin-top: 24px; border-bottom: 1px solid var(--line-dark); display: flex; overflow-x: auto; }
 .stage { position: relative; flex: 1; min-width: 96px; padding: 14px 12px 12px; cursor: pointer; user-select: none; background: none; border: none; color: inherit; text-align: left; }
 .stage:hover { background: rgba(255,255,255,0.03); }
@@ -148,12 +148,12 @@ input, textarea, [contenteditable] { font-family: inherit; }
 .stage.live .st { color: var(--tungsten); }
 .stage.live .rec-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--rec); margin-right: 6px; vertical-align: 1px; animation: recPulse 1.6s ease-in-out infinite; }
 .stage.failed .st { color: var(--rec); }
-.stage.failed .st::before { content: "RETAKE — "; color: var(--rec); }
+.stage.failed .st::before { content: "RETAKE - "; color: var(--rec); }
 
 /* ============ PRODUCTION CONSOLE (three zones) ============ */
 .console-body { display: grid; grid-template-columns: 220px minmax(0, 1fr) 320px; gap: 16px; margin-top: 24px; padding-bottom: 150px; align-items: start; }
 
-/* left rail — call sheet */
+/* left rail - call sheet */
 .csheet { position: sticky; top: 112px; }
 .csheet-title { display: flex; justify-content: space-between; align-items: center; padding: 4px 2px 12px; border-bottom: 1px solid var(--line-dark); }
 .csheet-title .lbl { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ash); }
@@ -176,7 +176,7 @@ input, textarea, [contenteditable] { font-family: inherit; }
 .cs-stage.live .cs-st { color: var(--tungsten); }
 .cs-stage.live .rec-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--rec); margin-right: 4px; animation: recPulse 1.6s ease-in-out infinite; }
 
-/* center — canvas */
+/* center - canvas */
 .panel { background: var(--paper); color: #241f1b; border-radius: var(--radius); padding: 40px 44px; min-height: 520px; }
 .stage-fade { animation: fadeUp 0.28s ease; }
 .panel .p-eyebrow { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #8a8173; }
@@ -229,7 +229,7 @@ input, textarea, [contenteditable] { font-family: inherit; }
 .tt-statusbar b { color: #5c554a; }
 .tt-statusbar .tt-hint { margin-left: auto; color: #b3a994; }
 
-/* ============ STORYBOARD — SLATE LINES ============ */
+/* ============ STORYBOARD - SLATE LINES ============ */
 .scene-list { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
 .slate-line { position: relative; background: #241f1b; border: 1px solid #3a332d; border-radius: var(--radius); padding: 12px 16px; cursor: grab; transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s; }
 .slate-line:hover { border-color: var(--ash); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
@@ -254,7 +254,7 @@ input, textarea, [contenteditable] { font-family: inherit; }
 .slate-line.over-top { border-top-color: var(--tungsten); }
 .slate-line.over-bottom { border-bottom-color: var(--tungsten); }
 
-/* ============ RIGHT RAIL — DIRECTOR'S NOTES ============ */
+/* ============ RIGHT RAIL - DIRECTOR'S NOTES ============ */
 .coverage { margin-left: 0; display: flex; flex-direction: column; gap: 16px; }
 .cov-card { background: var(--surface); border: 1px solid var(--line-dark); border-radius: var(--radius); padding: 18px; }
 .cov-card .c-t { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ash); display: flex; justify-content: space-between; align-items: center; }
@@ -410,8 +410,8 @@ input, textarea, [contenteditable] { font-family: inherit; }
   </div>
 
   <div class="console-body">
-    <!-- left rail — call sheet -->
-    <aside class="csheet" aria-label="Call sheet — production stages">
+    <!-- left rail - call sheet -->
+    <aside class="csheet" aria-label="Call sheet - production stages">
       <div class="csheet-title">
         <span class="lbl">Call sheet</span>
         <span class="tc" id="csTc">01 · 00:00:12</span>
@@ -419,10 +419,10 @@ input, textarea, [contenteditable] { font-family: inherit; }
       <ol class="csheet-list" id="csList"></ol>
     </aside>
 
-    <!-- center — canvas -->
+    <!-- center - canvas -->
     <div class="canvas" id="mainPanel"></div>
 
-    <!-- right rail — director's notes -->
+    <!-- right rail - director's notes -->
     <div class="coverage" id="notesRail"></div>
   </div>
 </main>
@@ -441,7 +441,7 @@ input, textarea, [contenteditable] { font-family: inherit; }
     </div>
     <div class="db-main">
       <div class="db-input-wrap">
-        <input class="db-input" id="dbInput" placeholder="Tell the studio what to change — “make scene 3 more dramatic”…" />
+        <input class="db-input" id="dbInput" placeholder="Tell the studio what to change - “make scene 3 more dramatic”…" />
         <button class="mini-btn solid" id="dbSend">Send</button>
       </div>
       <div class="db-actions">
@@ -485,15 +485,15 @@ const SCENES = [
   { id: 3, title: "Galaxies Assemble", dur: 45, trans: "DISSOLVE", meta: "Orbital drift · timelapse feel · brass swell", status: "Approved", tone: "" },
   { id: 4, title: "Our Solar System", dur: 40, trans: "CUT", meta: "Tilt down from void to dust disk · piano", status: "Approved", tone: "" },
   { id: 5, title: "Life Looks Back", dur: 38, trans: "DISSOLVE", meta: "Slow zoom to an eye, then sky · choir", status: "Approved", tone: "" },
-  { id: 6, title: "We Are Stardust", dur: 37, trans: "FADE", meta: "Static wide · narration resolves · fade to paper", status: "Retake — music overlap", tone: "rec" },
+  { id: 6, title: "We Are Stardust", dur: 37, trans: "FADE", meta: "Static wide · narration resolves · fade to paper", status: "Retake - music overlap", tone: "rec" },
 ];
 const PARAS = [
-  { id: "p1", text: "Every atom in your body was forged inside a star. Before that — nothing we can picture. This is the story of how the universe began, in the time it takes a kettle to boil.", note: "Hook lands in the first line — strong open. Consider a 4-second title card here.", score: "4.4" },
-  { id: "p2", text: "Thirteen point eight billion years ago, all of it — every galaxy, every grain — was a point hotter than the sun's core. Then it expanded. Not an explosion into space: space itself stretching, cooling, becoming.", note: "Pacing is deliberate; the dash rhythm carries it. Trim “every grain” to cut 1.2s.", score: "4.2" },
-  { id: "p3", text: "For the first three minutes, the universe was a furnace. Hydrogen fused into helium. When it cooled enough, matter stopped annihilating and started assembling — stars, galaxies, planets, us.", note: "Redundancy check: “furnace / hydrogen fused” overlaps p2's heat imagery. Slight rewrite suggested.", score: "3.8", flagged: true },
-  { id: "p4", text: "Four hundred million years later, the first stars switched on in the dark. Every heavy element in your coffee, your phone, your lungs — stardust, delivered by supernovae.", note: "Factual check passed — 400 Myr post-Bang matches Planck-era estimates.", score: "4.6" },
-  { id: "p5", text: "On one rocky world, chemistry became biology, biology became awareness, and awareness turned back toward the sky. The universe, briefly, came to know itself.", note: "The turn is the emotional peak — retention high here. No change.", score: "4.5" },
-  { id: "p6", text: "We are not observers of the cosmos. We are a part of it — the part that wonders.", note: "Close is two clauses long; the script reviewer suggests ending on “the part that wonders.”", score: "4.0" },
+  { id: "p1", text: "Every atom in your body was forged inside a star. Before that - nothing we can picture. This is the story of how the universe began, in the time it takes a kettle to boil.", note: "Hook lands in the first line - strong open. Consider a 4-second title card here.", score: "4.4" },
+  { id: "p2", text: "Thirteen point eight billion years ago, all of it - every galaxy, every grain - was a point hotter than the sun's core. Then it expanded. Not an explosion into space: space itself stretching, cooling, becoming.", note: "Pacing is deliberate; the dash rhythm carries it. Trim “every grain” to cut 1.2s.", score: "4.2" },
+  { id: "p3", text: "For the first three minutes, the universe was a furnace. Hydrogen fused into helium. When it cooled enough, matter stopped annihilating and started assembling - stars, galaxies, planets, us.", note: "Redundancy check: “furnace / hydrogen fused” overlaps p2's heat imagery. Slight rewrite suggested.", score: "3.8", flagged: true },
+  { id: "p4", text: "Four hundred million years later, the first stars switched on in the dark. Every heavy element in your coffee, your phone, your lungs - stardust, delivered by supernovae.", note: "Factual check passed - 400 Myr post-Bang matches Planck-era estimates.", score: "4.6" },
+  { id: "p5", text: "On one rocky world, chemistry became biology, biology became awareness, and awareness turned back toward the sky. The universe, briefly, came to know itself.", note: "The turn is the emotional peak - retention high here. No change.", score: "4.5" },
+  { id: "p6", text: "We are not observers of the cosmos. We are a part of it - the part that wonders.", note: "Close is two clauses long; the script reviewer suggests ending on “the part that wonders.”", score: "4.0" },
 ];
 
 /* ================= STATE ================= */
@@ -630,9 +630,9 @@ function statePanel() {
   if (demoState === "loading")
     return `<div class="panel stage-fade"><div class="p-eyebrow">Stage ${String(stage + 1).padStart(2, "0")} · ${name} <span class="stamp">generating</span></div><h2>${name} is being written…</h2><div class="p-meta">agent running · tokens streaming to cache</div><div class="skeleton"><div class="sk l1"></div><div class="sk l2"></div><div class="sk l3"></div><div class="sk l2"></div></div></div>`;
   if (demoState === "streaming")
-    return `<div class="panel stage-fade"><div class="p-eyebrow">Stage ${String(stage + 1).padStart(2, "0")} · ${name} <span class="stamp">streaming</span></div><h2>${name}</h2><div class="p-meta">agent writing<span class="caret"></span></div><p class="lead" style="margin-top:16px;">The studio is drafting the first pass — the opening lands on the wonder of the first three minutes<span class="caret"></span></p></div>`;
+    return `<div class="panel stage-fade"><div class="p-eyebrow">Stage ${String(stage + 1).padStart(2, "0")} · ${name} <span class="stamp">streaming</span></div><h2>${name}</h2><div class="p-meta">agent writing<span class="caret"></span></div><p class="lead" style="margin-top:16px;">The studio is drafting the first pass - the opening lands on the wonder of the first three minutes<span class="caret"></span></p></div>`;
   if (demoState === "retake")
-    return `<div class="panel stage-fade"><div class="p-eyebrow">Stage ${String(stage + 1).padStart(2, "0")} · ${name} <span class="stamp">failed</span></div><h2>${name} needs a retake</h2><div class="p-meta">provider 429 · retrying with backoff</div><div class="retake">RETAKE — rate limit hit (429) on provider call, retrying in 30s <button class="mini-btn solid" id="retryBtn">Retry now</button></div></div>`;
+    return `<div class="panel stage-fade"><div class="p-eyebrow">Stage ${String(stage + 1).padStart(2, "0")} · ${name} <span class="stamp">failed</span></div><h2>${name} needs a retake</h2><div class="p-meta">provider 429 · retrying with backoff</div><div class="retake">RETAKE - rate limit hit (429) on provider call, retrying in 30s <button class="mini-btn solid" id="retryBtn">Retry now</button></div></div>`;
   return `<div class="panel stage-fade"><div class="p-eyebrow">No projects yet</div><h2>Start with an idea</h2><p class="lead" style="margin-top:12px;">Type a one-line idea on the dashboard and the studio handles the rest.</p></div>`;
 }
 function panelInner() {
@@ -649,9 +649,9 @@ function ideaPanel() {
   return `<div class="p-eyebrow">Stage 01 · Creative discovery</div><h2>Turning your idea into a brief</h2><div class="p-meta">conversation v1 · answered 21:31</div>
   <div class="chat">
     <div class="msg user"><div class="who">You</div><div class="bubble">A documentary about the history of the universe.</div></div>
-    <div class="msg"><div class="who">Studio</div><div class="bubble">Love it. A few questions before I draft the brief:<ul><li>Who is this for — general audience, students, or enthusiasts?</li><li>Where will it live — YouTube, a course, social?</li><li>How long — under 3 minutes, 4–5, or longer?</li><li>Any visual style you lean toward — archival, cinematic, animated diagrams?</li></ul></div></div>
+    <div class="msg"><div class="who">Studio</div><div class="bubble">Love it. A few questions before I draft the brief:<ul><li>Who is this for - general audience, students, or enthusiasts?</li><li>Where will it live - YouTube, a course, social?</li><li>How long - under 3 minutes, 4–5, or longer?</li><li>Any visual style you lean toward - archival, cinematic, animated diagrams?</li></ul></div></div>
     <div class="msg user"><div class="who">You</div><div class="bubble">General audience on YouTube. 4–5 minutes. Cinematic, with a little wonder.</div></div>
-    <div class="msg"><div class="who">Studio</div><div class="bubble">That gives me everything — drafting the brief now.</div></div>
+    <div class="msg"><div class="who">Studio</div><div class="bubble">That gives me everything - drafting the brief now.</div></div>
   </div>`;
 }
 function briefPanel() {
@@ -666,12 +666,12 @@ function researchPanel() {
   return `<div class="p-eyebrow">Stage 03 · Research packet <span class="stamp">approved 21:40</span></div><h2>Grounding the timeline</h2><div class="p-meta">v3 · generated 21:39 · 14.2k tokens · 6 sources</div>
   <p class="lead" style="margin-top:16px;">The factual spine your script stands on. Drawn from the approved brief: <em>documentary, general audience, 4:30, wonder-driven.</em></p>
   <h3>Timeline</h3><ul class="tl">
-    <li><span class="t">13.8 bya</span>Big Bang — space and time begin</li>
+    <li><span class="t">13.8 bya</span>Big Bang - space and time begin</li>
     <li><span class="t">13.5 bya</span>First stars ignite in dark hydrogen</li>
     <li><span class="t">13.1 bya</span>Galaxies assemble; the Milky Way forms</li>
     <li><span class="t">4.6 bya</span>Our solar system condenses from a dust disk</li>
     <li><span class="t">3.8 bya</span>Life appears on Earth</li>
-    <li><span class="t">300 kya</span>Homo sapiens — the universe looks back at itself</li>
+    <li><span class="t">300 kya</span>Homo sapiens - the universe looks back at itself</li>
   </ul>
   <h3>Key concepts</h3><div class="chip-row">${["Cosmic inflation", "Dark matter", "Dark energy", "CMB radiation", "Redshift"].map((c) => `<span class="score-chip">${c}</span>`).join("")}</div>`;
 }
@@ -714,7 +714,7 @@ function productionPanel() {
   return `<div class="p-eyebrow">Stage 06 · Production <span class="stamp">awaiting review</span></div><h2>Finalize the plan</h2><div class="p-meta">scenes · prompt packs · crew sheet · approve to export</div>
   <div class="plan-section"><h3>Scene editor · SC 03</h3>
     <p class="lead" style="margin-top:12px;"><b>Narration:</b> Four hundred million years after the Bang, gravity pulled the first gas into spinning cities of light.</p>
-    <p class="lead" style="margin-top:12px;"><b>Visual:</b> Orbital drift over assembling galaxies — filaments of gas, then points of light switching on across a dark web.</p>
+    <p class="lead" style="margin-top:12px;"><b>Visual:</b> Orbital drift over assembling galaxies - filaments of gas, then points of light switching on across a dark web.</p>
     <div class="chip-row" style="margin-top:16px;"><span class="score-chip">Camera: slow orbital drift, 5° tilt</span><span class="score-chip">Duration: 00:00:45</span><span class="score-chip">Transition: DISSOLVE</span><span class="score-chip">Music: brass swell</span></div>
   </div>
   <div class="plan-section"><h3>Prompt packs · all scenes</h3>
@@ -736,11 +736,11 @@ function bindScript() {
   document.querySelectorAll(".tt-btn").forEach((b) => {
     b.addEventListener("click", () => {
       const cmd = b.dataset.cmd;
-      if (cmd === "comment") return showToast(`Comment pinned to paragraph ${activePara.toUpperCase()} — routed to the script reviewer`);
+      if (cmd === "comment") return showToast(`Comment pinned to paragraph ${activePara.toUpperCase()} - routed to the script reviewer`);
       if (cmd === "ask") return showToast("Rewrite suggestion requested for this paragraph");
       const map = { bold: ["bold", "Bold"], italic: ["italic", "Italic"], h2: ["formatBlock,h2", "Heading 2"], quote: ["formatBlock,blockquote", "Quote"], list: ["insertUnorderedList", "Bullet list"] };
       const [c, v] = map[cmd][0].split(",");
-      try { document.execCommand(c, false, v); b.classList.toggle("on"); showToast(`${map[cmd][1]} — applied to selection`); } catch { showToast(`${map[cmd][1]} — routed to the studio`); }
+      try { document.execCommand(c, false, v); b.classList.toggle("on"); showToast(`${map[cmd][1]} - applied to selection`); } catch { showToast(`${map[cmd][1]} - routed to the studio`); }
     });
   });
   document.querySelectorAll(".script-para[contenteditable]").forEach((p) => {
@@ -757,7 +757,7 @@ function bindScript() {
   });
 }
 
-/* drag-to-reorder — slate lines */
+/* drag-to-reorder - slate lines */
 function bindReorder() {
   const list = $("#sceneList");
   if (!list) return;
@@ -823,7 +823,7 @@ function renderNotes() {
   const rail = $("#notesRail");
   rail.innerHTML = "";
   if (demoState !== "normal") {
-    rail.appendChild(notesCard(`Agent status <span class="rec-dot"></span>`, `<div class="cov-item"><p>Planning agent on <b>nvidia-llama-3.3-70b</b> — drafting ${STAGES[stage].name.toLowerCase()}.</p></div>`));
+    rail.appendChild(notesCard(`Agent status <span class="rec-dot"></span>`, `<div class="cov-item"><p>Planning agent on <b>nvidia-llama-3.3-70b</b> - drafting ${STAGES[stage].name.toLowerCase()}.</p></div>`));
     rail.appendChild(takeLogCard());
     return;
   }
@@ -840,8 +840,8 @@ function coverageCards() {
   const cards = [];
   const c = el("div", "cov-card");
   switch (stage) {
-    case 0: c.innerHTML = `<div class="c-t">Studio notes <span class="rec-dot"></span></div><div class="cov-item"><p>Your answers cover audience, platform, length, and tone. One more signal would help: <b>any visual references</b>.</p></div><div class="cov-actions"><button class="mini-btn solid" data-note="Note applied — drafting brief">Apply</button><button class="mini-btn">Dismiss</button></div>`; break;
-    case 1: c.innerHTML = `<div class="c-t">Suggestions</div><div class="cov-item"><p>A <b>female narration</b> pairs well with a wonder-driven tone for general audiences.</p></div><div class="cov-actions"><button class="mini-btn solid" data-note="Applied — narration locked">Apply</button></div>`; break;
+    case 0: c.innerHTML = `<div class="c-t">Studio notes <span class="rec-dot"></span></div><div class="cov-item"><p>Your answers cover audience, platform, length, and tone. One more signal would help: <b>any visual references</b>.</p></div><div class="cov-actions"><button class="mini-btn solid" data-note="Note applied - drafting brief">Apply</button><button class="mini-btn">Dismiss</button></div>`; break;
+    case 1: c.innerHTML = `<div class="c-t">Suggestions</div><div class="cov-item"><p>A <b>female narration</b> pairs well with a wonder-driven tone for general audiences.</p></div><div class="cov-actions"><button class="mini-btn solid" data-note="Applied - narration locked">Apply</button></div>`; break;
     case 2: c.innerHTML = `<div class="c-t">Factual score</div><div class="score-line"><span class="nm">Sourced</span><span class="val"><b>6</b>/6</span></div><div class="score-line"><span class="nm">Confidence</span><span class="val"><b>0.98</b></span></div><div class="score-line"><span class="nm">Unverified</span><span class="val"><b>0</b> claims</span></div>`; break;
     case 3:
       c.innerHTML = `<div class="c-t">Script scores · v3</div>` +
@@ -849,7 +849,7 @@ function coverageCards() {
         scoreLine("Retention", "4.2", 84) + scoreLine("Redundancy", "4.0", 80) + scoreLine("Factual", "3.9", 78, true) +
         `<div class="cov-actions"><button class="mini-btn solid" data-note="Regenerating script v4…">Regenerate</button></div>`;
       break;
-    case 4: c.innerHTML = `<div class="c-t">Consistency records</div><div class="cov-item"><p><b>Characters:</b> 1 (Narrator) — consistent across scenes.</p></div><div class="cov-item"><p><b>Locations:</b> void → galaxy web → solar system → Earth — continuity held.</p></div>`; break;
+    case 4: c.innerHTML = `<div class="c-t">Consistency records</div><div class="cov-item"><p><b>Characters:</b> 1 (Narrator) - consistent across scenes.</p></div><div class="cov-item"><p><b>Locations:</b> void → galaxy web → solar system → Earth - continuity held.</p></div>`; break;
     case 5: c.innerHTML = `<div class="c-t">Production coverage</div><div class="score-line"><span class="nm">Packs ready</span><span class="val"><b>6</b>/6</span></div><div class="score-line"><span class="nm">Transitions set</span><span class="val"><b>6</b>/6</span></div><div class="score-line"><span class="nm">Music cues set</span><span class="val"><b>6</b>/6</span></div><div class="score-line"><span class="nm">Runtime</span><span class="val"><b>00:04:30</b></span></div><div class="score-line"><span class="nm">Score</span><span class="val"><b>4.1</b></span></div><div class="ver-row current"><span class="v">SC 03 v2 · edited</span><span>21:55</span></div><div class="cov-item"><p>Scenes finalized, prompt packs set, crew sheet locked. Approve to export the plan package.</p></div>`; break;
     default: c.innerHTML = `<div class="c-t">Plan summary</div><div class="score-line"><span class="nm">Scenes</span><span class="val"><b>6</b></span></div><div class="score-line"><span class="nm">Runtime</span><span class="val"><b>00:04:30</b></span></div><div class="score-line"><span class="nm">Score</span><span class="val"><b>4.1</b></span></div><div class="cov-item"><p>Approve to export the plan package. Regeneration is available per scene.</p></div>`; break;
   }
@@ -879,7 +879,7 @@ function scoreLine(name, value, pct, amber) {
 function takeLogCard() {
   const c = el("div", "cov-card");
   c.innerHTML = `<div class="c-t">Take log</div>` +
-    `<div class="take-row"><span class="v">v4 · edited</span><span class="t-actions"><button class="mini-btn" data-take="Compared v4 — your edit kept">Compare</button></span></div>` +
+    `<div class="take-row"><span class="v">v4 · edited</span><span class="t-actions"><button class="mini-btn" data-take="Compared v4 - your edit kept">Compare</button></span></div>` +
     `<div class="take-row"><span class="v">v3 · AI</span><span class="t-actions"><button class="mini-btn" data-take="Variation generated from v3">Vary</button></span></div>` +
     `<div class="take-row"><span class="v">v2 · AI</span><span class="t-actions"><button class="mini-btn" data-take="Rolled back to v2">Rollback</button></span></div>`;
   c.querySelectorAll("[data-take]").forEach((b) => b.addEventListener("click", () => showToast(b.dataset.take)));
@@ -925,12 +925,12 @@ function bindBar() {
   });
   $("#dbInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#dbSend").click(); });
   document.querySelectorAll("[data-sug]").forEach((b) => b.addEventListener("click", () => showToast(`Routed to the studio: “${b.dataset.sug}”`)));
-  $("#dbChanges").addEventListener("click", () => showToast("Change request logged — the studio will revise."));
+  $("#dbChanges").addEventListener("click", () => showToast("Change request logged - the studio will revise."));
   $("#dbApprove").addEventListener("click", () => {
     const isFinal = stage === STAGES.length - 1;
     $("#dbApprove").textContent = "✓ Approved";
     $("#dbApprove").classList.add("stamped");
-    showToast(isFinal ? "Production plan approved — ready to export" : "Take approved — moving on");
+    showToast(isFinal ? "Production plan approved - ready to export" : "Take approved - moving on");
     setTimeout(() => {
       if (isFinal) { syncBar(); return; }
       jump(stage + 1);

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Slate — The Cutting Room · Complete system prototype</title>
+<title>Slate - The Cutting Room · Complete system prototype</title>
 <link rel="preconnect" href="https://api.fontshare.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -168,7 +168,7 @@
   .stage .vfb.br{bottom:6px;right:6px;border-bottom-color:var(--rec);border-right-color:var(--rec)}
   .stage:not(.live) .vfb{display:none}
   .stage.failed .st{color:var(--rec)}
-  .stage.failed .st::before{content:"RETAKE — ";color:var(--rec)}
+  .stage.failed .st::before{content:"RETAKE - ";color:var(--rec)}
 
   .ws-body{display:grid;grid-template-columns:1fr 320px;gap:0;margin-top:24px;padding-bottom:140px}
   .panel{background:var(--paper);color:#241f1b;border-radius:var(--radius);padding:40px 44px;min-height:520px}
@@ -314,7 +314,7 @@
   .score-line .bar i.amber{background:var(--tungsten)}
   .cov-list{border-top:1px solid var(--line-dark);padding:10px 0;font-size:12.5px;color:var(--paper-dim)}
   .cov-list li{list-style:none;padding:5px 0 5px 16px;position:relative}
-  .cov-list li::before{content:"—";position:absolute;left:0;color:var(--ash)}
+  .cov-list li::before{content:" - ";position:absolute;left:0;color:var(--ash)}
 
   /* conversation (discovery) */
   .chat{display:flex;flex-direction:column;gap:16px;margin-top:18px}
@@ -539,7 +539,7 @@
       </div>
     </div>
 
-    <div class="section-label">Projects — <span id="projectOwner" style="color:var(--tungsten)">Ava Chen</span> · latest takes <span id="projectCount" style="color:var(--ash)">(6)</span></div>
+    <div class="section-label">Projects - <span id="projectOwner" style="color:var(--tungsten)">Ava Chen</span> · latest takes <span id="projectCount" style="color:var(--ash)">(6)</span></div>
     <div class="grid" id="projectGrid"></div>
   </div>
 </section>
@@ -557,7 +557,7 @@
         <div class="cs-roll">ROLL 07</div>
       </div>
       <h1>Enter the cutting room</h1>
-      <div class="sub">Pick up where your last take left off. Entering as <b id="gateAsName">Ava Chen</b> — every project, scene, and score is waiting on your slate.</div>
+      <div class="sub">Pick up where your last take left off. Entering as <b id="gateAsName">Ava Chen</b> - every project, scene, and score is waiting on your slate.</div>
 
       <form class="auth-form" id="signinForm" onsubmit="return submitSignin(event)">
         <div class="field">
@@ -567,7 +567,7 @@
           </div>
         </div>
         <div class="field">
-          <label for="pw-si">Password <span class="hint" onclick="toast('Reset link queued — check your inbox.')">Forgot?</span></label>
+          <label for="pw-si">Password <span class="hint" onclick="toast('Reset link queued - check your inbox.')">Forgot?</span></label>
           <div class="in-wrap">
             <input type="password" id="pw-si" placeholder="••••••••••••" autocomplete="current-password" aria-label="Password">
             <button type="button" class="eye" onclick="togglePw('pw-si',this)" aria-label="Show password">SHOW</button>
@@ -578,7 +578,7 @@
 
       <div class="retake" id="retakeSi">
         <span class="rec-dot"></span>
-        <span>RETAKE — <b>Sign-in failed.</b> The email or password didn't match. Two attempts remain before the gate holds for 60s.</span>
+        <span>RETAKE - <b>Sign-in failed.</b> The email or password didn't match. Two attempts remain before the gate holds for 60s.</span>
       </div>
 
       <div class="cs-verify" id="verifySi">
@@ -600,7 +600,7 @@
       <div class="switch">First time on this set? <button onclick="setGate('signup')">Create an account</button></div>
 
       <div class="cs-foot">
-        <span class="tc">SESSION <b>—</b> · GATE 01</span>
+        <span class="tc">SESSION <b> - </b> · GATE 01</span>
         <span class="rec-live"><span class="rec-dot"></span> REC</span>
       </div>
     </div>
@@ -640,7 +640,7 @@
 
       <div class="retake" id="retakeSu">
         <span class="rec-dot"></span>
-        <span>RETAKE — <b>Sign-up incomplete.</b> That email is already rolling on this set. Try signing in instead.</span>
+        <span>RETAKE - <b>Sign-up incomplete.</b> That email is already rolling on this set. Try signing in instead.</span>
       </div>
 
       <div class="cs-verify" id="verifySu">
@@ -662,7 +662,7 @@
       <div class="switch">Already rolling? <button onclick="setGate('signin')">Sign in</button></div>
 
       <div class="cs-foot">
-        <span class="tc">SESSION <b>—</b> · GATE 00</span>
+        <span class="tc">SESSION <b> - </b> · GATE 00</span>
         <span class="rec-live"><span class="rec-dot"></span> REC</span>
       </div>
     </div>
@@ -707,7 +707,7 @@
       <div style="display:flex;align-items:center;gap:20px">
         <span class="tc" id="approveTc">TC 00:04:18 · REC ●</span>
         <div class="acts">
-          <button class="btn-stamp ghost" onclick="toast('Change request logged — the agent will revise.')">Request changes</button>
+          <button class="btn-stamp ghost" onclick="toast('Change request logged - the agent will revise.')">Request changes</button>
           <button class="btn-stamp primary" onclick="approve()">Approve &amp; continue →</button>
         </div>
       </div>
@@ -719,7 +719,7 @@
 
 <script>
 /* ================= STATE ================= */
-var currentStage = 5; // 0..5 — plan awaiting review by default (PANELS has 6 entries)
+var currentStage = 5; // 0..5 - plan awaiting review by default (PANELS has 6 entries)
 
 var STAGES = [
   { tc:"01 · 00:00:12", name:"Idea",      status:"Approved" },
@@ -730,12 +730,12 @@ var STAGES = [
   { tc:"06 · 00:04:05", name:"Production",status:"Awaiting review" },
 ];
 var APPROVE_NOTES = {
-  0:"<b>Discovery complete</b> — 3 clarifying questions answered. Approve to lock the creative brief.",
-  1:"<b>Brief ready</b> — topic, audience, style and runtime are set. Approve to begin research.",
-  2:"<b>Research packet ready</b> — timeline and sources compiled. Approve to move to the script.",
-  3:"<b>Script v3 scores 4.1</b> — above the 3.8 threshold. Approve to storyboard.",
-  4:"<b>6 scenes storyboarded</b> — drag to reorder, edit per scene. Approve to finalize the plan.",
-  5:"<b>Production ready</b> — scenes finalized, prompt packs set, crew sheet locked. Approve to export.",
+  0:"<b>Discovery complete</b> - 3 clarifying questions answered. Approve to lock the creative brief.",
+  1:"<b>Brief ready</b> - topic, audience, style and runtime are set. Approve to begin research.",
+  2:"<b>Research packet ready</b> - timeline and sources compiled. Approve to move to the script.",
+  3:"<b>Script v3 scores 4.1</b> - above the 3.8 threshold. Approve to storyboard.",
+  4:"<b>6 scenes storyboarded</b> - drag to reorder, edit per scene. Approve to finalize the plan.",
+  5:"<b>Production ready</b> - scenes finalized, prompt packs set, crew sheet locked. Approve to export.",
 };
 
 /* ================= AUTH + MULTI-USER (Clerk / ADR-023) ================= */
@@ -769,7 +769,7 @@ function renderProjectGrid(){
   $id('projectCount').textContent = '(' + mine.length + ')';
   var grid = $id('projectGrid');
   if(mine.length === 0){
-    grid.innerHTML = '<div class="empty" style="grid-column:1/-1">This reel is blank — no projects yet.<br><span style="text-transform:none;letter-spacing:.05em;color:#6d6557;display:inline-block;margin-top:8px">Multi-user isolation: ' + userOf(currentUser).name.split(' ')[0] + ' sees only their own projects — other users\' reels stay locked.</span></div>';
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1">This reel is blank - no projects yet.<br><span style="text-transform:none;letter-spacing:.05em;color:#6d6557;display:inline-block;margin-top:8px">Multi-user isolation: ' + userOf(currentUser).name.split(' ')[0] + ' sees only their own projects - other users\' reels stay locked.</span></div>';
     return;
   }
   grid.innerHTML = mine.map(function(p){
@@ -851,7 +851,7 @@ function setGate(mode){
 }
 
 function gateRetake(){
-  if(signedIn){ toast('Already signed in — sign out first.'); return; }
+  if(signedIn){ toast('Already signed in - sign out first.'); return; }
   gateState = 'error';
   applyGateState();
   syncGateBar();
@@ -866,19 +866,19 @@ function togglePw(id, btn){
 function submitSignin(e){
   e.preventDefault();
   gateState = 'loading'; applyGateState();
-  toast('Sign-in queued — verifying session with Clerk…');
+  toast('Sign-in queued - verifying session with Clerk…');
   setTimeout(function(){ completeSignIn(); }, 1400);
   return false;
 }
 function submitSignup(e){
   e.preventDefault();
   gateState = 'loading'; applyGateState();
-  toast('Account queued — spinning up your slate…');
+  toast('Account queued - spinning up your slate…');
   setTimeout(function(){ completeSignIn(); }, 1400);
   return false;
 }
 function oauthSignIn(provider){
-  toast(provider + ' OAuth — link opens (Clerk-hosted).');
+  toast(provider + ' OAuth - link opens (Clerk-hosted).');
   gateState = 'loading'; applyGateState();
   setTimeout(function(){ completeSignIn(); }, 1400);
 }
@@ -897,7 +897,7 @@ function signOut(){
   syncGateBar();
   showView('auth');
   setGate('signin');
-  toast('Signed out — session ended.');
+  toast('Signed out - session ended.');
 }
 function switchUser(id){
   currentUser = id;
@@ -906,9 +906,9 @@ function switchUser(id){
   syncGateBar();
   if(signedIn){
     renderProjectGrid();
-    toast('Switched user — showing ' + userOf(id).name.split(' ')[0] + '\'s projects (owner_id scoping).');
+    toast('Switched user - showing ' + userOf(id).name.split(' ')[0] + '\'s projects (owner_id scoping).');
   } else {
-    toast('Gate ready for ' + userOf(id).name + ' — sign in to open their slate.');
+    toast('Gate ready for ' + userOf(id).name + ' - sign in to open their slate.');
   }
 }
 function toggleUserMenu(e){
@@ -927,9 +927,9 @@ function panelIdea(){
     '<div class="chat">'+
       '<div class="msg user"><div class="who">You</div><div class="bubble">A documentary about the history of the universe.</div></div>'+
       '<div class="msg"><div class="who">Studio</div><div class="bubble">Love it. A few questions before I draft the brief:'+
-        '<ul><li>Who is this for — general audience, students, or enthusiasts?</li><li>Where will it live — YouTube, a course, social?</li><li>How long — under 3 minutes, 4–5, or longer?</li><li>Any visual style you lean toward — archival, cinematic, animated diagrams?</li></ul></div></div>'+
+        '<ul><li>Who is this for - general audience, students, or enthusiasts?</li><li>Where will it live - YouTube, a course, social?</li><li>How long - under 3 minutes, 4–5, or longer?</li><li>Any visual style you lean toward - archival, cinematic, animated diagrams?</li></ul></div></div>'+
       '<div class="msg user"><div class="who">You</div><div class="bubble">General audience on YouTube. 4–5 minutes. Cinematic, with a little wonder.</div></div>'+
-      '<div class="msg"><div class="who">Studio</div><div class="bubble">That gives me everything — drafting the brief now.</div></div>'+
+      '<div class="msg"><div class="who">Studio</div><div class="bubble">That gives me everything - drafting the brief now.</div></div>'+
     '</div>';
 }
 function panelBrief(){
@@ -954,12 +954,12 @@ function panelResearch(){
     '<p class="lead" style="margin-top:16px">The factual spine your script stands on. Drawn from the approved brief: <em>documentary, general audience, 4:30, wonder-driven.</em></p>'+
     '<h3>Timeline</h3>'+
     '<ul class="tl">'+
-      '<li><span class="t">13.8 bya</span>Big Bang — space and time begin</li>'+
+      '<li><span class="t">13.8 bya</span>Big Bang - space and time begin</li>'+
       '<li><span class="t">13.5 bya</span>First stars ignite in dark hydrogen</li>'+
       '<li><span class="t">13.1 bya</span>Galaxies assemble; the Milky Way forms</li>'+
       '<li><span class="t">4.6 bya</span>Our solar system condenses from a dust disk</li>'+
       '<li><span class="t">3.8 bya</span>Life appears on Earth</li>'+
-      '<li><span class="t">300 kya</span>Homo sapiens — the universe looks back at itself</li>'+
+      '<li><span class="t">300 kya</span>Homo sapiens - the universe looks back at itself</li>'+
     '</ul>'+
     '<h3>Key concepts</h3>'+
     '<div class="chip-row">'+
@@ -967,7 +967,7 @@ function panelResearch(){
       '<span class="score-chip">CMB radiation</span><span class="score-chip">Redshift</span><span class="score-chip">Observable universe</span>'+
     '</div>'+
     '<h3>Terminology</h3>'+
-    '<table class="term-table"><tr><td>redshift</td><td>light stretched by expanding space — a cosmic yardstick</td></tr>'+
+    '<table class="term-table"><tr><td>redshift</td><td>light stretched by expanding space - a cosmic yardstick</td></tr>'+
     '<tr><td>CMB</td><td>the afterglow of the Big Bang, detected 1965</td></tr>'+
     '<tr><td>inflation</td><td>the universe\'s brief, violent expansion in its first instant</td></tr></table>'+
     '<h3>References</h3>'+
@@ -980,12 +980,12 @@ function panelScript(){
     '<div class="script-edit">'+
       '<div class="script-title" contenteditable="true">The First Three Minutes</div>'+
       '<div class="script-meta">TITLE · v3 · 21:46</div>'+
-      '<div class="script-para" contenteditable="true">Every atom in your body was forged inside a star. Before that — nothing we can picture. This is the story of how the universe began, in the time it takes a kettle to boil.</div>'+
-      '<div class="script-para" contenteditable="true">Thirteen point eight billion years ago, all of it — every galaxy, every grain — was a point hotter than the sun\'s core. Then it expanded. Not an explosion into space: space itself stretching, cooling, becoming.</div>'+
-      '<div class="script-para" contenteditable="true">For the first three minutes, the universe was a furnace. Hydrogen fused into helium. When it cooled enough, matter stopped annihilating and started assembling — stars, galaxies, planets, us.</div>'+
-      '<div class="script-para" contenteditable="true">Four hundred million years later, the first stars switched on in the dark. Every heavy element in your coffee, your phone, your lungs — stardust, delivered by supernovae.</div>'+
+      '<div class="script-para" contenteditable="true">Every atom in your body was forged inside a star. Before that - nothing we can picture. This is the story of how the universe began, in the time it takes a kettle to boil.</div>'+
+      '<div class="script-para" contenteditable="true">Thirteen point eight billion years ago, all of it - every galaxy, every grain - was a point hotter than the sun\'s core. Then it expanded. Not an explosion into space: space itself stretching, cooling, becoming.</div>'+
+      '<div class="script-para" contenteditable="true">For the first three minutes, the universe was a furnace. Hydrogen fused into helium. When it cooled enough, matter stopped annihilating and started assembling - stars, galaxies, planets, us.</div>'+
+      '<div class="script-para" contenteditable="true">Four hundred million years later, the first stars switched on in the dark. Every heavy element in your coffee, your phone, your lungs - stardust, delivered by supernovae.</div>'+
       '<div class="script-para" contenteditable="true">On one rocky world, chemistry became biology, biology became awareness, and awareness turned back toward the sky. The universe, briefly, came to know itself.</div>'+
-      '<div class="script-para" contenteditable="true">We are not observers of the cosmos. We are a part of it — the part that wonders.</div>'+
+      '<div class="script-para" contenteditable="true">We are not observers of the cosmos. We are a part of it - the part that wonders.</div>'+
     '</div>';
 }
 function panelStoryboard(){
@@ -998,7 +998,7 @@ function panelStoryboard(){
       '<div class="scene-card" draggable="true" data-i="2"><div class="sc-top"><span class="sc-code">SC 03 · <b>00:45</b> · CUT</span><span class="chip" style="border-color:var(--line-paper);color:#5c554a">Approved</span></div><div class="sc-title">Galaxies Assemble</div><div class="sc-meta">Orbital drift · timelapse feel · brass swell</div></div>'+
       '<div class="scene-card" draggable="true" data-i="3"><div class="sc-top"><span class="sc-code">SC 04 · <b>00:40</b> · CUT</span><span class="chip" style="border-color:var(--line-paper);color:#5c554a">Approved</span></div><div class="sc-title">Our Solar System</div><div class="sc-meta">Tilt down from void to dust disk · piano</div></div>'+
       '<div class="scene-card" draggable="true" data-i="4"><div class="sc-top"><span class="sc-code">SC 05 · <b>00:38</b> · DISSOLVE</span><span class="chip" style="border-color:var(--line-paper);color:#5c554a">Approved</span></div><div class="sc-title">Life Looks Back</div><div class="sc-meta">Slow zoom to an eye, then sky · choir</div></div>'+
-      '<div class="scene-card" draggable="true" data-i="5"><div class="sc-top"><span class="sc-code">SC 06 · <b>00:37</b> · FADE</span><span class="chip" style="border-color:var(--rec);color:var(--rec)">Retake — music overlap</span></div><div class="sc-title">We Are Stardust</div><div class="sc-meta">Static wide · narration resolves · fade to paper</div></div>'+
+      '<div class="scene-card" draggable="true" data-i="5"><div class="sc-top"><span class="sc-code">SC 06 · <b>00:37</b> · FADE</span><span class="chip" style="border-color:var(--rec);color:var(--rec)">Retake - music overlap</span></div><div class="sc-title">We Are Stardust</div><div class="sc-meta">Static wide · narration resolves · fade to paper</div></div>'+
     '</div>';
 }
 function panelProduction(){
@@ -1009,20 +1009,20 @@ function panelProduction(){
     '<div class="plan-section"><h3>Scene editor · SC 03</h3>'+
     '<div class="field"><label>Title</label><input value="Galaxies Assemble"></div>'+
     '<div class="field"><label>Narration</label><textarea>Four hundred million years after the Bang, gravity pulled the first gas into spinning cities of light.</textarea></div>'+
-    '<div class="field"><label>Visual description</label><textarea>Orbital drift over assembling galaxies — filaments of gas, then points of light switching on across a dark web.</textarea></div>'+
+    '<div class="field"><label>Visual description</label><textarea>Orbital drift over assembling galaxies - filaments of gas, then points of light switching on across a dark web.</textarea></div>'+
     '<div class="field-row">'+
       '<div class="field"><label>Camera direction</label><input value="Slow orbital drift, 5° tilt"></div>'+
       '<div class="field"><label>Duration</label><input value="00:00:45"></div>'+
       '<div class="field"><label>Transition</label><select><option>CUT</option><option selected>DISSOLVE</option><option>FADE</option></select></div>'+
     '</div>'+
     '<div class="field"><label>Music cue</label><input value="Brass swell, low strings under narration"></div>'+
-    '<div class="adv" id="advToggle" onclick="toggleAdv()"><div class="sw"></div><div class="t">Advanced — prompt packs</div></div>'+
+    '<div class="adv" id="advToggle" onclick="toggleAdv()"><div class="sw"></div><div class="t">Advanced - prompt packs</div></div>'+
     '<div class="prompt-tabs">'+
       '<div class="tab-row">'+
         '<button class="tab active" onclick="tab(this,0)">Image</button><button class="tab" onclick="tab(this,1)">Video</button>'+
         '<button class="tab" onclick="tab(this,2)">Narration</button><button class="tab" onclick="tab(this,3)">Music</button><button class="tab" onclick="tab(this,4)">SFX</button>'+
       '</div>'+
-      '<div class="prompt-pane active"><div class="pp-label">Image prompt · SC 03</div><code>Filamentary galaxy web at z≈2, orbital camera drift, volumetric dust, warm tungsten key, 16:9, photoreal documentary grade — no text overlays.</code></div>'+
+      '<div class="prompt-pane active"><div class="pp-label">Image prompt · SC 03</div><code>Filamentary galaxy web at z≈2, orbital camera drift, volumetric dust, warm tungsten key, 16:9, photoreal documentary grade - no text overlays.</code></div>'+
       '<div class="prompt-pane"><div class="pp-label">Video prompt · SC 03</div><code>Slow orbital drift over assembling galaxies, 5° tilt, 45s, 24fps, depth-of-field pull from dust to light, no camera shake.</code></div>'+
       '<div class="prompt-pane"><div class="pp-label">Narration prompt · SC 03</div><code>Female, warm documentary register. Pace 145 wpm, wonder + restraint. 38s. Emphasis: "cities of light".</code></div>'+
       '<div class="prompt-pane"><div class="pp-label">Music prompt · SC 03</div><code>Low strings, brass swell at 0:22, resolve at 0:38. Key: D minor. No percussion in first half. Bed −18 LUFS.</code></div>'+
@@ -1043,9 +1043,9 @@ function panelProduction(){
     '<div class="plan-row"><span class="idx">SC 05</span><span class="nm">Life Looks Back</span><span class="ds">Slow zoom · 38s · DISSOLVE · choir</span></div>'+
     '<div class="plan-row"><span class="idx">SC 06</span><span class="nm">We Are Stardust</span><span class="ds">Static wide · 37s · FADE · resolve</span></div></div>'+
 
-    '<div class="plan-section"><h3>Crew sheet — consistency</h3>'+
+    '<div class="plan-section"><h3>Crew sheet - consistency</h3>'+
     '<div class="crew-grid">'+
-      '<div class="crew-card"><div class="k">Characters</div><div class="v">Narrator — unnamed, omniscient <small>· consistent voice</small></div></div>'+
+      '<div class="crew-card"><div class="k">Characters</div><div class="v">Narrator - unnamed, omniscient <small>· consistent voice</small></div></div>'+
       '<div class="crew-card"><div class="k">Locations</div><div class="v">Deep space (void), galaxy web, solar system, Earth at night</div></div>'+
       '<div class="crew-card"><div class="k">Editor</div><div class="v">Per-scene transitions + music cues, set on each scene\'s content</div></div>'+
     '</div></div>';
@@ -1056,11 +1056,11 @@ function coverageFor(stage){
   var c = '<div class="cov-card">';
   if(stage===0){
     c+='<div class="c-t">Live · Studio notes <span class="rec-dot"></span></div>'+
-      '<div class="cov-item"><p>Your answers cover audience, platform, length, and tone. One more signal would help: <b>any visual references</b>.</p><div class="cov-actions"><button class="mini-btn solid" onclick="toast(\'Note applied — drafting brief\')">Apply</button><button class="mini-btn">Dismiss</button></div></div>';
+      '<div class="cov-item"><p>Your answers cover audience, platform, length, and tone. One more signal would help: <b>any visual references</b>.</p><div class="cov-actions"><button class="mini-btn solid" onclick="toast(\'Note applied - drafting brief\')">Apply</button><button class="mini-btn">Dismiss</button></div></div>';
   } else if(stage===1){
     c+='<div class="c-t">Suggestions</div>'+
-      '<div class="cov-item"><p>A <b>female narration</b> pairs well with a wonder-driven tone for general audiences.</p><div class="cov-actions"><button class="mini-btn solid" onclick="toast(\'Applied — narration locked\')">Apply</button><button class="mini-btn">Dismiss</button></div></div>'+
-      '<div class="cov-item"><p>4:30 is the sweet spot for YouTube retention; <b>consider a cold open</b>.</p><div class="cov-actions"><button class="mini-btn solid" onclick="toast(\'Applied — cold open noted\')">Apply</button><button class="mini-btn">Dismiss</button></div></div>';
+      '<div class="cov-item"><p>A <b>female narration</b> pairs well with a wonder-driven tone for general audiences.</p><div class="cov-actions"><button class="mini-btn solid" onclick="toast(\'Applied - narration locked\')">Apply</button><button class="mini-btn">Dismiss</button></div></div>'+
+      '<div class="cov-item"><p>4:30 is the sweet spot for YouTube retention; <b>consider a cold open</b>.</p><div class="cov-actions"><button class="mini-btn solid" onclick="toast(\'Applied - cold open noted\')">Apply</button><button class="mini-btn">Dismiss</button></div></div>';
   } else if(stage===2){
     c+='<div class="c-t">Factual score</div>'+
       '<div class="score-line"><span class="nm">Sourced</span><span class="val"><b>6</b>/6</span></div>'+
@@ -1078,8 +1078,8 @@ function coverageFor(stage){
       '<div class="cov-actions" style="padding-top:10px"><button class="mini-btn solid" onclick="toast(\'Regenerating script v4…\')">Regenerate</button><button class="mini-btn">See notes</button></div>';
   } else if(stage===4){
     c+='<div class="c-t">Consistency records</div>'+
-      '<div class="cov-item"><p><b>Characters:</b> 1 (Narrator) — consistent across scenes.</p></div>'+
-      '<div class="cov-item"><p><b>Locations:</b> void → galaxy web → solar system → Earth — continuity held.</p></div>'+
+      '<div class="cov-item"><p><b>Characters:</b> 1 (Narrator) - consistent across scenes.</p></div>'+
+      '<div class="cov-item"><p><b>Locations:</b> void → galaxy web → solar system → Earth - continuity held.</p></div>'+
       '<div class="cov-item"><p><b>Editor:</b> SC 05→06 transition lands on the resolve; music swells cleared.</p></div>'+
       '<div class="cov-actions"><button class="mini-btn" onclick="toast(\'Suggesting a new transition…\')">Suggest transition</button></div>';
   } else if(stage===5){
@@ -1170,7 +1170,7 @@ function bindTabTriggers(){
 function toggleAdv(a){
   if(!a) a=document.getElementById('advToggle');
   a.classList.toggle('on');
-  if(a.classList.contains('on')) toast('Advanced — prompt packs revealed');
+  if(a.classList.contains('on')) toast('Advanced - prompt packs revealed');
 }
 function tab(btn,idx){
   var row=btn.parentNode;
@@ -1194,25 +1194,25 @@ function setState(s){
       '<h2>'+STAGES[currentStage].name+' is being written…</h2>'+
       '<div class="p-meta">agent running · tokens streaming to cache</div>'+
       '<div class="skeleton"><div class="sk l1"></div><div class="sk l2"></div><div class="sk l3"></div><div class="sk l2"></div></div>';
-    cov.innerHTML='<div class="cov-card"><div class="c-t">Agent status <span class="rec-dot"></span></div><div class="cov-item"><p>Planning agent on <b>nvidia-llama-3.3-70b</b> — drafting '+STAGES[currentStage].name.toLowerCase()+'.</p></div></div>';
+    cov.innerHTML='<div class="cov-card"><div class="c-t">Agent status <span class="rec-dot"></span></div><div class="cov-item"><p>Planning agent on <b>nvidia-llama-3.3-70b</b> - drafting '+STAGES[currentStage].name.toLowerCase()+'.</p></div></div>';
   } else if(s==='streaming'){
     el.innerHTML='<div class="p-eyebrow">Stage 0'+(currentStage+1)+' · '+STAGES[currentStage].name+' <span class="stamp">streaming</span></div>'+
       '<h2>'+STAGES[currentStage].name+'</h2>'+
       '<div class="p-meta">agent writing<span class="caret"></span></div>'+
-      '<p class="lead" style="margin-top:16px">The studio is drafting the first pass — '+
+      '<p class="lead" style="margin-top:16px">The studio is drafting the first pass - '+
       'the opening lands on the wonder of the first three minutes<span class="caret"></span></p>';
-    cov.innerHTML='<div class="cov-card"><div class="c-t">Live <span class="rec-dot"></span></div><div class="cov-item"><p>Streaming output to the panel. You can interrupt any time.</p><div class="cov-actions"><button class="mini-btn solid" onclick="toast(\'Generation interrupted — partial saved\')">Interrupt</button></div></div></div>';
+    cov.innerHTML='<div class="cov-card"><div class="c-t">Live <span class="rec-dot"></span></div><div class="cov-item"><p>Streaming output to the panel. You can interrupt any time.</p><div class="cov-actions"><button class="mini-btn solid" onclick="toast(\'Generation interrupted - partial saved\')">Interrupt</button></div></div></div>';
   } else if(s==='retake'){
     el.innerHTML='<div class="p-eyebrow">Stage 0'+(currentStage+1)+' · '+STAGES[currentStage].name+' <span class="stamp">failed</span></div>'+
       '<h2>'+STAGES[currentStage].name+' needs a retake</h2>'+
       '<div class="p-meta">provider 429 · retrying with backoff</div>'+
-      '<p class="lead" style="margin-top:16px">The studio hit a rate limit while generating. Nothing is lost — the partial draft is saved and we will resume automatically.</p>'+
-      '<div class="retake">RETAKE — rate limit hit (429) on provider call, retrying in 30s <button class="mini-btn solid" onclick="toast(\'Retrying now…\')">Retry now</button></div>';
+      '<p class="lead" style="margin-top:16px">The studio hit a rate limit while generating. Nothing is lost - the partial draft is saved and we will resume automatically.</p>'+
+      '<div class="retake">RETAKE - rate limit hit (429) on provider call, retrying in 30s <button class="mini-btn solid" onclick="toast(\'Retrying now…\')">Retry now</button></div>';
     cov.innerHTML='<div class="cov-card"><div class="c-t">Error</div><div class="cov-item"><p><b>code:</b> PROVIDER_429 · <b>stage:</b> '+STAGES[currentStage].name.toLowerCase()+' · partial draft saved.</p></div></div>';
   } else if(s==='empty'){
     el.innerHTML='<div class="p-eyebrow">No projects yet</div>'+
       '<h2>Start with an idea</h2>'+
-      '<p class="lead" style="margin-top:12px">Type a one-line idea on the dashboard and the studio handles the rest — research, script, storyboard, prompts.</p>'+
+      '<p class="lead" style="margin-top:12px">Type a one-line idea on the dashboard and the studio handles the rest - research, script, storyboard, prompts.</p>'+
       '<div style="margin-top:20px"><button class="mini-btn dark" onclick="showView(\'dash\')">← Back to idea input</button></div>';
     cov.innerHTML='<div class="cov-card"><div class="c-t">Empty state</div><div class="cov-item"><p>Designed: no projects yet → the dashboard invites the first idea.</p></div></div>';
   }
@@ -1239,7 +1239,7 @@ function beginProduction(){
   var v=document.getElementById('ideaInput').value.trim();
   if(v) document.getElementById('wsTitle').textContent=v;
   openProject(0);
-  toast('Production started — discovery running');
+  toast('Production started - discovery running');
 }
 function approve(){
   var b=document.querySelector('#approveBar .btn-stamp.primary');
@@ -1248,7 +1248,7 @@ function approve(){
   b.style.background='transparent';b.style.color='var(--paper)';b.style.borderColor='var(--line-dark)';
   var s=document.getElementById('stepper').querySelector('.stage.live');
   if(s){s.classList.remove('live');s.classList.add('approved');}
-  toast('Stage approved — moving on');
+  toast('Stage approved - moving on');
   setTimeout(function(){b.textContent=prev;b.style.background='';b.style.color='';b.style.borderColor='';},1600);
 }
 var toastTimer;
@@ -1260,7 +1260,7 @@ function toast(msg){
   toastTimer=setTimeout(function(){t.classList.remove('show');},1800);
 }
 
-/* init: global click delegation — stepper stages, demo-bar stage/state jumps */
+/* init: global click delegation - stepper stages, demo-bar stage/state jumps */
 document.addEventListener('click',function(e){
   // close the user menu on outside click
   if(!e.target.closest('.user-chip')) closeMenu();

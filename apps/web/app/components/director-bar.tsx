@@ -28,7 +28,7 @@ export function DirectorBar({
   const approve = () => {
     setStamped(true);
     onApprove();
-    showToast(isFinal ? "Production plan approved — ready to export" : "Take approved — moving on");
+    showToast(isFinal ? "Production plan approved - ready to export" : "Take approved - moving on");
     setTimeout(() => setStamped(false), 1600);
   };
 
@@ -53,7 +53,7 @@ export function DirectorBar({
               value={instruction}
               onChange={(e) => setInstruction(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
-              placeholder="Tell the studio what to change — “make scene 3 more dramatic”…"
+              placeholder="Tell the studio what to change - “make scene 3 more dramatic”…"
               aria-label="Director's instruction"
             />
             <button className="mini-btn solid" onClick={() => send()}>
@@ -63,7 +63,7 @@ export function DirectorBar({
           <div className="db-actions">
             <button
               className="btn-stamp ghost"
-              onClick={() => showToast("Change request logged — the studio will revise.")}
+              onClick={() => showToast("Change request logged - the studio will revise.")}
             >
               Request changes
             </button>

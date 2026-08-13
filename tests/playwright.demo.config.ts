@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-// DEMO-QUEUE smoke (demo-smoke.spec.ts) — a sibling of the main
+// DEMO-QUEUE smoke (demo-smoke.spec.ts) - a sibling of the main
 // playwright.config.ts that boots the SAME stack with DEMO_QUEUE=1 so the
 // demo's scripted journey (research gate → script 2/5 → retake → 4/5 →
 // approve → storyboard gate) runs as an automated smoke:
@@ -15,7 +15,7 @@ import { defineConfig } from "@playwright/test";
 // main E2E database, its FakeProvider queue position, or the auth run.
 const API_PORT = 4002;
 const DEMO_DATABASE_URL = "postgres://slate:slate@localhost:5432/slate_test_demo";
-// globalSetup reads E2E_DATABASE_URL (default slate_test_e2e) — point it at the
+// globalSetup reads E2E_DATABASE_URL (default slate_test_e2e) - point it at the
 // demo DB. globalSetup runs in this same process, after the config loads.
 process.env.E2E_DATABASE_URL = DEMO_DATABASE_URL;
 
@@ -24,7 +24,7 @@ export default defineConfig({
   testMatch: /demo-smoke\.spec\.ts/,
   globalSetup: "./global-setup.ts",
   // The demo queue is one FakeProvider instance shared by every request in the
-  // run — sequential execution keeps consumption deterministic.
+  // run - sequential execution keeps consumption deterministic.
   workers: 1,
   timeout: 90_000,
   use: {

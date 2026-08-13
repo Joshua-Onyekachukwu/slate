@@ -9,7 +9,7 @@ import type { AppDeps } from "../app";
 
 // Consolidated production plan (Task 10 contract): stage (checkpoint-derived),
 // productionPlanStatus, latest script, the ordered storyboard scenes, and the
-// consistency records (characters/locations) in ONE payload — the done view's
+// consistency records (characters/locations) in ONE payload - the done view's
 // single source of truth. Owner-scoped like every /api/v1 route.
 export async function productionPlanRoutes(app: FastifyInstance, deps: AppDeps) {
   app.get("/api/v1/projects/:id/production-plan", async (req, reply) => {

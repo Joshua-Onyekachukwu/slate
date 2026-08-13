@@ -4,7 +4,7 @@
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
-// --- Auth (Task 2, ADR-022/023) — Clerk session JWT attached when present ---
+// --- Auth (Task 2, ADR-022/023) - Clerk session JWT attached when present ---
 // Local/slice mode (no Clerk keys): bearerToken stays null and requests go out
 // bare, exactly as before (the E2E and zero-key demo run that way). Enforced
 // mode: AuthBridge installs a token gate and every /api/v1 request first awaits
@@ -12,7 +12,7 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000
 // hook verifies and scopes by owner_id.
 //
 // CLIENT-ONLY: this module's state is per-browser-tab. Do NOT import it from a
-// server component — module-level bearerToken would then persist across users
+// server component - module-level bearerToken would then persist across users
 // in the server process and could leak one user's token into another's SSR.
 let bearerToken: string | null = null;
 
@@ -23,7 +23,7 @@ let bearerToken: string | null = null;
 let tokenGate: Promise<string | null> | null = null;
 let tokenGateInstalled = false;
 
-// Installed by AuthBridge during its first render — before ANY component's
+// Installed by AuthBridge during its first render - before ANY component's
 // effect runs (renders complete before effects flush), so every request from
 // a page effect is guaranteed to wait for the token. Idempotent: StrictMode
 // double-renders call it twice with the same getToken.
@@ -34,7 +34,7 @@ export function installTokenGate(getToken: () => Promise<string | null>) {
     bearerToken = token;
     return token;
   });
-  // A failed load must not hang every future request — drop the gate and go
+  // A failed load must not hang every future request - drop the gate and go
   // bare rather than leave an unhandled rejection or a stuck promise.
   tokenGate.catch(() => {
     bearerToken = null;
@@ -68,7 +68,10 @@ export interface ProjectRow {
   status: string;
   brief: Brief | null;
   conversation: { role: "user" | "assistant"; content: string; at: string }[];
-  // Consistency records (crew sheet) — persisted after script approval.
+  // Interrupts the thread is currently paused at ("discovery_questions" while
+  // the planning agent interviews the user, gate values while awaiting review).
+  pendingGates?: string[];
+  // Consistency records (crew sheet) - persisted after script approval.
   characters: CharacterRecord[];
   locations: LocationRecord[];
   updatedAt: string;
@@ -85,7 +88,7 @@ export interface StageView {
   gate: { value: string } | null;
 }
 
-// GET /stages/:stage returns { project, stage, content } — stage is NESTED.
+// GET /stages/:stage returns { project, stage, content } - stage is NESTED.
 export interface StageDetail {
   project: { id: string; stage: string | undefined };
   stage: StageView;
@@ -150,7 +153,7 @@ export interface LocationRecord {
   description: string;
 }
 
-// Phase 3 Block 1/2 — a generated media asset (mirrors the API's `assets`
+// Phase 3 Block 1/2 - a generated media asset (mirrors the API's `assets`
 // rows). `meta.quality` carries the per-asset quality gate: { score 1–5, notes }.
 export type AssetKind = "image" | "video" | "voice" | "music";
 export type AssetStatus = "pending" | "generating" | "ready" | "failed";
@@ -182,13 +185,29 @@ export function assetQuality(asset: Asset): { score: number; notes: string[] } |
   return { score: q.score, notes: Array.isArray(q.notes) ? (q.notes as string[]) : [] };
 }
 
+// Phase 3 Block 4 - FFmpeg render/export. POST renders the LOCKED plan (stage
+// done) into an MP4; the row exposes the served file URLs (absolute /api/v1
+// paths, appended to API_URL by the player).
+export interface RenderRow {
+  id: string;
+  projectId: string;
+  status: "pending" | "rendering" | "ready" | "failed";
+  error: string | null;
+  mp4Url: string | null;
+  thumbnailUrl: string | null;
+  manifestUrl: string | null;
+  packageUrl: string | null;
+  meta: Record<string, unknown> | null;
+  createdAt: string;
+}
+
 interface ApiErrorBody {
   error: { code: string; message: string; details: Record<string, unknown> };
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   // Only send content-type when there's a body: Fastify rejects an empty body
-  // with content-type set ("Body cannot be empty") — e.g. the body-less
+  // with content-type set ("Body cannot be empty") - e.g. the body-less
   // POST .../prompts/regenerate. GETs don't send it either.
   // Enforced mode only: wait for the Clerk session token before firing.
   if (tokenGate) await tokenGate.catch(() => null);
@@ -213,8 +232,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  createProject(idea: string) {
-    return request<{ project: ProjectRow }>("/api/v1/projects", { method: "POST", body: JSON.stringify({ idea }) });
+  createProject(idea: string, mode?: string) {
+    return request<{ project: ProjectRow }>("/api/v1/projects", {
+      method: "POST",
+      body: JSON.stringify({ idea, ...(mode ? { mode } : {}) }),
+    });
   },
   listProjects() {
     return request<{ projects: ProjectRow[] }>("/api/v1/projects");
@@ -224,6 +246,13 @@ export const api = {
   },
   getStageDetail(id: string, stage = "script") {
     return request<StageDetail>(`/api/v1/projects/${id}/stages/${stage}`);
+  },
+  // Creative discovery - answer the planning agent's interview questions.
+  sendMessage(id: string, content: string) {
+    return request<{ ok: boolean }>(`/api/v1/projects/${id}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    });
   },
   approve(id: string, stage: string, approved: boolean, feedback?: string) {
     return request<{ project: { id: string; stage: string | undefined }; stage: StageView }>(
@@ -238,7 +267,7 @@ export const api = {
     );
   },
   getStoryboard(id: string) {
-    // null until the script is approved — the workspace handles it.
+    // null until the script is approved - the workspace handles it.
     return request<{ storyboard: StoryboardView | null }>(`/api/v1/projects/${id}/storyboard`);
   },
   reorderStoryboard(id: string, sceneIds: string[]) {
@@ -271,9 +300,9 @@ export const api = {
       { method: "PUT", body: JSON.stringify({ promptPack }) },
     );
   },
-  // Phase 3 Block 1/2 — per-scene media assets. Generation is synchronous with
+  // Phase 3 Block 1/2 - per-scene media assets. Generation is synchronous with
   // the fake provider; the quality gate rides in asset.meta.quality. A failed
-  // generation 502s but still PERSISTS a failed row — re-list to surface it.
+  // generation 502s but still PERSISTS a failed row - re-list to surface it.
   listAssets(projectId: string, sceneId: string) {
     return request<{ assets: Asset[] }>(`/api/v1/projects/${projectId}/scenes/${sceneId}/assets`);
   },
@@ -282,5 +311,13 @@ export const api = {
       `/api/v1/projects/${projectId}/scenes/${sceneId}/assets`,
       { method: "POST", body: JSON.stringify({ kind }) },
     );
+  },
+  // Phase 3 Block 4 - renders. POST renders the locked plan (stage done) into
+  // an MP4; list returns every take, newest first.
+  listRenders(projectId: string) {
+    return request<{ renders: RenderRow[] }>(`/api/v1/projects/${projectId}/renders`);
+  },
+  renderProject(projectId: string) {
+    return request<{ render: RenderRow }>(`/api/v1/projects/${projectId}/render`, { method: "POST" });
   },
 };

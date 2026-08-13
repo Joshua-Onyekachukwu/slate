@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-// Enforced-mode auth E2E (Task 2, ADR-022/023) — runs under
+// Enforced-mode auth E2E (Task 2, ADR-022/023) - runs under
 // playwright.auth.config.ts, which boots the API (:4001, STUB_AUTH=1) and web
 // (:3000, fake-but-well-formed Clerk keys so authEnabled=true) on the hermetic
 // slate_test_auth DB.
@@ -8,7 +8,7 @@ import { test, expect } from "@playwright/test";
 // The stub verifier (apps/api/src/auth.ts) maps "stub-token-a" → user_stub_a
 // and "stub-token-b" → user_stub_b; any other/missing token 401s. This proves
 // the full contract hermetic: 401 without a token, the app works WITH one, and
-// multi-user isolation (B can never see A's rows — 404, not 403).
+// multi-user isolation (B can never see A's rows - 404, not 403).
 const API = "http://localhost:4001";
 const TOKEN_A = "stub-token-a";
 const TOKEN_B = "stub-token-b";
@@ -52,7 +52,7 @@ test.describe("enforced auth mode", () => {
     expect(idsA).toContain(project.id);
 
     // B is isolated: B's list is empty and B's GET of A's project is a 404
-    // (never 403 — no existence leak, per api-design.md).
+    // (never 403 - no existence leak, per api-design.md).
     const listB = await request.get(`${API}/api/v1/projects`, {
       headers: { authorization: `Bearer ${TOKEN_B}` },
     });
@@ -67,7 +67,7 @@ test.describe("enforced auth mode", () => {
   });
 
   test("web: / is public, /studio redirects to /sign-in without a session", async ({ page }) => {
-    // The landing page is the public marketing face — it renders with no
+    // The landing page is the public marketing face - it renders with no
     // session (the studio moved from / to /studio; only the app is protected).
     await page.goto("/");
     await expect(page.getByRole("heading", { name: /type an idea/i })).toBeVisible();
@@ -78,7 +78,7 @@ test.describe("enforced auth mode", () => {
     await page.goto("/studio");
     await expect(page).toHaveURL(/\/sign-in$/);
 
-    // The Cutting Room auth card renders — brand + mode label (the shell is
+    // The Cutting Room auth card renders - brand + mode label (the shell is
     // plain HTML; Clerk's <SignIn/> never reaches the fake instance). Scoped to
     // the card: the nav brand also reads "slate", which would trip strict mode.
     await expect(page.getByText("sign in · cutting room")).toBeVisible();

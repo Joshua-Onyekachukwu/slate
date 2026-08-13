@@ -10,7 +10,7 @@ describe("FakeProvider", () => {
     const res = await p.complete({ messages: [{ role: "user", content: "hi" }], schema });
     expect(res.output).toEqual({ topic: "universe" });
   });
-  // Phase 3 Block 1 — media generation is deterministic and hash-stable: the
+  // Phase 3 Block 1 - media generation is deterministic and hash-stable: the
   // same prompt → the same fake URL, different prompts → different URLs.
   it("generates deterministic media artifacts (hash-stable per prompt)", async () => {
     const p = new FakeProvider([]);
@@ -31,7 +31,7 @@ describe("FakeProvider", () => {
     expect(music.url).toMatch(/^fake:\/\/music\//);
     expect(music.mimeType).toBe("audio/mpeg");
   });
-  // Phase 3 Block 2 — the per-asset quality gate is deterministic and bounded:
+  // Phase 3 Block 2 - the per-asset quality gate is deterministic and bounded:
   // same prompt → same score (retry idempotent), score within 1–5, notes set.
   it("scores every artifact deterministically (1–5, hash-stable)", async () => {
     const p = new FakeProvider([]);
@@ -45,6 +45,21 @@ describe("FakeProvider", () => {
     expect(c.quality?.score).toBeGreaterThanOrEqual(1); // every kind is scored
     expect(c.quality?.score).toBeLessThanOrEqual(5);
   });
+  it("returns real media URLs when media is configured (deterministic per prompt)", async () => {
+    const p = new FakeProvider([], {
+      image: ["https://cdn.example/a.jpg", "https://cdn.example/b.jpg"],
+      video: ["https://cdn.example/clip.mp4"],
+    });
+    const img = await p.generateImage({ prompt: "runner at dawn" });
+    expect(img.url).toMatch(/^https:\/\/cdn\.example\/(a|b)\.jpg$/);
+    const again = await p.generateImage({ prompt: "runner at dawn" });
+    expect(again.url).toBe(img.url); // same prompt → same asset (idempotent retry)
+    const video = await p.generateVideo({ prompt: "tracking shot", durationSeconds: 10 });
+    expect(video.url).toBe("https://cdn.example/clip.mp4");
+    // Kinds without a media list keep the deterministic fake:// reference.
+    const music = await p.generateMusic({ prompt: "low drone" });
+    expect(music.url).toMatch(/^fake:\/\/music\//);
+  });
   it("throws when the queue is exhausted", async () => {
     const p = new FakeProvider([]);
     await expect(p.complete({ messages: [{ role: "user", content: "hi" }], schema: z.object({}) })).rejects.toThrow(/no scripted response/i);
@@ -57,7 +72,7 @@ describe("FakeProvider", () => {
 });
 
 describe("NvidiaProvider media (Phase 3 Block 1)", () => {
-  // Media endpoints are NOT wired yet — every method must fail with the typed
+  // Media endpoints are NOT wired yet - every method must fail with the typed
   // NOT_SUPPORTED error so the API can persist a failed asset row explicitly.
   const p = new NvidiaProvider({ apiKey: "sk-test", model: "nvidia/llama-3.3-70b" });
   it("keeps the unverifiable media methods typed NOT_SUPPORTED (Block 3: image is real, the rest wait on NVIDIA hosting)", async () => {

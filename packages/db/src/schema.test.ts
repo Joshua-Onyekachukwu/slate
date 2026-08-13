@@ -7,7 +7,7 @@ import { ensureDatabase } from "./pg";
 
 // Hermetic DB: this suite DROPS all tables (incl. the drizzle journal) in
 // afterAll, so it must never share a database with the API tests or the E2E
-// boot — each suite gets its own (slate_test_schema / slate_test_api /
+// boot - each suite gets its own (slate_test_schema / slate_test_api /
 // slate_test_auth / slate_test_e2e).
 const TEST_URL = process.env.DB_TEST_URL ?? "postgres://slate:slate@localhost:5432/slate_test_schema";
 
@@ -20,7 +20,7 @@ describe("db schema", () => {
     await pool.query(`
       CREATE TABLE projects (
         id uuid PRIMARY KEY,
-        owner_id text NOT NULL, -- Clerk user id (user_...) — no local users table (ADR-023)
+        owner_id text NOT NULL, -- Clerk user id (user_...) - no local users table (ADR-023)
         idea text NOT NULL,
         title text,
         stage text NOT NULL DEFAULT 'discovery',
@@ -87,7 +87,7 @@ describe("db schema", () => {
   afterAll(async () => {
     // Restore the DB to pristine: drop the inline tables AND the drizzle journal
     // so a later drizzle-kit migrate re-applies cleanly. Without the journal drop,
-    // a migrate-then-test cycle would leave "journal says applied, tables gone" —
+    // a migrate-then-test cycle would leave "journal says applied, tables gone"  - 
     // the next migrate would skip and every query would fail with relation missing.
     await pool.query(`DROP TABLE IF EXISTS drizzle.__drizzle_migrations`);
     await pool.query(`DROP TABLE IF EXISTS assets, scenes, storyboards, scripts, projects CASCADE`);

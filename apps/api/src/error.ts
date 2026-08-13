@@ -7,9 +7,14 @@ export const ERROR_CODES = {
   CONFLICT: "CONFLICT",
   UNAUTHORIZED: "UNAUTHORIZED",
   INTERNAL: "INTERNAL",
-  // Phase 3 Block 1 — a media generation attempt failed at the provider layer
+  // Phase 3 Block 1 - a media generation attempt failed at the provider layer
   // (the failed asset row is persisted so the failure is visible + retryable).
   PROVIDER_FAILURE: "PROVIDER_FAILURE",
+  // Phase 3 Block 4 - FFmpeg render/export. RENDER_UNAVAILABLE = no ffmpeg
+  // binary on the host (501); RENDER_FAILED = ffmpeg ran but exited non-zero
+  // (502). The failed render row is persisted either way (retryable).
+  RENDER_UNAVAILABLE: "RENDER_UNAVAILABLE",
+  RENDER_FAILED: "RENDER_FAILED",
 } as const;
 
 export class ApiError extends Error {

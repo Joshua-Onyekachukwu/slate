@@ -19,7 +19,7 @@ declare module "fastify" {
 // getOwnedProject returns null for anything that isn't the caller's → 404.
 //
 // Local/slice mode (no verifyToken): req.userId stays "" and getOwnedProject
-// does NOT filter by owner — the zero-container demo and the E2E run exactly
+// does NOT filter by owner - the zero-container demo and the E2E run exactly
 // as before. Health is always public.
 
 export function requireUser(verifyToken: TokenVerifier) {
@@ -38,7 +38,7 @@ export function requireUser(verifyToken: TokenVerifier) {
 
 // Load a project IF the caller may see it. userId "" (local mode) skips the
 // owner check; otherwise cross-user access returns null → callers 404 (never
-// 403 — avoids leaking existence, per api-design.md).
+// 403 - avoids leaking existence, per api-design.md).
 //
 // Postgres uuid PK: a non-uuid id ("nope") would be a type-cast error → 500,
 // not a miss. Validate the shape first so garbage ids 404 like any other

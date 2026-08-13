@@ -19,12 +19,12 @@ describe("NvidiaProvider", () => {
     await expect(p.complete({ messages: [], schema: z.object({}) })).rejects.toMatchObject({ code: "RATE_LIMITED" });
   });
 
-  // ===== Phase 3 Block 3 — real NVIDIA media endpoints =====
+  // ===== Phase 3 Block 3 - real NVIDIA media endpoints =====
   // Image generation goes through the OpenAI-compatible /images/generations
   // surface NVIDIA hosts on Build (documented NIM contract); the response is
   // either b64_json (default) or a url. Video/voice/music stay NOT_SUPPORTED:
   // NVIDIA's TTS is a gRPC service (grpc.nvcf.nvidia.com, approval-gated), and
-  // no OpenAI-compatible video/music endpoint is verifiable on Build yet —
+  // no OpenAI-compatible video/music endpoint is verifiable on Build yet  - 
   // fabricated contracts would be defects.
 
   function stubFetch(results: unknown[]) {
@@ -33,6 +33,32 @@ describe("NvidiaProvider", () => {
     vi.stubGlobal("fetch", fn);
     return fn;
   }
+
+  it("generateVideo stays NOT_SUPPORTED without a configured NIM endpoint", async () => {
+    const p = new NvidiaProvider({ apiKey: "k", model: "m" });
+    await expect(p.generateVideo({ prompt: "a runner" })).rejects.toMatchObject({ code: "NOT_SUPPORTED" });
+  });
+
+  it("generateVideo posts to a self-hosted NIM and polls until the video is ready", async () => {
+    const fetchMock = stubFetch([
+      // POST /videos/generations → { id }
+      { ok: true, json: async () => ({ id: "vid_1" }) },
+      // GET /videos/vid_1 → still running
+      { ok: true, json: async () => ({ status: "running" }) },
+      // GET /videos/vid_1 → done with a video URL
+      { ok: true, json: async () => ({ status: "done", video: { url: "http://nim.local/v.mp4" } }) },
+    ]);
+    const p = new NvidiaProvider({
+      apiKey: "k", model: "m",
+      videoModel: "wan-2.2-7b", videoEndpoint: "http://localhost:8000/v1", videoPollMs: 1,
+    });
+    const artifact = await p.generateVideo({ prompt: "a runner at dawn" });
+    expect(artifact).toMatchObject({ url: "http://nim.local/v.mp4", mimeType: "video/mp4" });
+    const [startUrl, startInit] = fetchMock.mock.calls[0];
+    expect(startUrl).toBe("http://localhost:8000/v1/videos/generations");
+    expect((startInit as RequestInit).body).toContain("a runner at dawn");
+    expect(fetchMock.mock.calls[2][0]).toBe("http://localhost:8000/v1/videos/vid_1");
+  });
 
   it("generateImage posts to /images/generations and parses b64_json into a data-URI artifact", async () => {
     const fetchMock = stubFetch([

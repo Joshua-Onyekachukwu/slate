@@ -4,10 +4,10 @@ import { SignIn, SignUp } from "@clerk/nextjs";
 
 // Auth is env-gated (ADR-022/023): the SERVER pages decide `enabled` (both
 // Clerk keys present, same source of truth as layout.tsx) and pass it in.
-// Without keys we render a note so visiting /sign-in never crashes —
+// Without keys we render a note so visiting /sign-in never crashes  - 
 // ClerkProvider and <SignIn/> would throw.
 
-// Cutting Room appearance — map the approved token sheet (globals.css) onto
+// Cutting Room appearance - map the approved token sheet (globals.css) onto
 // Clerk's components: dark surface, tungsten primary, 2px radius, mono accents.
 const clerkAppearance = {
   variables: {
@@ -52,7 +52,7 @@ export function AuthScreen({ mode, enabled }: { mode: "sign-in" | "sign-up"; ena
           <Comp appearance={clerkAppearance} />
         ) : (
           <p className="auth-note">
-            Auth isn&apos;t configured yet — add{" "}
+            Auth isn&apos;t configured yet - add{" "}
             <code>NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code> and{" "}
             <code>CLERK_SECRET_KEY</code> to <code>.env</code> to enable sign-in.
           </p>

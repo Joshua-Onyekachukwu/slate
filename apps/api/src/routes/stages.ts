@@ -6,7 +6,7 @@ import { sendError, ApiError, ERROR_CODES } from "../error";
 import { getOwnedProject } from "../hooks";
 import type { AppDeps } from "../app";
 
-// Stage payload shape per api-design.md "Stage approve / regenerate — exact contract".
+// Stage payload shape per api-design.md "Stage approve / regenerate - exact contract".
 interface StageView {
   key: string;
   status: "idle" | "running" | "awaiting_review" | "approved" | "failed";
@@ -73,7 +73,7 @@ export async function stageRoutes(app: FastifyInstance, deps: AppDeps) {
     if (!row) throw new ApiError(ERROR_CODES.NOT_FOUND, 404, "project not found");
     const graph = buildApiWorkflow(deps.provider, deps.checkpointer);
     const cp = await readCheckpoint(graph, id);
-    // 409 unless THIS gate is the one paused — resuming while paused elsewhere
+    // 409 unless THIS gate is the one paused - resuming while paused elsewhere
     // would silently apply this gate's decision to the wrong stage.
     if (!cp.pendingGates.includes(gateValue)) {
       sendError(reply, ERROR_CODES.CONFLICT, 409, `no pending ${gateValue} interrupt`);

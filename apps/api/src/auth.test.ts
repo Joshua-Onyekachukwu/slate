@@ -22,7 +22,7 @@ const fakeVerify = (map: Record<string, string>) => async (token: string) => {
   return { userId };
 };
 
-describe("makeStubVerifyToken — the STUB_AUTH=1 verifier the auth E2E boots", () => {
+describe("makeStubVerifyToken - the STUB_AUTH=1 verifier the auth E2E boots", () => {
   it("maps the fixed E2E tokens to their user ids", async () => {
     const verify = makeStubVerifyToken();
     await expect(verify("stub-token-a")).resolves.toEqual({ userId: "user_stub_a" });
@@ -35,7 +35,7 @@ describe("makeStubVerifyToken — the STUB_AUTH=1 verifier the auth E2E boots", 
   });
 });
 
-describe("auth — Clerk-style multi-user isolation (ADR-022/023)", () => {
+describe("auth - Clerk-style multi-user isolation (ADR-022/023)", () => {
   let checkpointer: PostgresSaver;
   beforeAll(async () => {
     await ensureDatabase(TEST_URL); // hermetic per-suite DB (slate_test_auth)
@@ -83,7 +83,7 @@ describe("auth — Clerk-style multi-user isolation (ADR-022/023)", () => {
     expect(res.statusCode).toBe(401);
   });
 
-  it("returns 404 when user B opens user A's project (never 403 — no existence leak)", async () => {
+  it("returns 404 when user B opens user A's project (never 403 - no existence leak)", async () => {
     const app = appFor({ "tok-a": "user_a", "tok-b": "user_b" });
     const created = await app.inject({
       method: "POST", url: "/api/v1/projects",
@@ -144,7 +144,7 @@ describe("auth — Clerk-style multi-user isolation (ADR-022/023)", () => {
     const storyboard = (await app.inject({ method: "GET", url: `/api/v1/projects/${pid}/storyboard`, headers: bearer("tok-a") })).json().storyboard;
     const sceneId = storyboard.scenes[0].id as string;
 
-    // B gets 404 — never 403, never data — on every owner-scoped route.
+    // B gets 404 - never 403, never data - on every owner-scoped route.
     const routes: { method: "GET" | "PUT" | "POST"; url: string; payload?: Record<string, unknown> }[] = [
       { method: "GET", url: `/api/v1/projects/${pid}` },
       { method: "GET", url: `/api/v1/projects/${pid}/storyboard` },
@@ -156,10 +156,15 @@ describe("auth — Clerk-style multi-user isolation (ADR-022/023)", () => {
       { method: "PUT", url: `/api/v1/projects/${pid}/scenes/${sceneId}/prompts`, payload: { promptPack: PACK } },
       { method: "POST", url: `/api/v1/projects/${pid}/scenes/${sceneId}/prompts/regenerate` },
       { method: "POST", url: `/api/v1/projects/${pid}/stages/storyboard/approve`, payload: { approved: true } },
-      // Phase 3 Block 1 — the per-scene assets routes are owner-gated the same
+      // Phase 3 Block 1 - the per-scene assets routes are owner-gated the same
       // way (POST would otherwise 502 on a real provider; both must 404 first).
       { method: "GET", url: `/api/v1/projects/${pid}/scenes/${sceneId}/assets` },
       { method: "POST", url: `/api/v1/projects/${pid}/scenes/${sceneId}/assets`, payload: { kind: "image" } },
+      // Phase 3 Block 4 - the render routes are owner-gated the same way (POST
+      // would otherwise 409/501 on a real renderer; all must 404 first).
+      { method: "POST", url: `/api/v1/projects/${pid}/render` },
+      { method: "GET", url: `/api/v1/projects/${pid}/renders` },
+      { method: "GET", url: `/api/v1/renders/${pid}/00000000-0000-0000-0000-000000000000/out.mp4` },
     ];
     for (const r of routes) {
       const res = await app.inject({ method: r.method, url: r.url, payload: r.payload, headers: bearer("tok-b") });
@@ -179,7 +184,7 @@ describe("auth — Clerk-style multi-user isolation (ADR-022/023)", () => {
     expect(health.statusCode).toBe(200);
 
     // Preflight (OPTIONS, no Authorization) must be answered by CORS, not 401'd
-    // by auth — otherwise cross-origin calls break in enforced mode.
+    // by auth - otherwise cross-origin calls break in enforced mode.
     const preflight = await app.inject({
       method: "OPTIONS", url: "/api/v1/projects",
       headers: { origin: "http://localhost:3000", "access-control-request-method": "GET" },
